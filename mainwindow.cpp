@@ -115,8 +115,8 @@ void MainWindow::setupBoardView(void)
             x = CUBE_WIDTH * col + X_PAD + GRID_WIDTH;
             y = CUBE_WIDTH * row + Y_PAD + GRID_WIDTH;
             cell_bg = pixmap.copy(x, y,
-                                  CUBE_WIDTH - GRID_WIDTH * 2,
-                                  CUBE_WIDTH - GRID_WIDTH * 2);
+                                  CUBE_WIDTH - GRID_WIDTH,
+                                  CUBE_WIDTH - GRID_WIDTH);
 
             CubeCellItem *item;
 
@@ -131,8 +131,8 @@ void MainWindow::setupBoardView(void)
 
     /* White item */
     CubeCellItem *white_cell;
-    QPixmap bg(CUBE_WIDTH - GRID_WIDTH * 2,
-               CUBE_WIDTH - GRID_WIDTH * 2);
+    QPixmap bg(CUBE_WIDTH - GRID_WIDTH,
+               CUBE_WIDTH - GRID_WIDTH);
 
     row = ROW_SIZE - 1;
     col = COL_SIZE - 1;
@@ -141,7 +141,8 @@ void MainWindow::setupBoardView(void)
     white_cell = new CubeCellItem(bg);
     white_cell->setPos(CUBE_WIDTH * col + X_PAD + GRID_WIDTH,
                        CUBE_WIDTH * row + Y_PAD + GRID_WIDTH);
-    white_cell->setOriginalCubePos(row, col);
+    white_cell->setOriginalCubePos(-1, -1);
+    white_cell->setCubePos(row, col);
 
     b_scene->addItem(white_cell);
     b_items[row][col] = white_cell;
@@ -187,7 +188,7 @@ void MainWindow::setupBoardView(void)
             MASK_CURRENT_MAP[r][c] = 1;
             nx = CUBE_WIDTH * c + X_PAD + GRID_WIDTH;
             ny = CUBE_WIDTH * r + Y_PAD + GRID_WIDTH;
-            b_items[row][col]->setOriginalCubePos(r, c);
+            b_items[row][col]->setCubePos(r, c);
             b_items[row][col]->setPos(nx, ny);
 
             //qDebug() << "Move item[" << row << "][" << col << "] to: "

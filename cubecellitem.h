@@ -1,15 +1,12 @@
 #ifndef CUBECELLITEM_H
 #define CUBECELLITEM_H
 
-#include <QRectF>
-#include <QObject>
 #include <QPoint>
 #include <QPixmap>
 #include <QGraphicsItem>
 
 class CubeCellItem : public QGraphicsItem
 {
-//Q_OBJECT
 public:
     explicit CubeCellItem(QGraphicsItem *parent = 0);
     CubeCellItem(const QPixmap &pixmap);
@@ -35,10 +32,8 @@ public:
     }
 
 protected:
-#if 0
     void mousePressEvent(QGraphicsSceneMouseEvent *event);
     void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
-#endif
     void mouseReleaseEvent(QGraphicsSceneMouseEvent *event);
 
 signals:

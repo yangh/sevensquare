@@ -32,9 +32,18 @@ void CubeCellItem::paint(QPainter *painter,
     painter->drawPixmap(pixmap.rect(), pixmap);
 }
 
+void CubeCellItem::mousePressEvent(QGraphicsSceneMouseEvent *event)
+{
+    //qDebug() << "Item pressed: " << curr_pos;
+}
+
+void CubeCellItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
+{
+    //qDebug() << "Item moveded: " << curr_pos;
+}
+
 void CubeCellItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 {
-    //emit Clicked(curr_pos);
-
-    qDebug() << "Item clicked: " << curr_pos;
+    qDebug() << "Item clicked, curr pos: " << curr_pos
+            << ", orig pos: " << orig_pos;
 }
