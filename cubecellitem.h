@@ -36,11 +36,6 @@ protected:
     void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
     void mouseReleaseEvent(QGraphicsSceneMouseEvent *event);
 
-signals:
-    //void Clicked(QPoint curr_pos);
-
-public slots:
-
 private:
     QPixmap pixmap;
     QPoint orig_pos;

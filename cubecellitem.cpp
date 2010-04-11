@@ -10,7 +10,6 @@ CubeCellItem::CubeCellItem(QGraphicsItem *parent)
 CubeCellItem::CubeCellItem(const QPixmap &pixmap) :
         pixmap(pixmap)
 {
-    qDebug() << "New item: " << &pixmap;
 }
 
 QRectF CubeCellItem::boundingRect() const
@@ -44,6 +43,6 @@ void CubeCellItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 
 void CubeCellItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 {
-    qDebug() << "Item clicked, curr pos: " << curr_pos
-            << ", orig pos: " << orig_pos;
+    //qDebug() << "Item clicked, curr pos: " << curr_pos
+    //        << ", orig pos: " << orig_pos;
 }

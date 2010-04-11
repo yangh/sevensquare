@@ -3,22 +3,8 @@
 
 #include <QMainWindow>
 #include <QGraphicsView>
-#include <QGraphicsScene>
-#include <QGraphicsItem>
 
-#include "cubecellitem.h"
-
-#define ROW_SIZE 3
-#define COL_SIZE 5
-#define CUBE_WIDTH 60
-#define X_PAD ((320 - 60 * COL_SIZE)/2)
-#define Y_PAD ((240 - 60 * ROW_SIZE)/2)
-
-#define GRID_COLOR 120, 120, 120
-#define GRID_WIDTH 1
-#define WHITE_CELL_COLOR "White"
-
-#define THUMNAIL_X_PAD 6
+#include "cubescene.h"
 
 namespace Ui {
     class MainWindow;
@@ -39,9 +25,7 @@ private:
     void setupBoardView(void);
 
     QGraphicsView   *b_view;
-    QGraphicsScene  *b_scene;
-    CubeCellItem    *b_items[ROW_SIZE][COL_SIZE];
-    QGraphicsItem   *b_bg;
+    CubeScene       *b_scene;
 };
 
 #endif // MAINWINDOW_H
