@@ -18,6 +18,8 @@
 #define GRID_WIDTH 1
 #define WHITE_CELL_COLOR "White"
 
+#define THUMNAIL_X_PAD 6
+
 namespace Ui {
     class MainWindow;
 }

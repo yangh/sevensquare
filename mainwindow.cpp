@@ -75,6 +75,26 @@ void MainWindow::setupBoardView(void)
     pixmap.load (BACKGROUND_FILE, 0);
     b_bg = b_scene->addPixmap(pixmap);
 
+    /* Thumnail of image */
+    int tw, th;
+    QPixmap nail_bg;
+    CubeCellItem *nail_cell;
+
+    tw = CUBE_WIDTH - THUMNAIL_X_PAD * 2;
+    th = pixmap.height() * tw / pixmap.width();
+    nail_bg = pixmap.scaled(QSize(tw, th),
+                            Qt::IgnoreAspectRatio,
+                            Qt::SmoothTransformation);
+    nail_cell = new CubeCellItem(nail_bg);
+
+    int tx, ty;
+    tx = CUBE_WIDTH * (COL_SIZE - 1) + THUMNAIL_X_PAD + X_PAD;
+    ty = CUBE_WIDTH * (ROW_SIZE - 2) + (CUBE_WIDTH - th) / 2 + Y_PAD;
+    qDebug() << "Draw thumnail at: " << tx << ", " << ty;
+    nail_cell->setPos(tx, ty);
+
+    b_scene->addItem(nail_cell);
+
     /* Draw grid */
 
     QPen grid_pen;
