@@ -1,3 +1,4 @@
+#include <QSize>
 #include <QPoint>
 
 #include "mainwindow.h"
@@ -8,7 +9,12 @@ MainWindow::MainWindow(QWidget *parent) :
     b_view = new QGraphicsView(this);
     b_scene = new CubeScene(this);
 
-    resize (CUBE_WIDTH + 2, CUBE_HEIGHT + 2);
+    /* FIXME: Fixed window size, maybe no suite for individual device. */
+    QSize size(CUBE_WIDTH + 4, CUBE_HEIGHT + 4);
+    resize (size);
+    setMinimumSize(size);
+    setMaximumSize(size);
+
     setCentralWidget (b_view);
 
     b_view->setScene(b_scene);

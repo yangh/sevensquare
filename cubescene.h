@@ -1,6 +1,7 @@
 #ifndef CUBESCENE_H
 #define CUBESCENE_H
 
+#include <QString>
 #include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
 
@@ -9,13 +10,15 @@
 #define CUBE_WIDTH 320
 #define CUBE_HEIGHT 240
 
-#define ROW_SIZE 3
-#define COL_SIZE 5
-
 #define CELL_WIDTH 60
 
-#define X_PAD ((CUBE_WIDTH - 60 * COL_SIZE)/2)
-#define Y_PAD ((CUBE_HEIGHT - 60 * ROW_SIZE)/2)
+#define MIN_PAD 15
+
+#define ROW_SIZE ((CUBE_HEIGHT - MIN_PAD) / CELL_WIDTH)
+#define COL_SIZE ((CUBE_WIDTH - MIN_PAD) / CELL_WIDTH)
+
+#define X_PAD ((CUBE_WIDTH - CELL_WIDTH * COL_SIZE)/2)
+#define Y_PAD ((CUBE_HEIGHT - CELL_WIDTH * ROW_SIZE)/2)
 
 #define GRID_COLOR 120, 120, 120
 #define GRID_WIDTH 1
@@ -32,12 +35,14 @@
 #define STARTBUTTON_CELL_POS -3
 #define STARTBUTTON_CELL_IDX (STARTBUTTON_CELL_POS * 2)
 
+#define BACKGROUND_FILE "gnu_tux-320x240.png"
+
 class CubeScene : public QGraphicsScene
 {
 public:
     CubeScene(QObject * parent = 0);
 
-    void initialize (const char *image_file = 0);
+    void initialize (const QString &image_file = "");
 
     void startPlay(void);
 

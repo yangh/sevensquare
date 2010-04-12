@@ -1,17 +1,17 @@
+#include <QtGui/QApplication>
 #include <QGraphicsRectItem>
 #include <QPainter>
 #include <QBrush>
 #include <QPen>
 #include <QColor>
 #include <QPixmap>
+#include <QStringList>
 #include <QDebug>
 
 #include <stdlib.h>
 #include <time.h>
 
 #include "cubescene.h"
-
-#define BACKGROUND_FILE "./gnu_tux-320x240.png"
 
 static const short int MASK_MAP[ROW_SIZE][COL_SIZE] = {
     { 1, 1, 1, 1, 0 },
@@ -48,25 +48,34 @@ CubeScene::CubeScene(QObject * parent) :
         }
     }
 
-    const char * bg = getenv("SQ_BG");
+    QStringList argv = qApp->arguments();
 
-    initialize (bg == NULL ? BACKGROUND_FILE : bg);
+    if (argv.length() > 1) {
+        qDebug() << "Load image from command line argument: " << argv[1];
+        initialize (argv[1]);
+    } else {
+        const char * bg = getenv("SQ_BG");
+        QString file(bg == NULL ? BACKGROUND_FILE : bg);
+
+        qDebug() << "Load image from: " << file;
+        initialize (file);
+    }
 }
 
-void CubeScene::initialize (const char *image_file)
+void CubeScene::initialize (const QString &image_file)
 {
     int row, col;
     QPixmap pixmap;
 
     qDebug() << "Scene initialize.";
 
-    /* TODO: Load default background file if @image_file is null. */
     pixmap.load (image_file, 0);
 
     setBackgroundBrush(QBrush(pixmap));
 
-    bg_mask = new QGraphicsRectItem(QRectF(0, 0, CUBE_WIDTH, CUBE_HEIGHT));
+    bg_mask = new QGraphicsRectItem(QRectF(0, 0, CUBE_WIDTH + 1, CUBE_HEIGHT + 1));
     bg_mask->setBrush(QBrush(QColor(0, 0, 0, 135)));
+    bg_mask->setPen(Qt::NoPen);
     bg_mask->setZValue(1); /* lay in the bottom */
 
     addItem(bg_mask);
@@ -129,11 +138,13 @@ void CubeScene::initialize (const char *image_file)
     grid_pen.setColor(QColor(GRID_COLOR));
     grid_pen.setWidth(GRID_WIDTH);
 
-    for (col = 0; col < COL_SIZE; col++) {
+    for (col = 0; col < COL_SIZE - 1; col++) {
         for (row = 0; row < ROW_SIZE; row++) {
+#if 0
             if (! MASK_MAP[row][col]) {
                 continue;
             }
+#endif
 
             QGraphicsRectItem *item;
 
@@ -141,13 +152,27 @@ void CubeScene::initialize (const char *image_file)
                     CELL_WIDTH * col + X_PAD,
                     CELL_WIDTH * row + Y_PAD,
                     CELL_WIDTH, CELL_WIDTH));
-            item->setBrush(QBrush(QColor(255, 255, 255, 235), Qt::Dense5Pattern));
+            item->setBrush(QBrush(QColor(255, 255, 255, 235), Qt::Dense6Pattern));
             item->setPen(grid_pen);
             item->setZValue(3); /* lay in the bottom */
 
             addItem(item);
         }
     }
+
+    QGraphicsRectItem *item;
+
+    row = ROW_SIZE - 1;
+    col = COL_SIZE - 1;
+    item = new QGraphicsRectItem(QRectF(
+            CELL_WIDTH * col + X_PAD,
+            CELL_WIDTH * row + Y_PAD,
+            CELL_WIDTH, CELL_WIDTH));
+    item->setBrush(QBrush(QColor(255, 255, 255, 235), Qt::Dense6Pattern));
+    item->setPen(grid_pen);
+    item->setZValue(3); /* lay in the bottom */
+
+    addItem(item);
 
     /* Initialize cell with background */
 
@@ -230,7 +255,6 @@ void CubeScene::startPlay(void)
     time_t t = time(NULL);
     srand (t);
 
-    int n = 0;
     for (col = 0; col < (COL_SIZE - 1); col++) {
         for (row = 0; row < ROW_SIZE; row++) {
             int nx, ny;
@@ -368,7 +392,7 @@ void CubeScene::checkAllCell(void)
 
     qDebug() << "Finished " << n << " cells";
 
-    if (n == 11) {
+    if (n == ((COL_SIZE - 1) * ROW_SIZE) - 1) {
         qDebug() << "You win!";
         setBgVisible(FALSE);
     }
@@ -394,7 +418,6 @@ void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
      item = itemAt(event->scenePos());
      cell =  dynamic_cast<CubeCellItem *>(item);
      if (!cell) {
-         setBgVisible (!getBgVisible()); /* color egg */
          return;
      }
 
