@@ -13,4 +13,3 @@ SOURCES += main.cpp \
 HEADERS += mainwindow.h \
     cubecellitem.h \
     cubescene.h
-FORMS += mainwindow.ui

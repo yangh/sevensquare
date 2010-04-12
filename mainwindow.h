@@ -20,10 +20,6 @@ protected:
     void changeEvent(QEvent *e);
 
 private:
-    Ui::MainWindow *ui;
-
-    void setupBoardView(void);
-
     QGraphicsView   *b_view;
     CubeScene       *b_scene;
 };

@@ -1,18 +1,24 @@
+#include <QPoint>
+
 #include "mainwindow.h"
-#include "ui_mainwindow.h"
 
 MainWindow::MainWindow(QWidget *parent) :
-    QMainWindow(parent),
-    ui(new Ui::MainWindow)
+    QMainWindow(parent)
 {
-    ui->setupUi(this);
+    b_view = new QGraphicsView(this);
+    b_scene = new CubeScene(this);
 
-    setupBoardView();
+    resize (320, 240);
+    setCentralWidget (b_view);
+
+    b_view->setScene(b_scene);
+
+    /* TODO: start some else where */
+    b_scene->startPlay();
 }
 
 MainWindow::~MainWindow()
 {
-    delete ui;
 }
 
 void MainWindow::changeEvent(QEvent *e)
@@ -20,21 +26,10 @@ void MainWindow::changeEvent(QEvent *e)
     QMainWindow::changeEvent(e);
     switch (e->type()) {
     case QEvent::LanguageChange:
-        ui->retranslateUi(this);
+        //ui->retranslateUi(this);
         break;
     default:
         break;
     }
-}
-
-void MainWindow::setupBoardView(void)
-{
-    b_scene = new CubeScene(this);
-
-    b_view = ui->graphicsView;
-    b_view->setScene(b_scene);
-
-    /* TODO: start some else where */
-    b_scene->startPlay();
 }
 
