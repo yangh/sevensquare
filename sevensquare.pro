@@ -4,7 +4,7 @@
 QT += opengl \
     script \
     svg
-TARGET = QTetris
+TARGET = seven-square
 TEMPLATE = app
 SOURCES += main.cpp \
     mainwindow.cpp \
