@@ -103,8 +103,9 @@ void CubeScene::initialize (const char *image_file)
                     CUBE_WIDTH * col + X_PAD,
                     CUBE_WIDTH * row + Y_PAD,
                     CUBE_WIDTH, CUBE_WIDTH));
-            //item->setBrush(QBrush(QColor(255, 255, 255, 235)));
+            item->setBrush(QBrush(QColor(255, 255, 255, 235)));
             item->setPen(grid_pen);
+            item->setZValue(0); /* lay in the bottom */
 
             addItem(item);
         }
@@ -128,25 +129,16 @@ void CubeScene::initialize (const char *image_file)
 
             item = new CubeCellItem(cell_bg);
             item->setPos(x, y);
-            item->setCubePos(row, col);
-            item->setOriginalCubePos(row, col);
-
+            item->setZValue(2); /* lay in the top*/
             addItem(item);
+
+            item->setOriginalCubePos(row, col);
             b_items[row][col] = item;
-            b_curr_items[row][col] = item;
         }
     }
 
     m_white_col = COL_SIZE - 1;
     m_white_row = ROW_SIZE - 1;
-
-#if 0
-    /* Make cube resolve able */
-    moveCell (b_items[ROW_SIZE - 1][COL_SIZE-2]->cubePos(),
-              m_white_row, m_white_col);
-    moveCell (b_curr_items[ROW_SIZE - 1][COL_SIZE-2]->cubePos(),
-              m_white_row, m_white_col);
-#endif
 
 #if 0
     /* White item */
@@ -175,28 +167,46 @@ void CubeScene::startPlay(void)
 
     qDebug() << "Start play.";
 
+    /* Reorder all items */
+    for (col = 0; col < (COL_SIZE - 1); col++) {
+        for (row = 0; row < ROW_SIZE; row++) {
+            b_curr_items[row][col] = b_items[row][col];
+            b_curr_items[row][col]->setCubePos(row, col);
+        }
+    }
+
+    /* Move cell in the right-bottom into empty cell */
+    int lr = ROW_SIZE - 1;
+    int lc = COL_SIZE - 2;
+
+    moveCell (b_items[lr][lc]->cubePos(), lr, lc + 1); 
+
+    MASK_CURRENT_MAP[lr][lc] = 1;
+
+    m_white_row = lr;
+    m_white_col = lc;
+
     /* Radomize cubes */
     time_t t = time(NULL);
     srand (t);
 
-    for (col = 0; col < (COL_SIZE - 2); col++) {
+    int n = 0;
+    for (col = 0; col < (COL_SIZE - 1); col++) {
         for (row = 0; row < ROW_SIZE; row++) {
             int nx, ny;
             int nrand;
-            int r, c, n;
-            bool found = TRUE;
+            int r, c;
 
+            /* Only randmoize first 11 cells */
             if (col == (COL_SIZE - 2) && row == (ROW_SIZE - 1) ) {
                 break;
             }
 
             nrand = rand() % ((COL_SIZE - 1) * ROW_SIZE);
             r = nrand % ROW_SIZE;
-            c = nrand % (COL_SIZE - 1);
-            n = 0;
+            c = nrand % (COL_SIZE - 2);
 
-            //qDebug() << "Rand r/c: " <<  r << ", " << c;
-
+            /* Find unused cell by mask */
             while (MASK_CURRENT_MAP[r][c] != 0) {
                 c ++;
                 if (c > (COL_SIZE - 2)) {
@@ -206,15 +216,7 @@ void CubeScene::startPlay(void)
                         r = 0;
                     }
                 }
-                n ++;
-                if (n > (ROW_SIZE * (COL_SIZE - 1)) * 2) {
-                    qDebug() << "Found too much times, stop now.";
-                    found = FALSE;
-                    break;
-                }
             }
-
-            //qDebug() << "Rand r/c after find: " <<  r << ", " << c;
 
             MASK_CURRENT_MAP[r][c] = 1;
             nx = CUBE_WIDTH * c + X_PAD + GRID_WIDTH;
@@ -224,31 +226,28 @@ void CubeScene::startPlay(void)
             b_curr_items[r][c] = b_items[row][col];
 
             //qDebug() << "Move item[" << row << "][" << col << "] to: "
-            //        << nx << ", " << ny;
+            //        << nx << ", " << ny << ". " << n++;
         }
     }
 
     mapMaskRest(MASK_CURRENT_MAP);
 
-    m_white_col = COL_SIZE - 2;
     m_white_row = ROW_SIZE - 1;
+    m_white_col = COL_SIZE - 2;
 }
 
 void CubeScene::moveAllCell(const QPoint &pos, int off_row, int off_col)
 {
-    qDebug() << "Move cellse which clicked.";
+    qDebug() << "Move cells beside the white cell.";
 
-    int i;
+    int i, off;
     int nx, ny;
-    CubeCellItem *cell;
-    int off;
+    CubeCellItem *cell = 0;
 
     /* Row move */
 
     off = off_row > 0 ? -1 : 1;
     for (i = 0; i < abs(off_row); i++ ) {
-        qDebug() << "White cell move left 1 step." <<
-                m_white_row << ", " << m_white_col;
         nx = CUBE_WIDTH * m_white_col + X_PAD + GRID_WIDTH;
         ny = CUBE_WIDTH * m_white_row + Y_PAD + GRID_WIDTH;
 
@@ -262,10 +261,9 @@ void CubeScene::moveAllCell(const QPoint &pos, int off_row, int off_col)
     }
 
     /* Col move */
+
     off = off_col > 0 ? -1 : 1;
     for (i = 0; i < abs(off_col); i++ ) {
-        qDebug() << "White cell move left 1 step." <<
-                m_white_row << ", " << m_white_col;
         nx = CUBE_WIDTH * m_white_col + X_PAD + GRID_WIDTH;
         ny = CUBE_WIDTH * m_white_row + Y_PAD + GRID_WIDTH;
 
@@ -277,29 +275,62 @@ void CubeScene::moveAllCell(const QPoint &pos, int off_row, int off_col)
         b_curr_items[m_white_row][m_white_col + off] = 0;
         m_white_col += off;
     }
-    //b_curr_items[row][col]->setPos(nx, ny);
 }
 
 void CubeScene::moveCell(const QPoint &pos, int row, int col)
 {
     qDebug() << "Move cell " << pos << " to: " << row << ", " << col;
 
+    int r, c;
     int nx, ny;
-    CubeCellItem *cell;
+    CubeCellItem *cell = 0;
+
+    r = pos.x();
+    c = pos.y();
+    cell = b_curr_items[r][c];
+    if (! cell) {
+        return;
+    }
 
     /* Cell move */
     nx = CUBE_WIDTH * col + X_PAD + GRID_WIDTH;
     ny = CUBE_WIDTH * row + Y_PAD + GRID_WIDTH;
 
-    cell = b_curr_items[pos.x()][pos.y()];
     cell->setPos(nx, ny);
     cell->setCubePos(row, col);
 
     b_curr_items[row][col] = cell;
-    b_curr_items[pos.x()][pos.y()] = 0;
+    b_curr_items[r][c] = 0;
 
-    m_white_row = pos.x();
-    m_white_col = pos.y();
+    m_white_row = r;
+    m_white_col = c;
+}
+
+void CubeScene::checkAllCell(void)
+{
+    int row, col;
+    int n = 0;
+
+    /* Check all items */
+    for (col = 0; col < (COL_SIZE - 1); col++) {
+        for (row = 0; row < ROW_SIZE; row++) {
+            /* Only randmoize first 11 cells */
+            if (col == (COL_SIZE - 2) && row == (ROW_SIZE - 1) ) {
+                break;
+            }
+
+            CubeCellItem *cell = b_curr_items[row][col];
+            if (cell && cell->cubePos() == cell->originalCubePos()) {
+                n++;
+            }
+        }
+    }
+
+    qDebug() << "Finished " << n << " cells";
+
+    if (n == 11) {
+        qDebug() << "You win!";
+    }
 }
 
 void CubeScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
@@ -349,6 +380,8 @@ void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
                  << ", Offset: " << off_row << ", " << off_col;
 
          moveAllCell (pos, off_row, off_col);
+
+         checkAllCell();
      }
  }
 

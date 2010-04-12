@@ -35,5 +35,6 @@ void MainWindow::setupBoardView(void)
     b_view->setScene(b_scene);
 
     /* TODO: start some else where */
-    //b_scene->startPlay();
+    b_scene->startPlay();
 }
+

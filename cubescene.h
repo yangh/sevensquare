@@ -36,6 +36,8 @@ public:
 
     void moveCell(const QPoint &pos, int row, int col);
 
+    void checkAllCell(void);
+
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event);
     void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
