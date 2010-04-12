@@ -47,7 +47,9 @@ CubeScene::CubeScene(QObject * parent) :
         }
     }
 
-    initialize(BACKGROUND_FILE);
+    const char * bg = getenv("SQ_BG");
+
+    initialize (bg == NULL ? BACKGROUND_FILE : bg);
 }
 
 void CubeScene::initialize (const char *image_file)
@@ -101,7 +103,7 @@ void CubeScene::initialize (const char *image_file)
                     CUBE_WIDTH * col + X_PAD,
                     CUBE_WIDTH * row + Y_PAD,
                     CUBE_WIDTH, CUBE_WIDTH));
-            item->setBrush(QBrush(QColor(255, 255, 255, 235)));
+            //item->setBrush(QBrush(QColor(255, 255, 255, 235)));
             item->setPen(grid_pen);
 
             addItem(item);
@@ -115,6 +117,7 @@ void CubeScene::initialize (const char *image_file)
             QPixmap cell_bg;
             int x, y;
 
+            qDebug() << "Init cell: " << row << ", " << col;
             x = CUBE_WIDTH * col + X_PAD + GRID_WIDTH;
             y = CUBE_WIDTH * row + Y_PAD + GRID_WIDTH;
             cell_bg = pixmap.copy(x, y,
@@ -125,12 +128,25 @@ void CubeScene::initialize (const char *image_file)
 
             item = new CubeCellItem(cell_bg);
             item->setPos(x, y);
+            item->setCubePos(row, col);
             item->setOriginalCubePos(row, col);
 
             addItem(item);
             b_items[row][col] = item;
+            b_curr_items[row][col] = item;
         }
     }
+
+    m_white_col = COL_SIZE - 1;
+    m_white_row = ROW_SIZE - 1;
+
+#if 0
+    /* Make cube resolve able */
+    moveCell (b_items[ROW_SIZE - 1][COL_SIZE-2]->cubePos(),
+              m_white_row, m_white_col);
+    moveCell (b_curr_items[ROW_SIZE - 1][COL_SIZE-2]->cubePos(),
+              m_white_row, m_white_col);
+#endif
 
 #if 0
     /* White item */
@@ -163,12 +179,16 @@ void CubeScene::startPlay(void)
     time_t t = time(NULL);
     srand (t);
 
-    for (col = 0; col < (COL_SIZE - 1); col++) {
+    for (col = 0; col < (COL_SIZE - 2); col++) {
         for (row = 0; row < ROW_SIZE; row++) {
             int nx, ny;
             int nrand;
             int r, c, n;
             bool found = TRUE;
+
+            if (col == (COL_SIZE - 2) && row == (ROW_SIZE - 1) ) {
+                break;
+            }
 
             nrand = rand() % ((COL_SIZE - 1) * ROW_SIZE);
             r = nrand % ROW_SIZE;
@@ -210,14 +230,8 @@ void CubeScene::startPlay(void)
 
     mapMaskRest(MASK_CURRENT_MAP);
 
-    m_white_col = COL_SIZE - 1;
+    m_white_col = COL_SIZE - 2;
     m_white_row = ROW_SIZE - 1;
-
-    /* Make cube resolve able */
-    moveCell (b_items[ROW_SIZE - 1][COL_SIZE-2]->cubePos(),
-              m_white_row, m_white_col);
-    moveCell (b_curr_items[ROW_SIZE - 1][COL_SIZE-2]->cubePos(),
-              m_white_row, m_white_col);
 }
 
 void CubeScene::moveAllCell(const QPoint &pos, int off_row, int off_col)
