@@ -32,7 +32,9 @@ public:
 
     void startPlay(void);
 
-    void cellClicked(CubeCellItem *item);
+    void moveAllCell(const QPoint &pos, int off_row, int off_col);
+
+    void moveCell(const QPoint &pos, int row, int col);
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event);
@@ -41,6 +43,9 @@ protected:
 
 private:
     CubeCellItem    *b_items[ROW_SIZE][COL_SIZE];
+    CubeCellItem    *b_curr_items[ROW_SIZE][COL_SIZE];
+    int m_white_row;
+    int m_white_col;
 };
 
 #endif // CUBESCENE_H
