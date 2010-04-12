@@ -1,4 +1,5 @@
 #include <QGraphicsRectItem>
+#include <QPainter>
 #include <QBrush>
 #include <QPen>
 #include <QColor>
@@ -10,7 +11,7 @@
 
 #include "cubescene.h"
 
-#define BACKGROUND_FILE "./everest-320x240.jpg"
+#define BACKGROUND_FILE "./gnu_tux-320x240.png"
 
 static const short int MASK_MAP[ROW_SIZE][COL_SIZE] = {
     { 1, 1, 1, 1, 0 },
@@ -91,6 +92,36 @@ void CubeScene::initialize (const char *image_file)
     nail_cell->setZValue(5);
 
     addItem(nail_cell);
+
+    /* Start button */
+    CubeCellItem *start_cell;
+    QPixmap start_icon(16, 16);
+    static const QPointF points[3] = {
+        QPointF(4.0, 0.0),
+        QPointF(16.0, 8.0),
+        QPointF(4.0, 16.0)
+    };
+
+    start_icon.fill(Qt::transparent);
+
+    QPainter painter(&start_icon);
+    QPen pen;
+
+    pen.setColor(QColor(Qt::gray));
+    pen.setWidth(1);
+
+    painter.setPen(pen);
+    painter.setBrush(QBrush(QColor(Qt::black)));
+    painter.drawPolygon(points, 3, Qt::WindingFill);
+    start_cell = new CubeCellItem(start_icon);
+    tx = CELL_WIDTH * (COL_SIZE - 1) + (CELL_WIDTH - 16) / 2 + X_PAD;
+    ty = CELL_WIDTH * (ROW_SIZE - 3) + (CELL_WIDTH - 16) / 2 + Y_PAD;
+    qDebug() << "Draw start buttonat: " << tx << ", " << ty;
+    start_cell->setPos(tx, ty);
+    start_cell->setOriginalCubePos(STARTBUTTON_CELL_POS, STARTBUTTON_CELL_POS);
+    start_cell->setZValue(5);
+
+    addItem(start_cell);
 
     /* Draw grid */
 
@@ -377,6 +408,12 @@ void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 
      /* Check command cell */
      if (THUMNAIL_CELL_IDX == (pos.x() + pos.y())) {
+         setBgVisible (!getBgVisible()); /* color egg */
+         return;
+     }
+
+     /* Check command start */
+     if (STARTBUTTON_CELL_IDX == (pos.x() + pos.y())) {
          startPlay();
          return;
      }

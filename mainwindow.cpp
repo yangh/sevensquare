@@ -14,7 +14,7 @@ MainWindow::MainWindow(QWidget *parent) :
     b_view->setScene(b_scene);
 
     /* TODO: start some else where */
-    b_scene->startPlay();
+    //b_scene->startPlay();
 }
 
 MainWindow::~MainWindow()

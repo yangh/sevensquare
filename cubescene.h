@@ -28,6 +28,10 @@
 #define THUMNAIL_CELL_POS -2
 #define THUMNAIL_CELL_IDX (THUMNAIL_CELL_POS * 2)
 
+#define STARTBUTTON_X_PAD 6
+#define STARTBUTTON_CELL_POS -3
+#define STARTBUTTON_CELL_IDX (STARTBUTTON_CELL_POS * 2)
+
 class CubeScene : public QGraphicsScene
 {
 public:
