@@ -6,11 +6,16 @@
 
 #include "cubecellitem.h"
 
+#define CUBE_WIDTH 320
+#define CUBE_HEIGHT 240
+
 #define ROW_SIZE 3
 #define COL_SIZE 5
-#define CUBE_WIDTH 60
-#define X_PAD ((320 - 60 * COL_SIZE)/2)
-#define Y_PAD ((240 - 60 * ROW_SIZE)/2)
+
+#define CELL_WIDTH 60
+
+#define X_PAD ((CUBE_WIDTH - 60 * COL_SIZE)/2)
+#define Y_PAD ((CUBE_HEIGHT - 60 * ROW_SIZE)/2)
 
 #define GRID_COLOR 120, 120, 120
 #define GRID_WIDTH 1
@@ -38,12 +43,16 @@ public:
 
     void checkAllCell(void);
 
+    void setBgVisible(bool visible) { bg_mask->setVisible(visible); };
+    bool getBgVisible(void)         { return bg_mask->isVisible(); };
+
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event);
     void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
     void mouseReleaseEvent(QGraphicsSceneMouseEvent *event);
 
 private:
+    QGraphicsRectItem *bg_mask;
     CubeCellItem    *b_items[ROW_SIZE][COL_SIZE];
     CubeCellItem    *b_curr_items[ROW_SIZE][COL_SIZE];
     int m_white_row;

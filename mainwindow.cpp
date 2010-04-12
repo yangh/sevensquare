@@ -8,7 +8,7 @@ MainWindow::MainWindow(QWidget *parent) :
     b_view = new QGraphicsView(this);
     b_scene = new CubeScene(this);
 
-    resize (320, 240);
+    resize (CUBE_WIDTH + 2, CUBE_HEIGHT + 2);
     setCentralWidget (b_view);
 
     b_view->setScene(b_scene);

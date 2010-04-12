@@ -60,16 +60,22 @@ void CubeScene::initialize (const char *image_file)
     qDebug() << "Scene initialize.";
 
     /* TODO: Load default background file if @image_file is null. */
-
     pixmap.load (image_file, 0);
+
     setBackgroundBrush(QBrush(pixmap));
+
+    bg_mask = new QGraphicsRectItem(QRectF(0, 0, CUBE_WIDTH, CUBE_HEIGHT));
+    bg_mask->setBrush(QBrush(QColor(0, 0, 0, 135)));
+    bg_mask->setZValue(1); /* lay in the bottom */
+
+    addItem(bg_mask);
 
     /* Thumnail of image */
     int tw, th;
     QPixmap nail_bg;
     CubeCellItem *nail_cell;
 
-    tw = CUBE_WIDTH - THUMNAIL_X_PAD * 2;
+    tw = CELL_WIDTH - THUMNAIL_X_PAD * 2;
     th = pixmap.height() * tw / pixmap.width();
     nail_bg = pixmap.scaled(QSize(tw, th),
                             Qt::IgnoreAspectRatio,
@@ -77,11 +83,12 @@ void CubeScene::initialize (const char *image_file)
     nail_cell = new CubeCellItem(nail_bg);
 
     int tx, ty;
-    tx = CUBE_WIDTH * (COL_SIZE - 1) + THUMNAIL_X_PAD + X_PAD;
-    ty = CUBE_WIDTH * (ROW_SIZE - 2) + (CUBE_WIDTH - th) / 2 + Y_PAD;
+    tx = CELL_WIDTH * (COL_SIZE - 1) + THUMNAIL_X_PAD + X_PAD;
+    ty = CELL_WIDTH * (ROW_SIZE - 2) + (CELL_WIDTH - th) / 2 + Y_PAD;
     //qDebug() << "Draw thumnail at: " << tx << ", " << ty;
     nail_cell->setPos(tx, ty);
     nail_cell->setOriginalCubePos(THUMNAIL_CELL_POS, THUMNAIL_CELL_POS);
+    nail_cell->setZValue(5);
 
     addItem(nail_cell);
 
@@ -100,12 +107,12 @@ void CubeScene::initialize (const char *image_file)
             QGraphicsRectItem *item;
 
             item = new QGraphicsRectItem(QRectF(
-                    CUBE_WIDTH * col + X_PAD,
-                    CUBE_WIDTH * row + Y_PAD,
-                    CUBE_WIDTH, CUBE_WIDTH));
+                    CELL_WIDTH * col + X_PAD,
+                    CELL_WIDTH * row + Y_PAD,
+                    CELL_WIDTH, CELL_WIDTH));
             item->setBrush(QBrush(QColor(255, 255, 255, 235)));
             item->setPen(grid_pen);
-            item->setZValue(0); /* lay in the bottom */
+            item->setZValue(3); /* lay in the bottom */
 
             addItem(item);
         }
@@ -119,17 +126,17 @@ void CubeScene::initialize (const char *image_file)
             int x, y;
 
             qDebug() << "Init cell: " << row << ", " << col;
-            x = CUBE_WIDTH * col + X_PAD + GRID_WIDTH;
-            y = CUBE_WIDTH * row + Y_PAD + GRID_WIDTH;
+            x = CELL_WIDTH * col + X_PAD + GRID_WIDTH;
+            y = CELL_WIDTH * row + Y_PAD + GRID_WIDTH;
             cell_bg = pixmap.copy(x, y,
-                                  CUBE_WIDTH - GRID_WIDTH,
-                                  CUBE_WIDTH - GRID_WIDTH);
+                                  CELL_WIDTH - GRID_WIDTH,
+                                  CELL_WIDTH - GRID_WIDTH);
 
             CubeCellItem *item;
 
             item = new CubeCellItem(cell_bg);
             item->setPos(x, y);
-            item->setZValue(2); /* lay in the top*/
+            item->setZValue(5); /* lay in the top*/
             addItem(item);
 
             item->setOriginalCubePos(row, col);
@@ -143,16 +150,16 @@ void CubeScene::initialize (const char *image_file)
 #if 0
     /* White item */
     CubeCellItem *white_cell;
-    QPixmap bg(CUBE_WIDTH - GRID_WIDTH,
-               CUBE_WIDTH - GRID_WIDTH);
+    QPixmap bg(CELL_WIDTH - GRID_WIDTH,
+               CELL_WIDTH - GRID_WIDTH);
 
     row = ROW_SIZE - 1;
     col = COL_SIZE - 1;
 
     bg.fill(Qt::white);
     white_cell = new CubeCellItem(bg);
-    white_cell->setPos(CUBE_WIDTH * col + X_PAD + GRID_WIDTH,
-                       CUBE_WIDTH * row + Y_PAD + GRID_WIDTH);
+    white_cell->setPos(CELL_WIDTH * col + X_PAD + GRID_WIDTH,
+                       CELL_WIDTH * row + Y_PAD + GRID_WIDTH);
     white_cell->setOriginalCubePos(WHITE_CELL_POS, WHITE_CELL_POS);
     white_cell->setCubePos(row, col);
 
@@ -166,6 +173,8 @@ void CubeScene::startPlay(void)
     int row, col;
 
     qDebug() << "Start play.";
+
+    setBgVisible(TRUE);
 
     /* Reorder all items */
     for (col = 0; col < (COL_SIZE - 1); col++) {
@@ -219,8 +228,8 @@ void CubeScene::startPlay(void)
             }
 
             MASK_CURRENT_MAP[r][c] = 1;
-            nx = CUBE_WIDTH * c + X_PAD + GRID_WIDTH;
-            ny = CUBE_WIDTH * r + Y_PAD + GRID_WIDTH;
+            nx = CELL_WIDTH * c + X_PAD + GRID_WIDTH;
+            ny = CELL_WIDTH * r + Y_PAD + GRID_WIDTH;
             b_items[row][col]->setCubePos(r, c);
             b_items[row][col]->setPos(nx, ny);
             b_curr_items[r][c] = b_items[row][col];
@@ -248,8 +257,8 @@ void CubeScene::moveAllCell(const QPoint &pos, int off_row, int off_col)
 
     off = off_row > 0 ? -1 : 1;
     for (i = 0; i < abs(off_row); i++ ) {
-        nx = CUBE_WIDTH * m_white_col + X_PAD + GRID_WIDTH;
-        ny = CUBE_WIDTH * m_white_row + Y_PAD + GRID_WIDTH;
+        nx = CELL_WIDTH * m_white_col + X_PAD + GRID_WIDTH;
+        ny = CELL_WIDTH * m_white_row + Y_PAD + GRID_WIDTH;
 
         cell = b_curr_items[m_white_row + off][m_white_col];
         cell->setPos(nx, ny);
@@ -264,8 +273,8 @@ void CubeScene::moveAllCell(const QPoint &pos, int off_row, int off_col)
 
     off = off_col > 0 ? -1 : 1;
     for (i = 0; i < abs(off_col); i++ ) {
-        nx = CUBE_WIDTH * m_white_col + X_PAD + GRID_WIDTH;
-        ny = CUBE_WIDTH * m_white_row + Y_PAD + GRID_WIDTH;
+        nx = CELL_WIDTH * m_white_col + X_PAD + GRID_WIDTH;
+        ny = CELL_WIDTH * m_white_row + Y_PAD + GRID_WIDTH;
 
         cell = b_curr_items[m_white_row][m_white_col + off];
         cell->setPos(nx, ny);
@@ -293,8 +302,8 @@ void CubeScene::moveCell(const QPoint &pos, int row, int col)
     }
 
     /* Cell move */
-    nx = CUBE_WIDTH * col + X_PAD + GRID_WIDTH;
-    ny = CUBE_WIDTH * row + Y_PAD + GRID_WIDTH;
+    nx = CELL_WIDTH * col + X_PAD + GRID_WIDTH;
+    ny = CELL_WIDTH * row + Y_PAD + GRID_WIDTH;
 
     cell->setPos(nx, ny);
     cell->setCubePos(row, col);
@@ -330,6 +339,7 @@ void CubeScene::checkAllCell(void)
 
     if (n == 11) {
         qDebug() << "You win!";
+        setBgVisible(FALSE);
     }
 }
 
@@ -353,6 +363,7 @@ void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
      item = itemAt(event->scenePos());
      cell =  dynamic_cast<CubeCellItem *>(item);
      if (!cell) {
+         setBgVisible (!getBgVisible()); /* color egg */
          return;
      }
 
