@@ -1,0 +1,35 @@
+Seven Sqaure game
+=================
+
+  'Seven' not means 7, but 'several'. In Chinses, it's a joy called "Qi1 qiao3 ban2", 
+which I've played at 7/8 age.
+
+ 1         4
+  +--+--+--+--+
+  |//|//|//|//|
+  +--+--+--+--+
+  |//|//|//|//|
+3 +--+--+--+--+--+
+  |//|//|//|  |//|
+  +--+--+--+--+--+
+
+Startup
+=======
+
+ 1. Split a image into 3x4 squares.
+ 2. Move the [3][4] cell into bottom-right cell, leave it there.
+ 3. Randomize the left 11 cells.
+
+Play now
+========
+
+  Try to reorder the 12 cells (only 1 is empty for move) to restore
+the original image.
+
+Author
+======
+
+ Yang Hong
+
+ Copyright reserved.
+
