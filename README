@@ -13,6 +13,12 @@ which I've played at 7/8 age.
   |//|//|//|  |//|
   +--+--+--+--+--+
 
+Run
+===
+
+ export SQ_BG="./everest-320x240.jpg"
+ ./seven-square
+
 Startup
 =======
 

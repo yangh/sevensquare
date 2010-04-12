@@ -10,7 +10,7 @@
 
 #include "cubescene.h"
 
-#define BACKGROUND_FILE "C:\\cygwin\\home\\gucuie\\tetris\\20090728-google_aol_080808_mn.jpg"
+#define BACKGROUND_FILE "./everest-320x240.jpg"
 
 static const short int MASK_MAP[ROW_SIZE][COL_SIZE] = {
     { 1, 1, 1, 1, 0 },
@@ -110,7 +110,7 @@ void CubeScene::initialize (const char *image_file)
                     CELL_WIDTH * col + X_PAD,
                     CELL_WIDTH * row + Y_PAD,
                     CELL_WIDTH, CELL_WIDTH));
-            item->setBrush(QBrush(QColor(255, 255, 255, 235)));
+            item->setBrush(QBrush(QColor(255, 255, 255, 235), Qt::Dense5Pattern));
             item->setPen(grid_pen);
             item->setZValue(3); /* lay in the bottom */
 
