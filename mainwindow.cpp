@@ -9,18 +9,16 @@ MainWindow::MainWindow(QWidget *parent) :
     b_view = new QGraphicsView(this);
     b_scene = new CubeScene(this);
 
-    /* FIXME: Fixed window size, maybe no suite for individual device. */
-    QSize size(CUBE_WIDTH + 4, CUBE_HEIGHT + 4);
+    QSize b_size = b_scene->getSize();
+    QSize size(b_size.width() + 4, b_size.height() + 4);
+
     resize (size);
     setMinimumSize(size);
-    setMaximumSize(size);
+    //setMaximumSize(size);
 
     setCentralWidget (b_view);
 
     b_view->setScene(b_scene);
-
-    /* TODO: start some else where */
-    //b_scene->startPlay();
 }
 
 MainWindow::~MainWindow()

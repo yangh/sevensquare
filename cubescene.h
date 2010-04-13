@@ -1,18 +1,21 @@
 #ifndef CUBESCENE_H
 #define CUBESCENE_H
 
-#include <QString>
+#include <QSize>
+#include <QPixmap>
 #include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
 
 #include "cubecellitem.h"
 
+#define DEFAULT_CELL_WIDTH 60
+#define MIN_PAD 15
+#define MAX_ROW_COL_SIZE 16
+
 #define CUBE_WIDTH 320
 #define CUBE_HEIGHT 240
 
 #define CELL_WIDTH 60
-
-#define MIN_PAD 15
 
 #define ROW_SIZE ((CUBE_HEIGHT - MIN_PAD) / CELL_WIDTH)
 #define COL_SIZE ((CUBE_WIDTH - MIN_PAD) / CELL_WIDTH)
@@ -42,7 +45,7 @@ class CubeScene : public QGraphicsScene
 public:
     CubeScene(QObject * parent = 0);
 
-    void initialize (const QString &image_file = "");
+    void initialize (void);
 
     void startPlay(void);
 
@@ -55,6 +58,8 @@ public:
     void setBgVisible(bool visible) { bg_mask->setVisible(visible); };
     bool getBgVisible(void)         { return bg_mask->isVisible(); };
 
+    QSize getSize(void) { return QSize(cube_width, cube_height); }
+
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event);
     void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
@@ -62,10 +67,20 @@ protected:
 
 private:
     QGraphicsRectItem *bg_mask;
-    CubeCellItem    *b_items[ROW_SIZE][COL_SIZE];
-    CubeCellItem    *b_curr_items[ROW_SIZE][COL_SIZE];
+    CubeCellItem    *b_items[MAX_ROW_COL_SIZE][MAX_ROW_COL_SIZE];
+    CubeCellItem    *b_curr_items[MAX_ROW_COL_SIZE][MAX_ROW_COL_SIZE];
     int m_white_row;
     int m_white_col;
+
+    int cube_width;
+    int cube_height;
+    int cell_width;
+    int row_size;
+    int col_size;
+    int x_pad;
+    int y_pad;
+
+    QPixmap pixmap;
 };
 
 #endif // CUBESCENE_H
