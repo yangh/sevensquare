@@ -55,9 +55,7 @@ void CubeScene::initialize (void)
 
     setBackgroundBrush(QBrush(pixmap));
 
-    bg_mask = new QGraphicsRectItem(QRectF(0, 0,
-                                           cube_width + GRID_WIDTH,
-                                           cube_height + GRID_WIDTH));
+    bg_mask = new QGraphicsRectItem(QRectF(0, 0, cube_width, cube_height));
     bg_mask->setBrush(QBrush(QColor(0, 0, 0, 135)));
     bg_mask->setPen(Qt::NoPen);
     bg_mask->setZValue(0); /* lay in the bottom */
@@ -77,8 +75,8 @@ void CubeScene::initialize (void)
     nail_cell = new CubeCellItem(nail_bg);
 
     int tx, ty;
-    tx = cell_width * (col_size - 1) + THUMNAIL_X_PAD + X_PAD;
-    ty = cell_width * (row_size - 2) + (cell_width - th) / 2 + Y_PAD;
+    tx = cell_width * (col_size - 1) + THUMNAIL_X_PAD + x_pad;
+    ty = cell_width * (row_size - 2) + (cell_width - th) / 2 + y_pad;
     //qDebug() << "Draw thumnail at: " << tx << ", " << ty;
     nail_cell->setPos(tx, ty);
     nail_cell->setOriginalCubePos(THUMNAIL_CELL_POS, THUMNAIL_CELL_POS);
@@ -107,8 +105,8 @@ void CubeScene::initialize (void)
     painter.setBrush(QBrush(QColor(Qt::black)));
     painter.drawPolygon(points, 3, Qt::WindingFill);
     start_cell = new CubeCellItem(start_icon);
-    tx = cell_width * (col_size - 1) + (cell_width - 16) / 2 + X_PAD;
-    ty = cell_width * (row_size - 3) + (cell_width - 16) / 2 + Y_PAD;
+    tx = cell_width * (col_size - 1) + (cell_width - 16) / 2 + x_pad;
+    ty = cell_width * (row_size - 3) + (cell_width - 16) / 2 + y_pad;
     qDebug() << "Draw start buttonat: " << tx << ", " << ty;
     start_cell->setPos(tx, ty);
     start_cell->setOriginalCubePos(STARTBUTTON_CELL_POS, STARTBUTTON_CELL_POS);
@@ -127,8 +125,8 @@ void CubeScene::initialize (void)
             QGraphicsRectItem *item;
 
             item = new QGraphicsRectItem(QRectF(
-                    cell_width * col + X_PAD,
-                    cell_width * row + Y_PAD,
+                    cell_width * col + x_pad,
+                    cell_width * row + y_pad,
                     cell_width, cell_width));
             item->setBrush(QBrush(QColor(255, 255, 255, 235), Qt::Dense6Pattern));
             item->setPen(grid_pen);
@@ -143,8 +141,8 @@ void CubeScene::initialize (void)
     row = row_size - 1;
     col = col_size - 1;
     item = new QGraphicsRectItem(QRectF(
-            cell_width * col + X_PAD,
-            cell_width * row + Y_PAD,
+            cell_width * col + x_pad,
+            cell_width * row + y_pad,
             cell_width, cell_width));
     item->setBrush(QBrush(QColor(255, 255, 255, 235), Qt::Dense6Pattern));
     item->setPen(grid_pen);
@@ -160,8 +158,8 @@ void CubeScene::initialize (void)
             int x, y;
 
             qDebug() << "Init cell: " << row << ", " << col;
-            x = cell_width * col + X_PAD + GRID_WIDTH;
-            y = cell_width * row + Y_PAD + GRID_WIDTH;
+            x = cell_width * col + x_pad + GRID_WIDTH;
+            y = cell_width * row + y_pad + GRID_WIDTH;
             cell_bg = pixmap.copy(x, y,
                                   cell_width - GRID_WIDTH,
                                   cell_width - GRID_WIDTH);
@@ -192,8 +190,8 @@ void CubeScene::initialize (void)
 
     bg.fill(Qt::white);
     white_cell = new CubeCellItem(bg);
-    white_cell->setPos(cell_width * col + X_PAD + GRID_WIDTH,
-                       cell_width * row + Y_PAD + GRID_WIDTH);
+    white_cell->setPos(cell_width * col + x_pad + GRID_WIDTH,
+                       cell_width * row + y_pad + GRID_WIDTH);
     white_cell->setOriginalCubePos(WHITE_CELL_POS, WHITE_CELL_POS);
     white_cell->setCubePos(row, col);
 
@@ -267,8 +265,8 @@ void CubeScene::startPlay(void)
             }
 
             MASK_CURRENT_MAP[r][c] = 1;
-            nx = cell_width * c + X_PAD + GRID_WIDTH;
-            ny = cell_width * r + Y_PAD + GRID_WIDTH;
+            nx = cell_width * c + x_pad + GRID_WIDTH;
+            ny = cell_width * r + y_pad + GRID_WIDTH;
             b_items[row][col]->setCubePos(r, c);
             b_items[row][col]->setPos(nx, ny);
             b_curr_items[r][c] = b_items[row][col];
@@ -294,8 +292,8 @@ void CubeScene::moveAllCell(const QPoint &pos, int off_row, int off_col)
 
     off = off_row > 0 ? -1 : 1;
     for (i = 0; i < abs(off_row); i++ ) {
-        nx = cell_width * m_white_col + X_PAD + GRID_WIDTH;
-        ny = cell_width * m_white_row + Y_PAD + GRID_WIDTH;
+        nx = cell_width * m_white_col + x_pad + GRID_WIDTH;
+        ny = cell_width * m_white_row + y_pad + GRID_WIDTH;
 
         cell = b_curr_items[m_white_row + off][m_white_col];
         cell->setPos(nx, ny);
@@ -310,8 +308,8 @@ void CubeScene::moveAllCell(const QPoint &pos, int off_row, int off_col)
 
     off = off_col > 0 ? -1 : 1;
     for (i = 0; i < abs(off_col); i++ ) {
-        nx = cell_width * m_white_col + X_PAD + GRID_WIDTH;
-        ny = cell_width * m_white_row + Y_PAD + GRID_WIDTH;
+        nx = cell_width * m_white_col + x_pad + GRID_WIDTH;
+        ny = cell_width * m_white_row + y_pad + GRID_WIDTH;
 
         cell = b_curr_items[m_white_row][m_white_col + off];
         cell->setPos(nx, ny);
@@ -339,8 +337,8 @@ void CubeScene::moveCell(const QPoint &pos, int row, int col)
     }
 
     /* Cell move */
-    nx = cell_width * col + X_PAD + GRID_WIDTH;
-    ny = cell_width * row + Y_PAD + GRID_WIDTH;
+    nx = cell_width * col + x_pad + GRID_WIDTH;
+    ny = cell_width * row + y_pad + GRID_WIDTH;
 
     cell->setPos(nx, ny);
     cell->setCubePos(row, col);
@@ -437,5 +435,5 @@ void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 
          checkAllCell();
      }
- }
+}
 

@@ -10,7 +10,7 @@ MainWindow::MainWindow(QWidget *parent) :
     b_scene = new CubeScene(this);
 
     QSize b_size = b_scene->getSize();
-    QSize size(b_size.width() + 4, b_size.height() + 4);
+    QSize size(b_size.width() + 2, b_size.height() + 2);
 
     resize (size);
     setMinimumSize(size);
