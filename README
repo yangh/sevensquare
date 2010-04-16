@@ -1,23 +1,30 @@
 Seven Sqaure game
 =================
 
-  'Seven' not means 7, but 'several'. In Chinses, it's a joy called "Qi1 qiao3 ban2", 
+  'Seven' not means 7, but 'several'. In Chinese, it's a joy called "Qi1 qiao3 ban2", 
 which I've played at 7/8 age.
 
- 1         4
+ 1             4
   +--+--+--+--+
   |//|//|//|//|
   +--+--+--+--+
   |//|//|//|//|
-3 +--+--+--+--+--+
+  +--+--+--+--+--+
   |//|//|//|  |//|
   +--+--+--+--+--+
+ 3
 
 Run
 ===
 
- export SQ_BG="./everest-320x240.jpg"
- ./seven-square
+ ./seven-square gnu_tux-320x240.png
+
+ Support load any type and any size image file supported by QT4.
+
+ You can also specify image by:
+
+ export SQ_BG="/path/to/image.png"
+ ./seven-squre
 
 Startup
 =======
