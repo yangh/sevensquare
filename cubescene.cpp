@@ -1,4 +1,3 @@
-#include <QtGui/QApplication>
 #include <QGraphicsRectItem>
 #include <QPainter>
 #include <QBrush>
@@ -17,18 +16,10 @@ CubeScene::CubeScene(QObject * parent) :
         QGraphicsScene(parent)
 {
     cell_width = DEFAULT_CELL_WIDTH;
+}
 
-    QStringList argv = qApp->arguments();
-    QString file;
-
-    if (argv.length() > 1) {
-        file = argv[1];
-    } else {
-        const char * bg = getenv("SQ_BG");
-
-        file = (bg == NULL) ? BACKGROUND_FILE : bg;
-    }
-
+void CubeScene::loadImage (const QString &file)
+{
     qDebug() << "Load image from: " << file;
 
     if (pixmap.load (file, 0)) {

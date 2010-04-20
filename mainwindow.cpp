@@ -1,5 +1,6 @@
 #include <QSize>
 #include <QPoint>
+#include <QtGui/QApplication>
 
 #include "mainwindow.h"
 
@@ -8,6 +9,19 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     b_view = new QGraphicsView(this);
     b_scene = new CubeScene(this);
+
+    QStringList argv = qApp->arguments();
+    QString file;
+
+    if (argv.length() > 1) {
+        file = argv[1];
+    } else {
+        const char * bg = getenv("SQ_BG");
+
+        file = (bg == NULL) ? BACKGROUND_FILE : bg;
+    }
+
+    b_scene->loadImage(file);
 
     QSize b_size = b_scene->getSize();
     QSize size(b_size.width() + 2, b_size.height() + 2);

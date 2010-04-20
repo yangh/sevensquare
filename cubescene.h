@@ -2,6 +2,7 @@
 #define CUBESCENE_H
 
 #include <QSize>
+#include <QString>
 #include <QPixmap>
 #include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
@@ -33,6 +34,8 @@ class CubeScene : public QGraphicsScene
 {
 public:
     CubeScene(QObject * parent = 0);
+
+    void loadImage (const QString &file);
 
     void initialize (void);
 
