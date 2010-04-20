@@ -255,39 +255,21 @@ void CubeScene::startPlay(void)
 void CubeScene::moveAllCell(const QPoint &pos, int off_row, int off_col)
 {
     int i, off;
-    int nx, ny;
-    CubeCellItem *cell = 0;
 
     qDebug() << "Move cells beside the white cell.";
 
     /* Row move */
     off = off_row > 0 ? -1 : 1;
     for (i = 0; i < abs(off_row); i++ ) {
-        nx = cell_width * m_white_col + x_pad + GRID_WIDTH;
-        ny = cell_width * m_white_row + y_pad + GRID_WIDTH;
-
-        cell = b_curr_items[m_white_row + off][m_white_col];
-        cell->setPos(nx, ny);
-        cell->setCubePos(m_white_row, m_white_col);
-
-        b_curr_items[m_white_row][m_white_col] = cell;
-        b_curr_items[m_white_row + off][m_white_col] = 0;
-        m_white_row += off;
+        moveCell (QPoint(m_white_row + off, m_white_col),
+                  m_white_row, m_white_col);
     }
 
     /* Col move */
     off = off_col > 0 ? -1 : 1;
     for (i = 0; i < abs(off_col); i++ ) {
-        nx = cell_width * m_white_col + x_pad + GRID_WIDTH;
-        ny = cell_width * m_white_row + y_pad + GRID_WIDTH;
-
-        cell = b_curr_items[m_white_row][m_white_col + off];
-        cell->setPos(nx, ny);
-        cell->setCubePos(m_white_row, m_white_col);
-
-        b_curr_items[m_white_row][m_white_col] = cell;
-        b_curr_items[m_white_row][m_white_col + off] = 0;
-        m_white_col += off;
+        moveCell (QPoint(m_white_row, m_white_col + off),
+                  m_white_row, m_white_col);
     }
 }
 
