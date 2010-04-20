@@ -129,6 +129,7 @@ void CubeScene::initialize (void)
 
     QGraphicsRectItem *item;
 
+    /* Grid in right-bottom */
     row = row_size - 1;
     col = col_size - 1;
     item = new QGraphicsRectItem(QRectF(
@@ -169,26 +170,6 @@ void CubeScene::initialize (void)
 
     m_white_col = col_size - 1;
     m_white_row = row_size - 1;
-
-#if 0
-    /* White item */
-    CubeCellItem *white_cell;
-    QPixmap bg(cell_width - GRID_WIDTH,
-               cell_width - GRID_WIDTH);
-
-    row = row_size - 1;
-    col = col_size - 1;
-
-    bg.fill(Qt::white);
-    white_cell = new CubeCellItem(bg);
-    white_cell->setPos(cell_width * col + x_pad + GRID_WIDTH,
-                       cell_width * row + y_pad + GRID_WIDTH);
-    white_cell->setOriginalCubePos(WHITE_CELL_POS, WHITE_CELL_POS);
-    white_cell->setCubePos(row, col);
-
-    addItem(white_cell);
-    b_items[row][col] = white_cell;
-#endif
 }
 
 void CubeScene::startPlay(void)
@@ -273,14 +254,13 @@ void CubeScene::startPlay(void)
 
 void CubeScene::moveAllCell(const QPoint &pos, int off_row, int off_col)
 {
-    qDebug() << "Move cells beside the white cell.";
-
     int i, off;
     int nx, ny;
     CubeCellItem *cell = 0;
 
-    /* Row move */
+    qDebug() << "Move cells beside the white cell.";
 
+    /* Row move */
     off = off_row > 0 ? -1 : 1;
     for (i = 0; i < abs(off_row); i++ ) {
         nx = cell_width * m_white_col + x_pad + GRID_WIDTH;
@@ -296,7 +276,6 @@ void CubeScene::moveAllCell(const QPoint &pos, int off_row, int off_col)
     }
 
     /* Col move */
-
     off = off_col > 0 ? -1 : 1;
     for (i = 0; i < abs(off_col); i++ ) {
         nx = cell_width * m_white_col + x_pad + GRID_WIDTH;
@@ -314,15 +293,16 @@ void CubeScene::moveAllCell(const QPoint &pos, int off_row, int off_col)
 
 void CubeScene::moveCell(const QPoint &pos, int row, int col)
 {
-    qDebug() << "Move cell " << pos << " to: " << row << ", " << col;
-
     int r, c;
     int nx, ny;
     CubeCellItem *cell = 0;
 
+    qDebug() << "Move cell " << pos << " to: " << row << ", " << col;
+
     r = pos.x();
     c = pos.y();
     cell = b_curr_items[r][c];
+
     if (! cell) {
         return;
     }
@@ -349,7 +329,7 @@ void CubeScene::checkAllCell(void)
     /* Check all items */
     for (col = 0; col < (col_size - 1); col++) {
         for (row = 0; row < row_size; row++) {
-            /* Only randmoize first 11 cells */
+            /* Only count first 11 cells */
             if (col == (col_size - 2) && row == (row_size - 1) ) {
                 break;
             }
