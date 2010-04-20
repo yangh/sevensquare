@@ -57,6 +57,9 @@ protected:
     void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
     void mouseReleaseEvent(QGraphicsSceneMouseEvent *event);
 
+    void drawGrid (int row, int col);
+    QPoint getCellPos(int row, int col);
+
 private:
     QGraphicsRectItem *bg_mask;
     CubeCellItem    *b_items[MAX_ROW_COL_SIZE][MAX_ROW_COL_SIZE];
