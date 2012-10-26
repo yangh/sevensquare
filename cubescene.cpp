@@ -24,26 +24,35 @@ FbReader::FbReader(QObject * parent) :
 void FbReader::run()
 {
 	QProcess p;
-	QString cmd = "/usr/bin/adb";
+	QString cmd = "adb";
 	QStringList args;
 	int ret;
 
-	args << "shell" << "screencap";
+	args << "shell" << "screencap | gzip";
 	qDebug() << "Exec: " << cmd << " " << args;
 
-	while (1) {
+	//QProcess r;
+	//p.setStandardOutputProcess(&r);
 
+	while (1) {
 		p.start(cmd, args);
+		//r.start("gunzip -c -");
 		p.waitForFinished();
+		//r.waitForFinished();
 		ret = p.exitCode();
 
 		qDebug() << "Exit code: " << ret;
+		//qDebug() << "R err: " << r.readAllStandardError();
 
 		if (ret == 0) {
 			QByteArray bytes;
 			p.setReadChannel(QProcess::StandardOutput);
 			bytes = p.readAllStandardOutput();
-			qDebug() << "Read data..." << bytes.length() << QDateTime::currentMSecsSinceEpoch ();
+			qDebug() << "Read data..." << bytes.length()
+				<< QDateTime::currentMSecsSinceEpoch() / 1000;
+		} else {
+			qDebug() << "Process err: " << p.readAllStandardError();
+			msleep(500);
 		}
 	}
 }
