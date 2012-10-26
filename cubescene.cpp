@@ -18,7 +18,6 @@
 FbReader::FbReader(QObject * parent) :
 	QThread(parent)
 {
-	setPriority(QThread::HighPriority);
 }
 
 void FbReader::run()
@@ -26,33 +25,27 @@ void FbReader::run()
 	QProcess p;
 	QString cmd = "adb";
 	QStringList args;
+	QByteArray bytes;
 	int ret;
 
 	args << "shell" << "screencap | gzip";
 	qDebug() << "Exec: " << cmd << " " << args;
 
-	//QProcess r;
-	//p.setStandardOutputProcess(&r);
-
 	while (1) {
 		p.start(cmd, args);
-		//r.start("gunzip -c -");
 		p.waitForFinished();
-		//r.waitForFinished();
 		ret = p.exitCode();
 
-		qDebug() << "Exit code: " << ret;
-		//qDebug() << "R err: " << r.readAllStandardError();
-
 		if (ret == 0) {
-			QByteArray bytes;
 			p.setReadChannel(QProcess::StandardOutput);
 			bytes = p.readAllStandardOutput();
 			qDebug() << "Read data..." << bytes.length()
 				<< QDateTime::currentMSecsSinceEpoch() / 1000;
 		} else {
-			qDebug() << "Process err: " << p.readAllStandardError();
-			msleep(500);
+			bytes = p.readAllStandardError();
+			bytes.chop(1); // Remove trailly new line char
+			qDebug() << "Process return:" << ret <<  bytes;
+			msleep(1000);
 		}
 	}
 }
@@ -76,6 +69,7 @@ CubeScene::~CubeScene()
 
 void CubeScene::startFbReader() {
 	reader->start();
+	reader->setPriority(QThread::HighPriority);
 }
 
 void CubeScene::stopFbReader() {
