@@ -12,12 +12,53 @@
 
 #include <stdlib.h>
 #include <time.h>
+#include <strings.h>
+#include <stdint.h>
 
 #include "cubescene.h"
 
 FbReader::FbReader(QObject * parent) :
 	QThread(parent)
 {
+	do_compress = false;
+}
+
+bool FbReader::supportCompress()
+{
+
+}
+
+bool FbReader::setCompress(bool value)
+{
+	if (do_compress != value) {
+		do_compress = value;
+		// Notify compress status changed.
+	}
+}
+
+int bigEndianToInt32(const QByteArray &bytes)
+{
+	uint32_t v;
+	const char *buf = bytes.data();
+
+	bcopy(buf, &v, sizeof(uint32_t));
+
+	qDebug() << "V: " << v;
+
+	return v;
+}
+
+void FbReader::parseFbData(const QByteArray &bytes)
+{
+	int i, v[3];
+	QByteArray c;
+	const char *buf;
+
+	for (i = 0; i < 3; i++) {
+		c = bytes.mid(i * 4, 8);
+		v[i] = bigEndianToInt32(c);
+		qDebug() << "Values: " << v[i];
+	}
 }
 
 void FbReader::run()
@@ -28,7 +69,10 @@ void FbReader::run()
 	QByteArray bytes;
 	int ret;
 
-	args << "shell" << "screencap | gzip";
+	args << "shell" << "screencap";
+	if (do_compress)
+		args << "| gzip";
+
 	qDebug() << "Exec: " << cmd << " " << args;
 
 	while (1) {
@@ -41,6 +85,7 @@ void FbReader::run()
 			bytes = p.readAllStandardOutput();
 			qDebug() << "Read data..." << bytes.length()
 				<< QDateTime::currentMSecsSinceEpoch() / 1000;
+			parseFbData(bytes);
 		} else {
 			bytes = p.readAllStandardError();
 			bytes.chop(1); // Remove trailly new line char

@@ -39,11 +39,17 @@ class FbReader : public QThread
 {
 public:
 	FbReader(QObject * parent);
+
+	bool supportCompress();
+	bool setCompress(bool value);
+
 protected:
 	void run();
+	void parseFbData(const QByteArray &bytes);
 
 private:
 	char *buf;
+	bool do_compress;
 };
 
 class CubeScene : public QGraphicsScene
