@@ -6,16 +6,71 @@
 #include <QPixmap>
 #include <QStringList>
 #include <QDebug>
+#include <QProcess>
+#include <QThread>
+#include <QDateTime>
 
 #include <stdlib.h>
 #include <time.h>
 
 #include "cubescene.h"
 
+FbReader::FbReader(QObject * parent) :
+	QThread(parent)
+{
+	setPriority(QThread::HighPriority);
+}
+
+void FbReader::run()
+{
+	QProcess p;
+	QString cmd = "/usr/bin/adb";
+	QStringList args;
+	int ret;
+
+	args << "shell" << "screencap";
+	qDebug() << "Exec: " << cmd << " " << args;
+
+	while (1) {
+
+		p.start(cmd, args);
+		p.waitForFinished();
+		ret = p.exitCode();
+
+		qDebug() << "Exit code: " << ret;
+
+		if (ret == 0) {
+			QByteArray bytes;
+			p.setReadChannel(QProcess::StandardOutput);
+			bytes = p.readAllStandardOutput();
+			qDebug() << "Read data..." << bytes.length() << QDateTime::currentMSecsSinceEpoch ();
+		}
+	}
+}
+
 CubeScene::CubeScene(QObject * parent) :
         QGraphicsScene(parent)
 {
     cell_width = DEFAULT_CELL_WIDTH;
+
+    v_width = 720;
+    v_height = 1280;
+
+    reader = new FbReader(parent);
+    startFbReader();
+}
+
+CubeScene::~CubeScene()
+{
+	stopFbReader();
+}
+
+void CubeScene::startFbReader() {
+	reader->start();
+}
+
+void CubeScene::stopFbReader() {
+	reader->quit();
 }
 
 void CubeScene::loadImage (const QString &file)
@@ -35,15 +90,17 @@ void CubeScene::initialize (void)
 
     cube_width = pixmap.width();
     cube_height = pixmap.height();
-    row_size = (cube_height - MIN_PAD) / cell_width;
-    col_size = (cube_width - MIN_PAD) / cell_width;
 
-    row_size = (row_size > MAX_ROW_COL_SIZE) ? MAX_ROW_COL_SIZE : row_size;
-    col_size = (col_size > MAX_ROW_COL_SIZE) ? MAX_ROW_COL_SIZE : col_size;
+    row_size = ROW_NUM;
+    col_size = COL_NUM;
+
+    cell_width = (cube_width - GRID_WIDTH * col_size * 2) / col_size;
+    cell_height = (cube_height - GRID_WIDTH * row_size * 2) / row_size;
 
     x_pad = (cube_width - cell_width * col_size) / 2;
-    y_pad = (cube_height - cell_width * row_size) / 2;
+    y_pad = (cube_height - cell_height * row_size) / 2;
 
+    /* Background */
     setBackgroundBrush(QBrush(pixmap));
 
     bg_mask = new QGraphicsRectItem(QRectF(0, 0, cube_width, cube_height));
@@ -53,6 +110,7 @@ void CubeScene::initialize (void)
 
     addItem(bg_mask);
 
+#if 0
     /* Thumnail of image */
     int tw, th;
     QPixmap nail_bg;
@@ -105,18 +163,20 @@ void CubeScene::initialize (void)
 
     addItem(start_cell);
 
+    /* Grid in right-bottom */
+    drawGrid (row_size - 1, col_size - 1);
+
+#endif
+
     /* Draw grid */
-    for (col = 0; col < col_size - 1; col++) {
+    for (col = 0; col < col_size; col++) {
         for (row = 0; row < row_size; row++) {
             drawGrid (row, col);
         }
     }
 
-    /* Grid in right-bottom */
-    drawGrid (row_size - 1, col_size - 1);
-
     /* Initialize cell with background */
-    for (col = 0; col < col_size - 1; col++) {
+    for (col = 0; col < col_size; col++) {
         for (row = 0; row < row_size; row++) {
             QPixmap cell_bg;
             QPoint cell_pos;
@@ -125,7 +185,7 @@ void CubeScene::initialize (void)
             cell_pos = getCellPos(row, col);
             cell_bg = pixmap.copy(cell_pos.x(), cell_pos.y(),
                                   cell_width - GRID_WIDTH,
-                                  cell_width - GRID_WIDTH);
+                                  cell_height - GRID_WIDTH);
 
             CubeCellItem *item;
 
@@ -156,8 +216,8 @@ void CubeScene::drawGrid (int row, int col)
 
     item = new QGraphicsRectItem(QRectF(
             cell_width * col + x_pad,
-            cell_width * row + y_pad,
-            cell_width, cell_width));
+            cell_height * row + y_pad,
+            cell_width, cell_height));
     item->setBrush(brush);
     item->setPen(pen);
     item->setZValue(3); /* lay in the bottom */
@@ -292,7 +352,7 @@ void CubeScene::moveCell(const QPoint &pos, int row, int col)
 QPoint CubeScene::getCellPos(int row, int col)
 {
     return QPoint (cell_width * col + x_pad + GRID_WIDTH,
-                   cell_width * row + y_pad + GRID_WIDTH);
+                   cell_height * row + y_pad + GRID_WIDTH);
 }
 
 void CubeScene::checkAllCell(void)
@@ -333,13 +393,49 @@ void CubeScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
     //qDebug() << "Item moveded: " << curr_pos;
 }
 
+QPoint CubeScene::scenePosToVirtual(QPointF pos)
+{
+	QPoint v;
+	float x_ratio = (float) v_width / cube_width;
+	float y_ratio = (float) v_height / cube_height;
+
+	v.setX(pos.x() * x_ratio);
+	v.setY(pos.y() * y_ratio);
+
+	return v;
+}
+
+void CubeScene::sendVirtualClick(QPoint pos)
+{
+	QProcess p;
+	QString cmd = "/usr/bin/adb";
+	QStringList args;
+
+	args << "shell" << "input" << "tap";
+        args << QString::number(pos.x()) << QString::number(pos.y());
+
+     	qDebug() << "Exec: " << cmd << " " << args;
+
+	p.start(cmd, args);
+	p.waitForFinished();
+}
+
 void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 {
      QGraphicsItem *item = 0;
      CubeCellItem *cell = 0;
 
-     //qDebug() << "Scene clicked: " << event->scenePos();
+     qDebug() << "Scene clicked: " << event->scenePos();
 
+     QPoint vpos;
+
+     vpos = scenePosToVirtual(event->scenePos());
+
+     qDebug() << "Virtual pos: " << vpos;
+
+     sendVirtualClick(vpos);
+
+#if 0
      item = itemAt(event->scenePos());
      cell =  dynamic_cast<CubeCellItem *>(item);
      if (!cell) {
@@ -380,5 +476,6 @@ void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 
          checkAllCell();
      }
+#endif
 }
 
