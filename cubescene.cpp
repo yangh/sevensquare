@@ -21,6 +21,7 @@ FbReader::FbReader(QObject * parent) :
 	QThread(parent)
 {
 	do_compress = false;
+	delay = 300;
 }
 
 bool FbReader::supportCompress()
@@ -113,6 +114,7 @@ void FbReader::run()
 
 		if (ret == 0) {
 			emit newFbReceived(&bytes);
+			msleep(delay);
 		} else {
 			msleep(1000);
 		}
@@ -153,8 +155,14 @@ void CubeScene::stopFbReader() {
 }
 
 void CubeScene::updateSceen(QByteArray *bytes) {
-    //qDebug() << "Update sceen" << bytes->length();
-    bg_mask->setFBRaw(bytes);
+	int ret;
+
+	ret = bg_mask->setFBRaw(bytes);
+	if (ret == FBCellItem::UPDATE_DONE) {
+		reader->setMiniDelay();
+	} else {
+		reader->IncreaseDelay();
+	}
 }
 
 void CubeScene::loadImage (const QString &file)

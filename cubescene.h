@@ -106,9 +106,21 @@ class FbReader : public QThread
 public:
 	FbReader(QObject * parent);
 
+	enum {
+		DELAY_FAST	= 200,
+		DELAY_NORMAL	= 400,
+		DELAY_SLOW	= 800,
+		DELAY_MAX	= 1000,
+	};
 	bool supportCompress();
 	bool setCompress(bool value);
 	int getScreenInfo(int &, int &, int &);
+	void setDelay(int d) { delay = d; };
+	void setMiniDelay() { delay = DELAY_FAST; };
+	void IncreaseDelay() {
+		if (delay < DELAY_MAX)
+			delay += DELAY_FAST;
+	};
 
 protected:
 	int screenCap(QByteArray &bytes);
@@ -121,6 +133,7 @@ signals:
 private:
 	char *buf;
 	bool do_compress;
+	int delay;
 };
 
 class CubeScene : public QGraphicsScene

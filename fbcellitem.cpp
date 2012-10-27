@@ -43,18 +43,21 @@ void FBCellItem::setFBSize(QSize size)
 	fb->fill(QColor(255, 255, 255));
 }
 
-void FBCellItem::setFBRaw(QByteArray *raw)
+int FBCellItem::setFBRaw(QByteArray *raw)
 {
 	QMutexLocker locker(&mutex);
 	quint16 sum;
        
+	// TODO: Check and update partially, block by block
 	sum = qChecksum(raw->data(), raw->length());
 	if (sum == lastSum)
-		return;
+		return UPDATE_IGNORED;
 
 	lastSum = sum;
 	bytes = raw;
 	update(boundingRect());
+
+	return UPDATE_DONE;
 }
 
 void FBCellItem::paintFB(QPainter *painter)

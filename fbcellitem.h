@@ -10,6 +10,11 @@
 class FBCellItem : public QGraphicsItem
 {
 public:
+    enum {
+	    UPDATE_DONE,
+	    UPDATE_IGNORED,
+    };
+
     explicit FBCellItem(QGraphicsItem *parent = 0);
     FBCellItem(const QPixmap &pixmap);
 
@@ -23,7 +28,7 @@ public:
 
     void setFBConnected(bool state) { fbConnected = state; };
     void setFBSize(QSize size);
-    void setFBRaw(QByteArray *raw);
+    int setFBRaw(QByteArray *raw);
 
     const QPoint cubePos(void) { return curr_pos; };
     const QPoint originalCubePos(void) { return orig_pos; };
