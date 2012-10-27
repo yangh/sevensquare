@@ -107,23 +107,24 @@ public:
 	FbReader(QObject * parent);
 
 	enum {
+		DELAY_STEP	= 100,
 		DELAY_FAST	= 200,
 		DELAY_NORMAL	= 400,
 		DELAY_SLOW	= 800,
 		DELAY_MAX	= 1000,
 	};
 	bool supportCompress();
-	bool setCompress(bool value);
+	void setCompress(bool value);
 	int getScreenInfo(int &, int &, int &);
 	void setDelay(int d) { delay = d; };
 	void setMiniDelay() { delay = DELAY_FAST; };
 	void IncreaseDelay() {
 		if (delay < DELAY_MAX)
-			delay += DELAY_FAST;
+			delay += DELAY_STEP;
 	};
 
 protected:
-	int screenCap(QByteArray &bytes);
+	int screenCap(QByteArray &bytes, bool);
 	void parseFbData(const QByteArray &bytes);
 	void run();
 
@@ -199,8 +200,6 @@ private:
     int col_size;
     int x_pad;
     int y_pad;
-    int v_width;
-    int v_height;
 
     QMutex update_mutex;
     QPixmap pixmap;

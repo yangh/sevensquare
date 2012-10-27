@@ -26,10 +26,10 @@ FbReader::FbReader(QObject * parent) :
 
 bool FbReader::supportCompress()
 {
-
+	return false;
 }
 
-bool FbReader::setCompress(bool value)
+void FbReader::setCompress(bool value)
 {
 	if (do_compress != value) {
 		do_compress = value;
@@ -59,7 +59,17 @@ void FbReader::parseFbData(const QByteArray &bytes)
 	}
 }
 
-int FbReader::screenCap(QByteArray &bytes)
+QByteArray AndrodDecompress(QByteArray &compressed)
+{
+	QByteArray bytes;
+
+	//TODO: Decompress from android minizip
+	bytes = compressed;
+
+	return bytes;
+}
+
+int FbReader::screenCap(QByteArray &bytes, bool compress = false)
 {
 	int ret;
 	AdbExecutor adb;
@@ -68,14 +78,17 @@ int FbReader::screenCap(QByteArray &bytes)
 	adb.addArg("shell");
 	adb.addArg("screencap");
 
-	//TODO: Check if support compress
-	if (do_compress)
+	if (compress)
 		adb.addArg("| gzip");
 
 	ret = adb.run();
 
 	if (adb.exitSuccess()) {
-		bytes = adb.output;
+		if (compress) {
+			bytes = AndrodDecompress(adb.output);
+		} else {
+			bytes = adb.output;
+		}
 	} else {
 		adb.printErrorInfo();
 	}
@@ -110,7 +123,7 @@ void FbReader::run()
 	int ret;
 
 	while (1) {
-		ret = screenCap(bytes);
+		ret = screenCap(bytes, do_compress);
 
 		if (ret == 0) {
 			emit newFbReceived(&bytes);
@@ -126,8 +139,8 @@ CubeScene::CubeScene(QObject * parent) :
 {
     cell_width = DEFAULT_CELL_WIDTH;
 
-    v_width = 720;
-    v_height = 1280;
+    fb_width = 480;
+    fb_height = 800;
 
     reader = new FbReader(parent);
 
@@ -137,6 +150,8 @@ CubeScene::CubeScene(QObject * parent) :
     QObject::connect(reader, SIGNAL(newFbReceived(QByteArray*)),
 		    this, SLOT(updateSceen(QByteArray*)));
 
+    //TODO: Check and Enable compress here
+    reader->setCompress(false);
     startFbReader();
 }
 
@@ -458,6 +473,8 @@ void CubeScene::sendVirtualClick(QPoint pos)
 	} else {
 		sendTap(pos);
 	}
+
+	reader->setMiniDelay();
 }
 
 void CubeScene::sendTap(QPoint pos)
@@ -582,6 +599,8 @@ void CubeScene::sendVirtualKey(int key)
 	adb.clear();
 	adb.addArg(cmds);
 	adb.run();
+
+	reader->setMiniDelay();
 }
 
 #define ANDROID_KEY_HOME	3
