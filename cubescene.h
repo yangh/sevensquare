@@ -37,15 +37,22 @@
 
 class FbReader : public QThread
 {
+	Q_OBJECT
+
 public:
 	FbReader(QObject * parent);
 
 	bool supportCompress();
 	bool setCompress(bool value);
+	int getScreenInfo(int &, int &, int &);
 
 protected:
-	void run();
+	int screenCap(QByteArray &bytes);
 	void parseFbData(const QByteArray &bytes);
+	void run();
+
+signals:
+    void newFbReceived(QByteArray *bytes);
 
 private:
 	char *buf;
@@ -54,6 +61,8 @@ private:
 
 class CubeScene : public QGraphicsScene
 {
+	Q_OBJECT
+
 public:
     CubeScene(QObject * parent = 0);
     ~CubeScene();
@@ -87,13 +96,19 @@ protected:
     void startFbReader();
     void stopFbReader();
 
+public slots:
+    void updateSceen(QByteArray *bytes);
+
 private:
-    QGraphicsRectItem *bg_mask;
-    CubeCellItem    *b_items[MAX_ROW_COL_SIZE][MAX_ROW_COL_SIZE];
-    CubeCellItem    *b_curr_items[MAX_ROW_COL_SIZE][MAX_ROW_COL_SIZE];
+    CubeCellItem *bg_mask;
+    CubeCellItem *b_items[MAX_ROW_COL_SIZE][MAX_ROW_COL_SIZE];
+    CubeCellItem *b_curr_items[MAX_ROW_COL_SIZE][MAX_ROW_COL_SIZE];
     int m_white_row;
     int m_white_col;
 
+    int fb_width;
+    int fb_height;
+    int pixel_format;
     int cube_width;
     int cube_height;
     int cell_width;

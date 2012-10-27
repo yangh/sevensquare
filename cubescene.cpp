@@ -43,8 +43,6 @@ int bigEndianToInt32(const QByteArray &bytes)
 
 	bcopy(buf, &v, sizeof(uint32_t));
 
-	qDebug() << "V: " << v;
-
 	return v;
 }
 
@@ -52,44 +50,75 @@ void FbReader::parseFbData(const QByteArray &bytes)
 {
 	int i, v[3];
 	QByteArray c;
-	const char *buf;
 
 	for (i = 0; i < 3; i++) {
-		c = bytes.mid(i * 4, 8);
+		c = bytes.mid(i * 4, 4);
 		v[i] = bigEndianToInt32(c);
-		qDebug() << "Values: " << v[i];
+		qDebug() << "Value:" << v[i];
 	}
 }
 
-void FbReader::run()
+int FbReader::screenCap(QByteArray &bytes)
 {
 	QProcess p;
 	QString cmd = "adb";
 	QStringList args;
-	QByteArray bytes;
 	int ret;
 
 	args << "shell" << "screencap";
 	if (do_compress)
 		args << "| gzip";
 
-	qDebug() << "Exec: " << cmd << " " << args;
+	//qDebug() << "Exec: " << cmd << " " << args;
+
+	p.start(cmd, args);
+	p.waitForFinished();
+	ret = p.exitCode();
+
+	if (ret == 0) {
+		p.setReadChannel(QProcess::StandardOutput);
+		bytes = p.readAllStandardOutput();
+		//qDebug() << "Read data..." << bytes.length()
+		//	<< QDateTime::currentMSecsSinceEpoch() / 1000;
+	} else {
+		bytes = p.readAllStandardError();
+		bytes.chop(1); // Remove trailly new line char
+		qDebug() << "Process return:" << ret <<  bytes;
+	}
+
+	return ret;
+}
+
+int FbReader::getScreenInfo(int &width, int &height, int &format)
+{
+	QByteArray bytes;
+	int ret;
+
+	ret = screenCap(bytes);
+
+	if (ret != 0)
+		return -1;
+
+	width = bigEndianToInt32(bytes.mid(0, 4));
+	height = bigEndianToInt32(bytes.mid(4, 4));
+	format = bigEndianToInt32(bytes.mid(8, 4));
+
+	//TODO: emit screenInfoChanged
+
+	return 0;
+}
+
+void FbReader::run()
+{
+	QByteArray bytes;
+	int ret;
 
 	while (1) {
-		p.start(cmd, args);
-		p.waitForFinished();
-		ret = p.exitCode();
+		ret = screenCap(bytes);
 
 		if (ret == 0) {
-			p.setReadChannel(QProcess::StandardOutput);
-			bytes = p.readAllStandardOutput();
-			qDebug() << "Read data..." << bytes.length()
-				<< QDateTime::currentMSecsSinceEpoch() / 1000;
-			parseFbData(bytes);
+			emit newFbReceived(&bytes);
 		} else {
-			bytes = p.readAllStandardError();
-			bytes.chop(1); // Remove trailly new line char
-			qDebug() << "Process return:" << ret <<  bytes;
 			msleep(1000);
 		}
 	}
@@ -104,6 +133,13 @@ CubeScene::CubeScene(QObject * parent) :
     v_height = 1280;
 
     reader = new FbReader(parent);
+
+    reader->getScreenInfo(fb_width, fb_height, pixel_format);
+    qDebug() << "Screen:" << fb_width << fb_height << pixel_format;
+
+    QObject::connect(reader, SIGNAL(newFbReceived(QByteArray*)),
+		    this, SLOT(updateSceen(QByteArray*)));
+
     startFbReader();
 }
 
@@ -121,13 +157,16 @@ void CubeScene::stopFbReader() {
 	reader->quit();
 }
 
+void CubeScene::updateSceen(QByteArray *bytes) {
+    qDebug() << "Update sceen" << bytes->length();
+}
+
 void CubeScene::loadImage (const QString &file)
 {
     qDebug() << "Load image from: " << file;
 
-    if (pixmap.load (file, 0)) {
-        initialize();
-    }
+    pixmap.load (file, 0);
+    initialize();
 }
 
 void CubeScene::initialize (void)
@@ -137,7 +176,8 @@ void CubeScene::initialize (void)
     qDebug() << "Scene initialize.";
 
     cube_width = pixmap.width();
-    cube_height = pixmap.height();
+    cube_height = fb_height * ((float) cube_width / fb_width);
+    qDebug() << "Cube : " << cube_width << cube_height;
 
     row_size = ROW_NUM;
     col_size = COL_NUM;
@@ -151,91 +191,27 @@ void CubeScene::initialize (void)
     /* Background */
     setBackgroundBrush(QBrush(pixmap));
 
-    bg_mask = new QGraphicsRectItem(QRectF(0, 0, cube_width, cube_height));
-    bg_mask->setBrush(QBrush(QColor(0, 0, 0, 135)));
-    bg_mask->setPen(Qt::NoPen);
-    bg_mask->setZValue(0); /* lay in the bottom */
+    QPixmap cell_bg;
+    QPoint cell_pos;
+    CubeCellItem *item;
 
-    addItem(bg_mask);
+    item = new CubeCellItem(pixmap);
+    item->setPos(QPoint(0, 0));
+    item->setZValue(0); /* lay in the bottom*/
+    addItem(item);
+
+    bg_mask = item;
 
 #if 0
-    /* Thumnail of image */
-    int tw, th;
-    QPixmap nail_bg;
-    CubeCellItem *nail_cell;
-
-    tw = cell_width - THUMNAIL_X_PAD * 2;
-    th = pixmap.height() * tw / pixmap.width();
-    nail_bg = pixmap.scaled(QSize(tw, th),
-                            Qt::IgnoreAspectRatio,
-                            Qt::SmoothTransformation);
-    nail_cell = new CubeCellItem(nail_bg);
-
-    int tx, ty;
-    tx = cell_width * (col_size - 1) + THUMNAIL_X_PAD + x_pad;
-    ty = cell_width * (row_size - 2) + (cell_width - th) / 2 + y_pad;
-    //qDebug() << "Draw thumnail at: " << tx << ", " << ty;
-    nail_cell->setPos(tx, ty);
-    nail_cell->setOriginalCubePos(THUMNAIL_CELL_POS, THUMNAIL_CELL_POS);
-    nail_cell->setZValue(5);
-
-    addItem(nail_cell);
-
-    /* Start button */
-    CubeCellItem *start_cell;
-    QPixmap start_icon(16, 16);
-    static const QPointF points[3] = {
-        QPointF(4.0, 0.0),
-        QPointF(16.0, 8.0),
-        QPointF(4.0, 16.0)
-    };
-
-    start_icon.fill(Qt::transparent);
-
-    QPainter painter(&start_icon);
-    QPen pen;
-
-    pen.setColor(QColor(Qt::gray));
-    pen.setWidth(1);
-    painter.setPen(pen);
-    painter.setBrush(QBrush(QColor(Qt::black)));
-    painter.drawPolygon(points, 3, Qt::WindingFill);
-
-    start_cell = new CubeCellItem(start_icon);
-    tx = cell_width * (col_size - 1) + (cell_width - 16) / 2 + x_pad;
-    ty = cell_width * (row_size - 3) + (cell_width - 16) / 2 + y_pad;
-    qDebug() << "Draw start buttonat: " << tx << ", " << ty;
-    start_cell->setPos(tx, ty);
-    start_cell->setOriginalCubePos(STARTBUTTON_CELL_POS, STARTBUTTON_CELL_POS);
-    start_cell->setZValue(5);
-
-    addItem(start_cell);
-
-    /* Grid in right-bottom */
-    drawGrid (row_size - 1, col_size - 1);
-
-#endif
-
-    /* Draw grid */
+    /* TODO: add virtual key */
     for (col = 0; col < col_size; col++) {
         for (row = 0; row < row_size; row++) {
-            drawGrid (row, col);
-        }
-    }
-
-    /* Initialize cell with background */
-    for (col = 0; col < col_size; col++) {
-        for (row = 0; row < row_size; row++) {
-            QPixmap cell_bg;
-            QPoint cell_pos;
 
             qDebug() << "Init cell: " << row << ", " << col;
             cell_pos = getCellPos(row, col);
             cell_bg = pixmap.copy(cell_pos.x(), cell_pos.y(),
                                   cell_width - GRID_WIDTH,
                                   cell_height - GRID_WIDTH);
-
-            CubeCellItem *item;
 
             item = new CubeCellItem(cell_bg);
             item->setPos(cell_pos);
@@ -246,9 +222,7 @@ void CubeScene::initialize (void)
             b_items[row][col] = item;
         }
     }
-
-    m_white_col = col_size - 1;
-    m_white_row = row_size - 1;
+#endif
 }
 
 void CubeScene::drawGrid (int row, int col)
@@ -444,8 +418,8 @@ void CubeScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 QPoint CubeScene::scenePosToVirtual(QPointF pos)
 {
 	QPoint v;
-	float x_ratio = (float) v_width / cube_width;
-	float y_ratio = (float) v_height / cube_height;
+	float x_ratio = (float) fb_width / cube_width;
+	float y_ratio = (float) fb_height / cube_height;
 
 	v.setX(pos.x() * x_ratio);
 	v.setY(pos.y() * y_ratio);
@@ -458,14 +432,31 @@ void CubeScene::sendVirtualClick(QPoint pos)
 	QProcess p;
 	QString cmd = "/usr/bin/adb";
 	QStringList args;
+	int ret;
 
 	args << "shell" << "input" << "tap";
         args << QString::number(pos.x()) << QString::number(pos.y());
-
-     	qDebug() << "Exec: " << cmd << " " << args;
+     	//qDebug() << "Exec: " << cmd << " " << args;
 
 	p.start(cmd, args);
 	p.waitForFinished();
+	ret = p.exitCode();
+
+	if (1) {
+		QByteArray bytes;
+
+		bytes = p.readAllStandardError();
+		if (bytes.length() > 0) {
+			qDebug() << "Process stderr:" << ret;
+		        qDebug() <<  bytes;
+		}
+
+		bytes = p.readAllStandardOutput();
+		if (bytes.length() > 0) { 
+			qDebug() << "Process stdout:" << ret;
+		        qDebug() <<  bytes;
+		}
+	}
 }
 
 void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
