@@ -8,6 +8,7 @@
 #include <QDebug>
 #include <QThread>
 #include <QDateTime>
+#include <QKeyEvent>
 
 #include <stdlib.h>
 #include <time.h>
@@ -166,6 +167,7 @@ void CubeScene::loadImage (const QString &file)
 void CubeScene::initialize (void)
 {
     int row, col;
+    QPixmap pixmap_scaled;
 
     qDebug() << "Scene initialize.";
 
@@ -182,14 +184,18 @@ void CubeScene::initialize (void)
     x_pad = (cube_width - cell_width * col_size) / 2;
     y_pad = (cube_height - cell_height * row_size) / 2;
 
+    pixmap_scaled = pixmap.scaled(cube_width, cube_height,
+				Qt::KeepAspectRatio,
+				Qt::SmoothTransformation);
+
     /* Background */
-    setBackgroundBrush(QBrush(pixmap));
+    setBackgroundBrush(QBrush(pixmap_scaled));
 
     QPixmap cell_bg;
     QPoint cell_pos;
     CubeCellItem *item;
 
-    item = new CubeCellItem(pixmap);
+    item = new CubeCellItem(pixmap_scaled);
     item->setPos(QPoint(0, 0));
     item->setZValue(0); /* lay in the bottom*/
     addItem(item);
@@ -425,6 +431,14 @@ void CubeScene::sendVirtualClick(QPoint pos)
 {
 	bool isIcs = true;
 
+	if (pos.x() < 0 || pos.y() < 0
+		|| pos.x() > fb_width
+		|| pos.y() > fb_height)
+	{
+		qDebug() << "Out of range click" << pos;
+		return;
+	}
+
 	// TODO: Check device version to send event in diff way
 	if (isIcs) {
 		sendEvent(pos);
@@ -542,5 +556,59 @@ void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
          checkAllCell();
      }
 #endif
+}
+
+void CubeScene::sendVirtualKey(int key)
+{
+	AdbExecutor adb;
+	QStringList cmds;
+
+	cmds << "shell" << "input keyevent";
+        cmds << QString::number(key);
+
+	adb.clear();
+	adb.addArg(cmds);
+	adb.run();
+}
+
+#define ANDROID_KEY_HOME	3
+#define ANDROID_KEY_BACK	4
+#define ANDROID_KEY_MENU	82
+#define ANDROID_KEY_ENTER	66
+#define ANDROID_KEY_DPAD_UP	19
+#define ANDROID_KEY_DPAD_DOWN	20
+#define ANDROID_KEY_DPAD_CENTER	23
+
+void CubeScene::keyReleaseEvent(QKeyEvent * event)
+{
+	int key;
+
+	key = event->key();
+
+	switch(key) {
+	case Qt::Key_B:
+		sendVirtualKey(ANDROID_KEY_BACK);
+		break;
+	case Qt::Key_H:
+		sendVirtualKey(ANDROID_KEY_HOME);
+		break;
+	case Qt::Key_M:
+		sendVirtualKey(ANDROID_KEY_MENU);
+		break;
+
+	case Qt::Key_J:
+	case Qt::Key_Up:
+		sendVirtualKey(ANDROID_KEY_DPAD_UP);
+		break;
+	case Qt::Key_K:
+	case Qt::Key_Down:
+		sendVirtualKey(ANDROID_KEY_DPAD_DOWN);
+		break;
+	case Qt::Key_G:
+	case Qt::Key_Enter: // Why no action?
+	case Qt::Key_Space:
+		sendVirtualKey(ANDROID_KEY_DPAD_CENTER);
+		break;
+	}
 }
 

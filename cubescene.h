@@ -84,6 +84,10 @@ public:
 		qDebug() << error;
 	}
 
+	bool outputEqual (const char *str) {
+		return output.startsWith(str);
+	}
+
 	QByteArray error;
 	QByteArray output;
 
@@ -147,6 +151,7 @@ protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event);
     void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
     void mouseReleaseEvent(QGraphicsSceneMouseEvent *event);
+    void keyReleaseEvent(QKeyEvent * event);
 
     void drawGrid (int row, int col);
     QPoint getCellPos(int row, int col);
@@ -155,6 +160,7 @@ protected:
     void sendEvent(QPoint pos);
     QStringList newEventCmd (int type, int code, int value);
     void sendVirtualClick(QPoint pos);
+    void sendVirtualKey(int key);
     void startFbReader();
     void stopFbReader();
 
