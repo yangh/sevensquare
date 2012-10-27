@@ -6,7 +6,6 @@
 #include <QPixmap>
 #include <QStringList>
 #include <QDebug>
-#include <QProcess>
 #include <QThread>
 #include <QDateTime>
 
@@ -60,31 +59,26 @@ void FbReader::parseFbData(const QByteArray &bytes)
 
 int FbReader::screenCap(QByteArray &bytes)
 {
-	QProcess p;
-	QString cmd = "adb";
-	QStringList args;
 	int ret;
+	AdbExecutor adb;
 
-	args << "shell" << "screencap";
+	adb.clear();
+	adb.addArg("shell");
+	adb.addArg("screencap");
+
+	//TODO: Check if support compress
 	if (do_compress)
-		args << "| gzip";
+		adb.addArg("| gzip");
 
-	//qDebug() << "Exec: " << cmd << " " << args;
+	ret = adb.run();
 
-	p.start(cmd, args);
-	p.waitForFinished();
-	ret = p.exitCode();
-
-	if (ret == 0) {
-		p.setReadChannel(QProcess::StandardOutput);
-		bytes = p.readAllStandardOutput();
-		//qDebug() << "Read data..." << bytes.length()
-		//	<< QDateTime::currentMSecsSinceEpoch() / 1000;
+	if (adb.exitSuccess()) {
+		bytes = adb.output;
 	} else {
-		bytes = p.readAllStandardError();
-		bytes.chop(1); // Remove trailly new line char
-		qDebug() << "Process return:" << ret <<  bytes;
+		adb.printErrorInfo();
 	}
+
+	//<< QDateTime::currentMSecsSinceEpoch() / 1000;
 
 	return ret;
 }
@@ -429,34 +423,66 @@ QPoint CubeScene::scenePosToVirtual(QPointF pos)
 
 void CubeScene::sendVirtualClick(QPoint pos)
 {
-	QProcess p;
-	QString cmd = "/usr/bin/adb";
-	QStringList args;
-	int ret;
+	bool isIcs = true;
 
-	args << "shell" << "input" << "tap";
-        args << QString::number(pos.x()) << QString::number(pos.y());
-     	//qDebug() << "Exec: " << cmd << " " << args;
-
-	p.start(cmd, args);
-	p.waitForFinished();
-	ret = p.exitCode();
-
-	if (1) {
-		QByteArray bytes;
-
-		bytes = p.readAllStandardError();
-		if (bytes.length() > 0) {
-			qDebug() << "Process stderr:" << ret;
-		        qDebug() <<  bytes;
-		}
-
-		bytes = p.readAllStandardOutput();
-		if (bytes.length() > 0) { 
-			qDebug() << "Process stdout:" << ret;
-		        qDebug() <<  bytes;
-		}
+	// TODO: Check device version to send event in diff way
+	if (isIcs) {
+		sendEvent(pos);
+	} else {
+		sendTap(pos);
 	}
+}
+
+void CubeScene::sendTap(QPoint pos)
+{
+	AdbExecutor adb;
+	QStringList cmds;
+
+	cmds << "shell" << "input tap";
+        cmds << QString::number(pos.x());
+	cmds << QString::number(pos.y());
+
+	adb.clear();
+	adb.addArg(cmds);
+	adb.run();
+}
+
+QStringList CubeScene::newEventCmd (int type, int code, int value)
+{
+	QStringList event;
+
+	event.clear();
+
+	//TODO: Use correct dev to send event
+	event << "sendevent" << "/dev/input/event0";
+	event << QString::number(type);
+	event << QString::number(code);
+	event << QString::number(value);
+	event << ";";
+
+	return event;
+}
+
+void CubeScene::sendEvent(QPoint pos)
+{
+	AdbExecutor adb;
+	QStringList events;
+
+	events << newEventCmd(3, 0x35, pos.x());
+	events << newEventCmd(3, 0x36, pos.y());
+	events << newEventCmd(1, 0x14a, 1);
+
+	events << newEventCmd(3, 0, pos.x());
+	events << newEventCmd(3, 1, pos.y());
+	events << newEventCmd(0, 0, 0);
+
+	events << newEventCmd(1, 0x14a, 0);
+	events << newEventCmd(0, 0, 0);
+
+	adb.clear();
+	adb.addArg("shell");
+	adb.addArg(events);
+	adb.run();
 }
 
 void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)

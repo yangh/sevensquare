@@ -7,6 +7,9 @@
 #include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
 
+#include <QProcess>
+#include <QDebug>
+
 #include "cubecellitem.h"
 
 #define DEFAULT_CELL_WIDTH 120
@@ -34,6 +37,62 @@
 #define BACKGROUND_FILE "gnu_tux-320x240.png"
 
 #include <QThread>
+
+class AdbExecutor
+{
+public:
+	AdbExecutor() {};
+	AdbExecutor(const char *c) { args << c; };
+
+	void addArg(const char *a) { args << a; };
+	void addArg(const QString &a) { args << a; };
+	void addArg(const QStringList &a) { args << a; };
+
+	bool exitSuccess(void) { return exitCode == 0; };
+
+	void clear(void) {
+		args.clear();
+		error.clear();
+		output.clear();
+		exitCode = 0;
+	}
+
+	int run(bool waitForFinished = true) {
+		cmd = "adb";
+
+		qDebug() << "Exec: " << cmd << " " << args;
+		p.start(cmd, args);
+
+		if (waitForFinished) {
+			return wait();
+		}
+
+		return 0;
+	}
+
+	int wait() {
+		p.waitForFinished();
+
+		output = p.readAllStandardOutput();
+		error = p.readAllStandardError();
+
+		return p.exitCode();
+	}
+
+	void printErrorInfo() {
+		qDebug() << "Process return:" << exitCode;
+		qDebug() << error;
+	}
+
+	QByteArray error;
+	QByteArray output;
+
+private:
+	int exitCode;
+	QProcess p;
+	QString cmd;
+	QStringList args;
+};
 
 class FbReader : public QThread
 {
@@ -92,6 +151,9 @@ protected:
     void drawGrid (int row, int col);
     QPoint getCellPos(int row, int col);
     QPoint scenePosToVirtual(QPointF pos);
+    void sendTap(QPoint pos);
+    void sendEvent(QPoint pos);
+    QStringList newEventCmd (int type, int code, int value);
     void sendVirtualClick(QPoint pos);
     void startFbReader();
     void stopFbReader();
