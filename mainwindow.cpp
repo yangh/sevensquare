@@ -4,6 +4,8 @@
 
 #include "mainwindow.h"
 
+#define WINDOW_BORDER 4
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent)
 {
@@ -24,7 +26,8 @@ MainWindow::MainWindow(QWidget *parent) :
     b_scene->loadImage(file);
 
     QSize b_size = b_scene->getSize();
-    QSize size(b_size.width() + 2, b_size.height() + 2);
+    QSize size(b_size.width() + WINDOW_BORDER,
+		    b_size.height() + WINDOW_BORDER);
 
     resize (size);
     setMinimumSize(size);

@@ -6,6 +6,8 @@
 #include <QPixmap>
 #include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
+#include <QMutex>
+#include <QWaitCondition>
 
 #include <QProcess>
 #include <QDebug>
@@ -116,11 +118,19 @@ public:
 	bool supportCompress();
 	void setCompress(bool value);
 	int getScreenInfo(int &, int &, int &);
-	void setDelay(int d) { delay = d; };
-	void setMiniDelay() { delay = DELAY_FAST; };
+
+	void setDelay(int d) {
+		mutex.lock();
+		delay = d;
+		readDelay.wakeAll();
+		mutex.unlock();
+	};
+
+	void setMiniDelay() { setDelay(DELAY_FAST); };
+
 	void IncreaseDelay() {
 		if (delay < DELAY_MAX)
-			delay += DELAY_STEP;
+			setDelay(delay + DELAY_STEP);
 	};
 
 protected:
@@ -135,6 +145,8 @@ private:
 	char *buf;
 	bool do_compress;
 	int delay;
+	QMutex mutex;
+	QWaitCondition readDelay;
 };
 
 class CubeScene : public QGraphicsScene

@@ -124,13 +124,18 @@ void FbReader::run()
 
 	while (1) {
 		ret = screenCap(bytes, do_compress);
+		int ms = delay;
 
 		if (ret == 0) {
 			emit newFbReceived(&bytes);
-			msleep(delay);
 		} else {
-			msleep(1000);
+			ms = DELAY_MAX;
 		}
+
+		//qDebug() << "Delay:" << ms<< "ms";
+		mutex.lock();
+		readDelay.wait(&mutex, ms);
+		mutex.unlock();
 	}
 }
 
@@ -208,9 +213,7 @@ void CubeScene::initialize (void)
     x_pad = (cube_width - cell_width * col_size) / 2;
     y_pad = (cube_height - cell_height * row_size) / 2;
 
-    pixmap_scaled = pixmap.scaled(cube_width, cube_height,
-				Qt::KeepAspectRatio,
-				Qt::SmoothTransformation);
+    pixmap_scaled = pixmap.copy(0, 0, cube_width, cube_height);
 
     /* Background */
     setBackgroundBrush(QBrush(pixmap_scaled));
@@ -474,7 +477,7 @@ void CubeScene::sendVirtualClick(QPoint pos)
 		sendTap(pos);
 	}
 
-	reader->setMiniDelay();
+	reader->setDelay(0);
 }
 
 void CubeScene::sendTap(QPoint pos)
@@ -600,7 +603,7 @@ void CubeScene::sendVirtualKey(int key)
 	adb.addArg(cmds);
 	adb.run();
 
-	reader->setMiniDelay();
+	reader->setDelay(0);
 }
 
 #define ANDROID_KEY_HOME	3
