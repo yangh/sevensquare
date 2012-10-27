@@ -22,6 +22,7 @@ FbReader::FbReader(QObject * parent) :
 {
 	do_compress = false;
 	delay = 300;
+	stopped = false;
 }
 
 bool FbReader::supportCompress()
@@ -45,18 +46,6 @@ int bigEndianToInt32(const QByteArray &bytes)
 	bcopy(buf, &v, sizeof(uint32_t));
 
 	return v;
-}
-
-void FbReader::parseFbData(const QByteArray &bytes)
-{
-	int i, v[3];
-	QByteArray c;
-
-	for (i = 0; i < 3; i++) {
-		c = bytes.mid(i * 4, 4);
-		v[i] = bigEndianToInt32(c);
-		qDebug() << "Value:" << v[i];
-	}
 }
 
 QByteArray AndrodDecompress(QByteArray &compressed)
@@ -136,7 +125,14 @@ void FbReader::run()
 		mutex.lock();
 		readDelay.wait(&mutex, ms);
 		mutex.unlock();
+
+		if (stopped) {
+			qDebug() << "FbReader stopped";
+			break;
+		}
 	}
+
+	return;
 }
 
 CubeScene::CubeScene(QObject * parent) :
@@ -171,6 +167,7 @@ void CubeScene::startFbReader() {
 }
 
 void CubeScene::stopFbReader() {
+	reader->stop();
 	reader->quit();
 }
 

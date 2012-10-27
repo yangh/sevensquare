@@ -133,9 +133,14 @@ public:
 			setDelay(delay + DELAY_STEP);
 	};
 
+	void stop() {
+		stopped = true;
+		setDelay(0);
+		while (! isFinished()) msleep(100);
+	}
+
 protected:
 	int screenCap(QByteArray &bytes, bool);
-	void parseFbData(const QByteArray &bytes);
 	void run();
 
 signals:
@@ -145,6 +150,7 @@ private:
 	char *buf;
 	bool do_compress;
 	int delay;
+	bool stopped;
 	QMutex mutex;
 	QWaitCondition readDelay;
 };
