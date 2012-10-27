@@ -9,7 +9,9 @@ TEMPLATE = app
 SOURCES += main.cpp \
     mainwindow.cpp \
     cubecellitem.cpp \
+    fbcellitem.cpp \
     cubescene.cpp
 HEADERS += mainwindow.h \
     cubecellitem.h \
+    fbcellitem.h \
     cubescene.h

@@ -1,15 +1,17 @@
-#ifndef CUBECELLITEM_H
-#define CUBECELLITEM_H
+#ifndef FBCELLITEM_H
+#define FBCELLITEM_H
 
 #include <QPoint>
 #include <QPixmap>
 #include <QGraphicsItem>
+#include <QMutex>
+#include <QMutexLocker>
 
-class CubeCellItem : public QGraphicsItem
+class FBCellItem : public QGraphicsItem
 {
 public:
-    explicit CubeCellItem(QGraphicsItem *parent = 0);
-    CubeCellItem(const QPixmap &pixmap);
+    explicit FBCellItem(QGraphicsItem *parent = 0);
+    FBCellItem(const QPixmap &pixmap);
 
     QRectF boundingRect() const;
 
@@ -17,6 +19,11 @@ public:
                const QStyleOptionGraphicsItem *option,
                QWidget *widget = 0);
 
+    void paintFB(QPainter *painter);
+
+    void setFBConnected(bool state) { fbConnected = state; };
+    void setFBSize(QSize size);
+    void setFBRaw(QByteArray *raw);
 
     const QPoint cubePos(void) { return curr_pos; };
     const QPoint originalCubePos(void) { return orig_pos; };
@@ -40,6 +47,14 @@ private:
     QPixmap pixmap;
     QPoint orig_pos;
     QPoint curr_pos;
+    QSize cellSize;
+
+    QPixmap *fb;
+    QByteArray *bytes;
+    QSize fbSize;
+    bool fbConnected;
+    QMutex mutex;
+    quint16 lastSum;
 };
 
-#endif // CUBECELLITEM_H
+#endif // FBCELLITEM_H

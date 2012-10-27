@@ -11,6 +11,7 @@
 #include <QDebug>
 
 #include "cubecellitem.h"
+#include "fbcellitem.h"
 
 #define DEFAULT_CELL_WIDTH 120
 #define MIN_PAD 15
@@ -60,7 +61,7 @@ public:
 	int run(bool waitForFinished = true) {
 		cmd = "adb";
 
-		qDebug() << "Exec: " << cmd << " " << args;
+		//qDebug() << "Exec: " << cmd << " " << args;
 		p.start(cmd, args);
 
 		if (waitForFinished) {
@@ -168,7 +169,7 @@ public slots:
     void updateSceen(QByteArray *bytes);
 
 private:
-    CubeCellItem *bg_mask;
+    FBCellItem *bg_mask;
     CubeCellItem *b_items[MAX_ROW_COL_SIZE][MAX_ROW_COL_SIZE];
     CubeCellItem *b_curr_items[MAX_ROW_COL_SIZE][MAX_ROW_COL_SIZE];
     int m_white_row;
@@ -188,6 +189,7 @@ private:
     int v_width;
     int v_height;
 
+    QMutex update_mutex;
     QPixmap pixmap;
     FbReader *reader;
 };

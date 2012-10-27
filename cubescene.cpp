@@ -153,7 +153,8 @@ void CubeScene::stopFbReader() {
 }
 
 void CubeScene::updateSceen(QByteArray *bytes) {
-    qDebug() << "Update sceen" << bytes->length();
+    //qDebug() << "Update sceen" << bytes->length();
+    bg_mask->setFBRaw(bytes);
 }
 
 void CubeScene::loadImage (const QString &file)
@@ -191,18 +192,22 @@ void CubeScene::initialize (void)
     /* Background */
     setBackgroundBrush(QBrush(pixmap_scaled));
 
+    FBCellItem *fb;
+
+    fb = new FBCellItem(pixmap_scaled);
+    fb->setPos(QPoint(0, 0));
+    fb->setZValue(0); /* lay in the bottom*/
+    fb->setFBConnected(true);
+    fb->setFBSize(QSize(fb_width, fb_height));
+    addItem(fb);
+
+    bg_mask = fb;
+
+#if 0
     QPixmap cell_bg;
     QPoint cell_pos;
     CubeCellItem *item;
 
-    item = new CubeCellItem(pixmap_scaled);
-    item->setPos(QPoint(0, 0));
-    item->setZValue(0); /* lay in the bottom*/
-    addItem(item);
-
-    bg_mask = item;
-
-#if 0
     /* TODO: add virtual key */
     for (col = 0; col < col_size; col++) {
         for (row = 0; row < row_size; row++) {
