@@ -14,6 +14,7 @@
 #include <time.h>
 #include <strings.h>
 #include <stdint.h>
+#include <zlib.h>
 
 #include "cubescene.h"
 
@@ -48,14 +49,43 @@ int bigEndianToInt32(const QByteArray &bytes)
 	return v;
 }
 
-QByteArray AndrodDecompress(QByteArray &compressed)
+int AndrodDecompress(QByteArray &src, QByteArray &dest)
 {
-	QByteArray bytes;
+	int ret;
+	uLongf destLen;
+	QProcess p;
 
-	//TODO: Decompress from android minizip
-	bytes = compressed;
+	qDebug() << "Src old:" << src.length();
+	if (src.length() < 100) {
+		qDebug() << "src" << src;
+	}
 
-	return bytes;
+	src.replace("\r\n", "\n");
+	qDebug() << "Src new:" << src.length();
+
+	p.start("minigzip -d");
+#if 1
+	if (! p.waitForStarted()) {
+		qDebug() << "Failed to start minigzip";
+		return 1;
+	}
+#endif
+
+	p.write(src.data());
+	p.closeWriteChannel();
+	p.waitForFinished();
+
+	dest = p.readAllStandardOutput();
+
+	//TODO: Always fail to uncompress
+	qDebug() << "Uncompress ret:" << dest.length();
+	qDebug() << "Uncompress ret:" << p.readAllStandardError();
+
+	if (dest.length() < 100) {
+		qDebug() << "dest" << dest;
+	}
+
+	return 0;
 }
 
 int FbReader::screenCap(QByteArray &bytes, bool compress = false)
@@ -67,14 +97,16 @@ int FbReader::screenCap(QByteArray &bytes, bool compress = false)
 	adb.addArg("shell");
 	adb.addArg("screencap");
 
-	if (compress)
-		adb.addArg("| gzip");
+	if (compress) {
+		adb.addArg("|");
+		adb.addArg("gzip");
+	}
 
 	ret = adb.run();
 
 	if (adb.exitSuccess()) {
 		if (compress) {
-			bytes = AndrodDecompress(adb.output);
+			AndrodDecompress(adb.output, bytes);
 		} else {
 			bytes = adb.output;
 		}
@@ -101,9 +133,25 @@ int FbReader::getScreenInfo(int &width, int &height, int &format)
 	height = bigEndianToInt32(bytes.mid(4, 4));
 	format = bigEndianToInt32(bytes.mid(8, 4));
 
+	fb_width = width;
+	fb_height = height;
+	fb_format = format;
+
 	//TODO: emit screenInfoChanged
 
 	return 0;
+}
+
+int FbReader::caclBufferSize()
+{
+	int len;
+	int bpp;
+
+	//TODO: calc bpp via format
+	bpp = 4;
+	len = fb_width * fb_height * bpp;
+
+	return len;
 }
 
 void FbReader::run()
@@ -111,12 +159,18 @@ void FbReader::run()
 	QByteArray bytes;
 	int ret;
 
+	//bytes.fill(0x00, caclBufferSize());
+
 	while (1) {
-		ret = screenCap(bytes, do_compress);
 		int ms = delay;
 
+		ret = screenCap(bytes, do_compress);
+
 		if (ret == 0) {
-			emit newFbReceived(&bytes);
+			if (bytes.length() >= caclBufferSize())
+				emit newFbReceived(&bytes);
+			else
+				qDebug() << "Invalid data:" << bytes.length();
 		} else {
 			ms = DELAY_MAX;
 		}
@@ -140,8 +194,8 @@ CubeScene::CubeScene(QObject * parent) :
 {
     cell_width = DEFAULT_CELL_WIDTH;
 
-    fb_width = 480;
-    fb_height = 800;
+    fb_width = 48;
+    fb_height = 64;
 
     reader = new FbReader(parent);
 
@@ -161,20 +215,26 @@ CubeScene::~CubeScene()
 	stopFbReader();
 }
 
-void CubeScene::startFbReader() {
+void CubeScene::startFbReader()
+{
 	reader->start();
 	reader->setPriority(QThread::HighPriority);
 }
 
-void CubeScene::stopFbReader() {
+void CubeScene::stopFbReader()
+{
 	reader->stop();
 	reader->quit();
 }
 
-void CubeScene::updateSceen(QByteArray *bytes) {
+void CubeScene::updateSceen(QByteArray *bytes)
+{
 	int ret;
 
+	bg_mask->setFBConnected(true);
+
 	ret = bg_mask->setFBRaw(bytes);
+
 	if (ret == FBCellItem::UPDATE_DONE) {
 		reader->setMiniDelay();
 	} else {
@@ -220,7 +280,6 @@ void CubeScene::initialize (void)
     fb = new FBCellItem(pixmap_scaled);
     fb->setPos(QPoint(0, 0));
     fb->setZValue(0); /* lay in the bottom*/
-    fb->setFBConnected(true);
     fb->setFBSize(QSize(fb_width, fb_height));
     addItem(fb);
 

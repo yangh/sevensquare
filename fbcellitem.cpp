@@ -19,28 +19,32 @@ FBCellItem::FBCellItem(const QPixmap &pixmap) :
 
 	fbSize = cellSize;
 	fb = new QPixmap(fbSize);
-	fb->fill(QColor(255, 255, 255));
+	fb->fill(QColor(Qt::black));
 
 	bytes = NULL;
+	lastSum = -1;
 }
 
 QRectF FBCellItem::boundingRect() const
 {
-    return QRectF(pixmap.rect());
+    return QRectF(0, 0, cellSize.width(), cellSize.height());
 }
 
 void FBCellItem::setFBSize(QSize size)
 {
 	QMutexLocker locker(&mutex);
 
+	if (fbSize == size)
+		return;
+
+	qDebug() << "New FB size:" << size << fbSize;
 	fbSize = size;
-	qDebug() << "New FB size:" << size;
 
 	if (fb != NULL)
 		free(fb);
 
 	fb = new QPixmap(fbSize);
-	fb->fill(QColor(255, 255, 255));
+	fb->fill(QColor(Qt::black));
 }
 
 int FBCellItem::setFBRaw(QByteArray *raw)
@@ -71,7 +75,10 @@ void FBCellItem::paintFB(QPainter *painter)
 	if (bytes == NULL)
 		return;
 
-	qDebug() << "Painting FB...";
+	if (bytes->length() < fbSize.width() * fbSize.height() * 4)
+		return;
+
+	//qDebug() << "Painting FB...";
 	buf = (uint8_t *) bytes->data();
 	buf += 12; // Skip header
 

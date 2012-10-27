@@ -37,7 +37,7 @@
 #define STARTBUTTON_CELL_POS -3
 #define STARTBUTTON_CELL_IDX (STARTBUTTON_CELL_POS * 2)
 
-#define BACKGROUND_FILE "gnu_tux-320x240.png"
+#define BACKGROUND_FILE "sandbox.jpg"
 
 #include <QThread>
 
@@ -97,6 +97,7 @@ public:
 private:
 	int exitCode;
 	QProcess p;
+	QProcess pCompress;
 	QString cmd;
 	QStringList args;
 };
@@ -139,6 +140,8 @@ public:
 		while (! isFinished()) msleep(100);
 	}
 
+	int caclBufferSize();
+
 protected:
 	int screenCap(QByteArray &bytes, bool);
 	void run();
@@ -151,8 +154,12 @@ private:
 	bool do_compress;
 	int delay;
 	bool stopped;
+	int fb_width;
+	int fb_height;
+	int fb_format;
 	QMutex mutex;
 	QWaitCondition readDelay;
+	uchar *fb_addr;
 };
 
 class CubeScene : public QGraphicsScene

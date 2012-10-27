@@ -6,6 +6,7 @@ QT += opengl \
     svg
 TARGET = seven-square
 TEMPLATE = app
+CONFIG += debug
 SOURCES += main.cpp \
     mainwindow.cpp \
     cubecellitem.cpp \
