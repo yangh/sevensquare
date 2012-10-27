@@ -9,6 +9,7 @@
 #include <QThread>
 #include <QDateTime>
 #include <QKeyEvent>
+#include <QFile>
 
 #include <stdlib.h>
 #include <time.h>
@@ -54,36 +55,20 @@ int AndrodDecompress(QByteArray &src, QByteArray &dest)
 	int ret;
 	uLongf destLen;
 	QProcess p;
+	AdbExecutor adb;
 
-	qDebug() << "Src old:" << src.length();
-	if (src.length() < 100) {
-		qDebug() << "src" << src;
-	}
+	adb.addArg("pull");
+	adb.addArg("/data/fb.gz");
+	adb.addArg("/dev/shm/android-fb.gz");
+	adb.run();
+	qDebug() << adb.error;
 
-	src.replace("\r\n", "\n");
-	qDebug() << "Src new:" << src.length();
-
-	p.start("minigzip -d");
-#if 1
-	if (! p.waitForStarted()) {
-		qDebug() << "Failed to start minigzip";
-		return 1;
-	}
-#endif
-
-	p.write(src.data());
-	p.closeWriteChannel();
+	p.start("minigzip", QStringList() << "-d" << "-c" << "/dev/shm/android-fb.gz");
 	p.waitForFinished();
 
 	dest = p.readAllStandardOutput();
 
-	//TODO: Always fail to uncompress
-	qDebug() << "Uncompress ret:" << dest.length();
-	qDebug() << "Uncompress ret:" << p.readAllStandardError();
-
-	if (dest.length() < 100) {
-		qDebug() << "dest" << dest;
-	}
+	qDebug() << "Uncompress ret:" << dest.length() << p.readAllStandardError();
 
 	return 0;
 }
@@ -98,18 +83,24 @@ int FbReader::screenCap(QByteArray &bytes, bool compress = false)
 	adb.addArg("screencap");
 
 	if (compress) {
-		adb.addArg("|");
-		adb.addArg("gzip");
+		adb.addArg("/data/fb");
+		adb.run();
+		//qDebug() << adb.error;
+
+		adb.clear();
+		adb.addArg("shell");
+		adb.addArg("gzip /data/fb");
+		adb.run();
+		//qDebug() << adb.error;
+
+		AndrodDecompress(adb.output, bytes);
+		return 0;
 	}
 
 	ret = adb.run();
 
 	if (adb.exitSuccess()) {
-		if (compress) {
-			AndrodDecompress(adb.output, bytes);
-		} else {
-			bytes = adb.output;
-		}
+		bytes = adb.output;
 	} else {
 		adb.printErrorInfo();
 	}
@@ -167,10 +158,7 @@ void FbReader::run()
 		ret = screenCap(bytes, do_compress);
 
 		if (ret == 0) {
-			if (bytes.length() >= caclBufferSize())
-				emit newFbReceived(&bytes);
-			else
-				qDebug() << "Invalid data:" << bytes.length();
+			emit newFbReceived(&bytes);
 		} else {
 			ms = DELAY_MAX;
 		}
@@ -236,7 +224,7 @@ void CubeScene::updateSceen(QByteArray *bytes)
 	ret = bg_mask->setFBRaw(bytes);
 
 	if (ret == FBCellItem::UPDATE_DONE) {
-		reader->setMiniDelay();
+		reader->setDelay(0);
 	} else {
 		reader->IncreaseDelay();
 	}

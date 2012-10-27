@@ -114,7 +114,7 @@ public:
 		DELAY_FAST	= 200,
 		DELAY_NORMAL	= 400,
 		DELAY_SLOW	= 800,
-		DELAY_MAX	= 1000,
+		DELAY_MAX	= 3000,
 	};
 	bool supportCompress();
 	void setCompress(bool value);

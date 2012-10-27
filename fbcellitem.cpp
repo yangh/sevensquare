@@ -72,13 +72,14 @@ void FBCellItem::paintFB(QPainter *painter)
 	int x, y;
 	QMutexLocker locker(&mutex);
 
-	if (bytes == NULL)
+	if (bytes == NULL ||
+		bytes->length() < fbSize.width() * fbSize.height() * 4)
+	{
+		qDebug() << "Invalid data:" << bytes->length();
 		return;
+	}
 
-	if (bytes->length() < fbSize.width() * fbSize.height() * 4)
-		return;
-
-	//qDebug() << "Painting FB...";
+	qDebug() << "Painting FB...";
 	buf = (uint8_t *) bytes->data();
 	buf += 12; // Skip header
 
