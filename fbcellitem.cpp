@@ -20,6 +20,7 @@ FBCellItem::FBCellItem(const QPixmap &pixmap) :
 {
 	cellSize.setWidth(pixmap.width());
 	cellSize.setHeight(pixmap.height());
+	qDebug() << "Cell size" << cellSize;
 
 	fbSize = cellSize;
 	fb = new QPixmap(fbSize);
@@ -50,6 +51,29 @@ void FBCellItem::setFBSize(QSize size)
 	fb->fill(QColor(Qt::black));
 }
 
+void convert_rgba32_rgb888(char *buf, int len, int w, int h)
+{
+	int x, y;
+	char *p, *n;
+
+	if (len < w * h * 4) {
+		qDebug() << "Invalid data len:" << len;
+		return;
+	}
+
+	p = n = buf;
+
+	// RGBX32 -> RGB888
+	for (y = 0; y < h; y++) {
+		for (x = 0; x < w; x++) {
+			*p++ = *n++;
+			*p++ = *n++;
+			*p++ = *n++;
+			n++;
+		}
+	}
+}
+
 int FBCellItem::setFBRaw(QByteArray *raw)
 {
 	QMutexLocker locker(&mutex);
@@ -62,6 +86,8 @@ int FBCellItem::setFBRaw(QByteArray *raw)
 
 	lastSum = sum;
 	bytes = *raw;
+	convert_rgba32_rgb888(bytes.data(), bytes.length(),
+			fbSize.width(), fbSize.height());
 	update(boundingRect());
 
 	return UPDATE_DONE;
@@ -72,31 +98,11 @@ void FBCellItem::paintFB(QPainter *painter)
 	QMutexLocker locker(&mutex);
 	QPainter fbPainter;
 	QImage image;
-	uchar *buf, *p, *n;
-	int x, y;
 
-	if (bytes.length() < fbSize.width() * fbSize.height() * 4)
-	{
-		qDebug() << "Invalid data:" << bytes.length();
-		return;
-	}
 	DT_TRACE("PAIT RAW S");
 
-	buf = (uchar*) bytes.data();
-	p = n = buf;
-
-	// RGBX32 -> RGB888
-	for (y = 0; y < fbSize.height(); y++) {
-		for (x = 0; x < fbSize.width(); x++) {
-			*p++ = *n++;
-			*p++ = *n++;
-			*p++ = *n++;
-			n++;
-		}
-	}
-
 	fbPainter.begin(fb);
-	image = QImage((const uchar*)buf, fbSize.width(), fbSize.height(),
+	image = QImage((const uchar*)bytes.data(), fbSize.width(), fbSize.height(),
 			QImage::Format_RGB888);
 	fbPainter.drawImage(fb->rect(), image);
 	fbPainter.end();
