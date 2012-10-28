@@ -1,15 +1,4 @@
-#include <QGraphicsRectItem>
-#include <QPainter>
-#include <QBrush>
-#include <QPen>
-#include <QColor>
-#include <QPixmap>
-#include <QStringList>
-#include <QDebug>
 #include <QThread>
-#include <QDateTime>
-#include <QKeyEvent>
-#include <QFile>
 
 #include <stdlib.h>
 #include <time.h>
@@ -18,26 +7,46 @@
 #include <zlib.h>
 
 #include "cubescene.h"
-#include "debug.h"
 
-FbReader::FbReader(QObject * parent) :
-	QThread(parent)
+FBReader::FBReader()
 {
 	do_compress = false;
-	delay = 300;
 	stopped = false;
+	delay = 300;
+	fb_width = DEFAULT_FB_WIDTH;
+	fb_height = DEFAULT_FB_HEIGHT;
+	fb_format = 1; //TODO:...
+	bpp = FB_BPP_MAX;
+	mmbuf = NULL;
+	mmaped = false;
 }
 
-bool FbReader::supportCompress()
+bool FBReader::supportCompress()
 {
 	return false;
 }
 
-void FbReader::setCompress(bool value)
+void FBReader::setCompress(bool value)
 {
 	if (do_compress != value) {
 		do_compress = value;
 		// Notify compress status changed.
+	}
+
+	if (do_compress) {
+		gz.setFileName(GZ_FILE);
+		gz.open(QIODevice::WriteOnly|QIODevice::Unbuffered);
+		gz.resize(fb_width * fb_height * FB_BPP_MAX);
+		//TODO: the map alway fail, find a new way.
+		mmbuf = gz.map(0, gz.size());
+		mmaped = (mmbuf != 0);
+	} else {
+		if (mmaped) {
+			mmaped = false;
+			mmbuf = NULL;
+			gz.unmap(mmbuf);
+		}
+		gz.close();
 	}
 }
 
@@ -51,27 +60,28 @@ int bigEndianToInt32(const QByteArray &bytes)
 	return v;
 }
 
-#define GZ_FILE "/dev/shm/android-fb.gz"
-int FbReader::AndrodDecompress(QByteArray &bytes)
+int FBReader::AndrodDecompress(QByteArray &bytes)
 {
 	int ret;
-	QFile gz;
 	QProcess p;
 
-	gz.setFileName(GZ_FILE);
-	gz.open(QIODevice::WriteOnly|QIODevice::Unbuffered);
-	gz.seek(0);
-	gz.write(bytes.data(), bytes.length());
-	gz.flush();
+	if (mmaped) {
+		//TODO: 
+		qDebug() << "Maped write file";
+		memcpy(mmbuf, bytes.data(), bytes.length());
+	} else {
+		gz.seek(0);
+		gz.write(bytes.data(), bytes.length());
+		gz.flush();
+	}
+	DT_TRACE("DECOMP TO FILE");
 
 	p.start("minigzip", QStringList() << "-d" << "-c" << GZ_FILE);
 	p.waitForFinished();
 	ret = p.exitCode();
 
 	bytes = p.readAllStandardOutput();
-	DT_TRACE("DECOMP");
-	//qDebug() << "Uncompress ret:" << bytes.length();
-
+	DT_TRACE("DECOMP FINISHED");
 #if 0
 	//TODO: Use zlib to uncompress data, instead external cmd
 	// The follow code ret = 3, something is wrong here.
@@ -83,21 +93,21 @@ int FbReader::AndrodDecompress(QByteArray &bytes)
 	return ret;
 }
 
-int FbReader::screenCap(QByteArray &bytes, bool compress = false, bool removeHeader = false)
+int FBReader::screenCap(QByteArray &bytes,
+			bool compress = false,
+			bool removeHeader = false)
 {
 	int ret;
 	AdbExecutor adb;
+	QStringList args;
 
-	adb.clear();
-	adb.addArg("shell");
-	adb.addArg("screencap");
+	args << "shell" << "screencap";
 
 	if (compress) {
-		adb.addArg("|");
-		adb.addArg("gzip");
+		args << "|" << "gzip";
 	}
 
-	ret = adb.run();
+	adb.run(args);
 	DT_TRACE("NEW FB");
 
 	if (! adb.exitSuccess()) {
@@ -115,10 +125,10 @@ int FbReader::screenCap(QByteArray &bytes, bool compress = false, bool removeHea
 		bytes = bytes.mid(FB_DATA_OFFSET);
 	}
 
-	return ret;
+	return adb.ret;
 }
 
-int FbReader::getScreenInfo(int &width, int &height, int &format)
+int FBReader::getScreenInfo(int &width, int &height, int &format)
 {
 	QByteArray bytes;
 	int ret;
@@ -141,32 +151,21 @@ int FbReader::getScreenInfo(int &width, int &height, int &format)
 	return 0;
 }
 
-int FbReader::caclBufferSize()
-{
-	int len;
-	int bpp;
-
-	//TODO: calc bpp via format
-	bpp = 4;
-	len = fb_width * fb_height * bpp;
-
-	return len;
-}
-
-void FbReader::run()
+void FBReader::run()
 {
 	QByteArray bytes;
 	int ret;
+	int ms;
 
-	bytes.fill(0x00, caclBufferSize());
+	stopped = false;
+	bytes.fill(0x00, length());
 
-	while (1) {
-		int ms = delay;
-
+	while (! stopped) {
 		ret = screenCap(bytes, do_compress, true);
 
 		if (ret == 0) {
 			emit newFbReceived(new QByteArray(bytes));
+			ms = delay;
 		} else {
 			emit disconnected();
 			ms = DELAY_MAX;
@@ -176,12 +175,9 @@ void FbReader::run()
 		mutex.lock();
 		readDelay.wait(&mutex, ms);
 		mutex.unlock();
-
-		if (stopped) {
-			qDebug() << "FbReader stopped";
-			break;
-		}
 	}
+
+	qDebug() << "FBReader stopped";
 
 	return;
 }
@@ -194,36 +190,34 @@ CubeScene::CubeScene(QObject * parent) :
     fb_width = DEFAULT_FB_WIDTH;
     fb_height = DEFAULT_FB_HEIGHT;
 
-    reader = new FbReader(parent);
-
-    reader->getScreenInfo(fb_width, fb_height, pixel_format);
+    reader.getScreenInfo(fb_width, fb_height, pixel_format);
     qDebug() << "Remote screen FB:" << fb_width << fb_height << pixel_format;
 
-    QObject::connect(reader, SIGNAL(newFbReceived(QByteArray*)),
-		    this, SLOT(updateSceen(QByteArray*)));
-    QObject::connect(reader, SIGNAL(disconnected(void)),
+    QObject::connect(&reader, SIGNAL(newFbReceived(QByteArray*)),
+		    this, SLOT(updateScene(QByteArray*)));
+    QObject::connect(&reader, SIGNAL(disconnected(void)),
 		    this, SLOT(fbDisconnected(void)));
 
     //TODO: Check and Enable compress here
-    reader->setCompress(true);
-    startFbReader();
+    reader.setCompress(true);
+    startFBReader();
 }
 
 CubeScene::~CubeScene()
 {
-	stopFbReader();
+	stopFBReader();
 }
 
-void CubeScene::startFbReader()
+void CubeScene::startFBReader()
 {
-	reader->start();
-	reader->setPriority(QThread::HighPriority);
+	reader.start();
+	reader.setPriority(QThread::HighPriority);
 }
 
-void CubeScene::stopFbReader()
+void CubeScene::stopFBReader()
 {
-	reader->stop();
-	reader->quit();
+	reader.stop();
+	reader.quit();
 }
 
 void CubeScene::fbDisconnected(void)
@@ -233,7 +227,7 @@ void CubeScene::fbDisconnected(void)
 	promptItem.setVisible(true);
 }
 
-void CubeScene::updateSceen(QByteArray *bytes)
+void CubeScene::updateScene(QByteArray *bytes)
 {
 	int ret;
 
@@ -244,9 +238,9 @@ void CubeScene::updateSceen(QByteArray *bytes)
 	ret = fb.setFBRaw(bytes);
 
 	if (ret == FBCellItem::UPDATE_DONE) {
-		reader->setDelay(0);
+		reader.setDelay(0);
 	} else {
-		reader->IncreaseDelay();
+		reader.IncreaseDelay();
 	}
 }
 
@@ -270,7 +264,7 @@ void CubeScene::initialize (void)
 
     cube_width = pixmap.width();
     cube_height = fb_height * ((float) cube_width / fb_width);
-    qDebug() << "Cube : " << cube_width << cube_height;
+    qDebug() << "Cube size:" << cube_width << cube_height;
 
     row_size = ROW_NUM;
     col_size = COL_NUM;
@@ -284,7 +278,7 @@ void CubeScene::initialize (void)
     pixmap_scaled = pixmap.scaled(QSize(cube_width, cube_height));
 
     /* Background */
-    setBackgroundBrush(QBrush(pixmap_scaled));
+    setBackgroundBrush(QBrush(pixmap));
 
     fb.setPixmap(pixmap_scaled);
     fb.setPos(QPoint(0, 0));
@@ -527,14 +521,8 @@ void CubeScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 
 QPoint CubeScene::scenePosToVirtual(QPointF pos)
 {
-	QPoint v;
-	float x_ratio = (float) fb_width / cube_width;
-	float y_ratio = (float) fb_height / cube_height;
-
-	v.setX(pos.x() * x_ratio);
-	v.setY(pos.y() * y_ratio);
-
-	return v;
+	return QPoint((pos.x() * fb_width / cube_width),
+		      (pos.y() * fb_height / cube_height));
 }
 
 void CubeScene::sendVirtualClick(QPoint pos)
@@ -549,7 +537,7 @@ void CubeScene::sendVirtualClick(QPoint pos)
 		return;
 	}
 
-	reader->setDelay(0);
+	reader.setDelay(0);
 
 	// TODO: Check device version to send event in diff way
 	if (isIcs) {
@@ -562,22 +550,20 @@ void CubeScene::sendVirtualClick(QPoint pos)
 void CubeScene::sendTap(QPoint pos)
 {
 	AdbExecutor adb;
-	QStringList cmds;
+	QStringList args;
 
-	cmds << "shell" << "input tap";
-        cmds << QString::number(pos.x());
-	cmds << QString::number(pos.y());
+	args << "shell" << "input tap";
+        args << QString::number(pos.x());
+	args << QString::number(pos.y());
 
 	adb.clear();
-	adb.addArg(cmds);
+	adb.addArg(args);
 	adb.run();
 }
 
 QStringList CubeScene::newEventCmd (int type, int code, int value)
 {
 	QStringList event;
-
-	event.clear();
 
 	//TODO: Use correct dev to send event
 	event << "sendevent" << "/dev/input/event0";
@@ -674,15 +660,15 @@ void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 void CubeScene::sendVirtualKey(int key)
 {
 	AdbExecutor adb;
-	QStringList cmds;
+	QStringList args;
 
-	cmds << "shell" << "input keyevent";
-        cmds << QString::number(key);
+	args << "shell" << "input keyevent";
+        args << QString::number(key);
 
-	reader->setDelay(0);
+	reader.setDelay(0);
 
 	adb.clear();
-	adb.addArg(cmds);
+	adb.addArg(args);
 	adb.run();
 }
 

@@ -4,39 +4,38 @@
 
 #include "mainwindow.h"
 
-#define WINDOW_BORDER 4
+#define WINDOW_BORDER 3
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent)
 {
-    b_view = new QGraphicsView(this);
-    b_scene = new CubeScene(this);
+    view = new QGraphicsView(this);
+    scene = new CubeScene(this);
 
     QStringList argv = qApp->arguments();
     QString file;
+    const char *bg = getenv("SQ_BG");
 
     if (argv.length() > 1) {
         file = argv[1];
+    } else if (bg != NULL) {
+        file = bg;
     } else {
-        const char * bg = getenv("SQ_BG");
-
-        file = (bg == NULL) ? BACKGROUND_FILE : bg;
+        file = BACKGROUND_FILE;
     }
 
-    b_scene->loadImage(file);
+    scene->loadImage(file);
 
-    QSize b_size = b_scene->getSize();
-    QSize size(b_size.width() + 2,
-		    b_size.height() + 2);
+    QSize size = scene->getSize();
+    size += QSize(WINDOW_BORDER, WINDOW_BORDER);
     qDebug() << "Mini windows size" << size;
 
-    resize (size);
+    resize(size);
     setMinimumSize(size);
     //setMaximumSize(size);
 
-    setCentralWidget (b_view);
-
-    b_view->setScene(b_scene);
+    view->setScene(scene);
+    setCentralWidget (view);
 }
 
 MainWindow::~MainWindow()

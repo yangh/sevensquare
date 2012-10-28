@@ -8,12 +8,15 @@
 #include <QGraphicsSceneMouseEvent>
 #include <QMutex>
 #include <QWaitCondition>
+#include <QKeyEvent>
 
+#include <QFile>
 #include <QProcess>
 #include <QDebug>
 
 #include "cubecellitem.h"
 #include "fbcellitem.h"
+#include "debug.h"
 
 #define DEFAULT_CELL_WIDTH 120
 #define MIN_PAD 15
@@ -45,19 +48,24 @@ class AdbExecutor
 {
 public:
 	AdbExecutor() {};
-	AdbExecutor(const char *c) { args << c; };
+	AdbExecutor(const char *a)	{ args << a; };
 
-	void addArg(const char *a) { args << a; };
-	void addArg(const QString &a) { args << a; };
+	void addArg(const char *a)	{ args << a; };
+	void addArg(const QString &a)	{ args << a; };
 	void addArg(const QStringList &a) { args << a; };
 
-	bool exitSuccess(void) { return exitCode == 0; };
+	bool exitSuccess(void)		{ return ret == 0; };
 
 	void clear(void) {
 		args.clear();
 		error.clear();
 		output.clear();
-		exitCode = 0;
+		ret = 0;
+	}
+
+	int run(const QStringList &cmd) {
+		args << cmd;
+		return run();
 	}
 
 	int run(bool waitForFinished = true) {
@@ -78,16 +86,17 @@ public:
 
 		output = p.readAllStandardOutput();
 		error = p.readAllStandardError();
+		ret = p.exitCode();
 
 		// FIXME: adb bug, converted '\n' (0x0A) to '\r\n' (0x0D0A)
 		// while dump binary file from shell
 		output.replace("\r\n", "\n");
 
-		return p.exitCode();
+		return ret;
 	}
 
 	void printErrorInfo() {
-		qDebug() << "Process return:" << exitCode;
+		qDebug() << "Process error:" << ret;
 		qDebug() << error;
 	}
 
@@ -97,25 +106,25 @@ public:
 
 	QByteArray error;
 	QByteArray output;
+	int ret;
 
 private:
-	int exitCode;
 	QProcess p;
-	QProcess pCompress;
 	QString cmd;
 	QStringList args;
 };
 
-class FbReader : public QThread
+class FBReader : public QThread
 {
 	Q_OBJECT
-
 public:
-	FbReader(QObject * parent);
+	FBReader();
 
 	// int w, h, h on header
-	// Refer: frameworks/base/cmds/screencap/screencap.cpp
+	// Refer: frameworks/base/cmd/screencap/screencap.cpp
 #define FB_DATA_OFFSET (12)
+#define FB_BPP_MAX	4
+#define GZ_FILE		"/dev/shm/android-fb.gz"
 
 	enum {
 		DELAY_STEP	= 200,
@@ -124,6 +133,7 @@ public:
 		DELAY_SLOW	= 800,
 		DELAY_MAX	= 2000,
 	};
+
 	bool supportCompress();
 	void setCompress(bool value);
 	int getScreenInfo(int &, int &, int &);
@@ -148,7 +158,9 @@ public:
 		while (! isFinished()) msleep(100);
 	}
 
-	int caclBufferSize();
+	int length() {
+		return fb_width * fb_height * bpp;
+	}
 
 protected:
 	int AndrodDecompress(QByteArray &);
@@ -156,16 +168,20 @@ protected:
 	void run();
 
 signals:
-    void newFbReceived(QByteArray *bytes);
-    void disconnected(void);
+	void newFbReceived(QByteArray *bytes);
+	void disconnected(void);
 
 private:
+	QFile gz;
+	uchar *mmbuf;
+	bool mmaped;
 	bool do_compress;
 	bool stopped;
 	int delay;
 	int fb_width;
 	int fb_height;
 	int fb_format;
+	int bpp;
 	QMutex mutex;
 	QWaitCondition readDelay;
 };
@@ -173,7 +189,6 @@ private:
 class CubeScene : public QGraphicsScene
 {
 	Q_OBJECT
-
 public:
     CubeScene(QObject * parent = 0);
     ~CubeScene();
@@ -191,7 +206,6 @@ public:
     void checkAllCell(void);
 
     void setBgVisible(bool visible) { fb.setVisible(visible); };
-    bool getBgVisible(void)         { return fb.isVisible(); };
 
     QSize getSize(void) { return QSize(cube_width, cube_height); }
 
@@ -203,17 +217,19 @@ protected:
 
     void drawGrid (int row, int col);
     QPoint getCellPos(int row, int col);
+
+    QStringList newEventCmd (int type, int code, int value);
     QPoint scenePosToVirtual(QPointF pos);
     void sendTap(QPoint pos);
     void sendEvent(QPoint pos);
-    QStringList newEventCmd (int type, int code, int value);
     void sendVirtualClick(QPoint pos);
     void sendVirtualKey(int key);
-    void startFbReader();
-    void stopFbReader();
+
+    void startFBReader();
+    void stopFBReader();
 
 public slots:
-    void updateSceen(QByteArray *bytes);
+    void updateScene(QByteArray *bytes);
     void fbDisconnected(void);
 
 private:
@@ -239,7 +255,7 @@ private:
 
     QMutex update_mutex;
     QPixmap pixmap;
-    FbReader *reader;
+    FBReader reader;
 };
 
 #endif // CUBESCENE_H

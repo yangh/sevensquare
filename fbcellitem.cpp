@@ -1,4 +1,3 @@
-#include <QDebug>
 #include <QPainter>
 #include <QMutexLocker>
 #include <QDateTime>
@@ -14,15 +13,16 @@ FBCellItem::FBCellItem()
 	fbConnected = false;
 	lastSum = -1;
 	bpp = 4;
+
 	cellSize = QSize(DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT);
+	pixmap = QPixmap(cellSize);
+	pixmap.fill(QColor(Qt::black));
 
 	fbSize = cellSize;
-	fb = QPixmap(fbSize);
-	fb.fill(QColor(Qt::black));
-}
+	qDebug() << "Default constructor";
 
-FBCellItem::FBCellItem(QGraphicsItem *parent)
-{
+	// Clickable
+	setFlags(QGraphicsItem::ItemIsSelectable);
 }
 
 FBCellItem::FBCellItem(const QPixmap &p)
@@ -38,7 +38,7 @@ void FBCellItem::setPixmap(const QPixmap &p)
 
 QRectF FBCellItem::boundingRect() const
 {
-    return QRectF(0, 0, cellSize.width(), cellSize.height());
+	return QRectF(pixmap.rect());
 }
 
 void FBCellItem::setFBSize(QSize size)
@@ -55,7 +55,7 @@ void FBCellItem::setFBSize(QSize size)
 	fb.fill(QColor(Qt::black));
 }
 
-void convert_rgba32_rgb888(char *buf, int len, int w, int h)
+void convert_rgba32_to_rgb888(char *buf, int w, int h)
 {
 	int x, y;
 	char *p, *n;
@@ -77,14 +77,17 @@ int FBCellItem::setFBRaw(QByteArray *raw)
 {
 	QMutexLocker locker(&mutex);
 	quint16 sum;
-	int len;
-       
-	len = raw->length();
 
-	if (len < getFBDataSize()) {
-		qDebug() << "Invalid data len:" << len;
-		return -1;
+	if (! raw || raw->length() < getFBDataSize()) {
+		qDebug() << "Invalid data, ignored";
+		return UPDATE_INVALID;
 	}
+
+	// TODO: There is a hotspot here, and if make
+	// it threaded here, lock is another issue.
+	// FBReader should run as fast as possible to
+	// grab new frame from device, so the duty is
+	// not for it.
 
 	// TODO: Check and update partially, block by block
 	sum = qChecksum(raw->data(), raw->length());
@@ -93,8 +96,9 @@ int FBCellItem::setFBRaw(QByteArray *raw)
 
 	lastSum = sum;
 	bytes = *raw;
-	convert_rgba32_rgb888(bytes.data(), bytes.length(),
-			fbSize.width(), fbSize.height());
+	convert_rgba32_to_rgb888(bytes.data(), 
+				 fbSize.width(),
+				 fbSize.height());
 	update(boundingRect());
 
 	return UPDATE_DONE;
@@ -105,9 +109,8 @@ void FBCellItem::setFBConnected(bool state)
 	QMutexLocker locker(&mutex);
 
 	if (state != fbConnected) {
-		qDebug() << "FB" << (state ? "Connected" : "Disconnected");
 		fbConnected = state;
-		update(boundingRect());
+		//qDebug() << "FB" << (state ? "Connected" : "Disconnected");
 	}
 }
 
@@ -119,7 +122,8 @@ void FBCellItem::paintFB(QPainter *painter)
 	DT_TRACE("PAIT RAW S");
 
 	fbPainter.begin(&fb);
-	image = QImage((const uchar*)bytes.data(), fbSize.width(), fbSize.height(),
+	image = QImage((const uchar*)bytes.data(),
+			fbSize.width(), fbSize.height(),
 			QImage::Format_RGB888);
 	fbPainter.drawImage(fb.rect(), image);
 	fbPainter.end();
@@ -131,39 +135,35 @@ void FBCellItem::paint(QPainter *painter,
                          const QStyleOptionGraphicsItem *option,
                          QWidget *widget)
 {
-    QMutexLocker locker(&mutex);
-    Q_UNUSED(option);
-    Q_UNUSED(widget);
+	QMutexLocker locker(&mutex);
+	Q_UNUSED(option);
+	Q_UNUSED(widget);
 
-    DT_TRACE("FB PAINT S");
-    if (fbConnected) {
-	paintFB(painter);
-	pixmap = fb.scaled(cellSize,
-			Qt::KeepAspectRatio,
-			Qt::SmoothTransformation);
-    }
+	DT_TRACE("FB PAINT S");
 
-    if (pixmap.isNull()) {
-        return;
-    }
+	if (fbConnected) {
+		paintFB(painter);
+		pixmap = fb.scaled(cellSize,
+				Qt::KeepAspectRatio,
+				Qt::SmoothTransformation);
+	}
 
-    painter->drawPixmap(pixmap.rect(), pixmap);
+	painter->drawPixmap(pixmap.rect(), pixmap);
 
-    DT_TRACE("FB PAINT E");
+	DT_TRACE("FB PAINT E");
 }
 
 void FBCellItem::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
-    //qDebug() << "Item pressed: " << curr_pos;
+	//qDebug() << "Item pressed: " << curr_pos;
 }
 
 void FBCellItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
-    //qDebug() << "Item moveded: " << curr_pos;
+	//qDebug() << "Item moveded: " << curr_pos;
 }
 
 void FBCellItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 {
-    //qDebug() << "Item clicked, curr pos: " << curr_pos
-    //        << ", orig pos: " << orig_pos;
+	qDebug() << "Item clicked";
 }

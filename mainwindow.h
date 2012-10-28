@@ -16,8 +16,8 @@ protected:
     void changeEvent(QEvent *e);
 
 private:
-    QGraphicsView   *b_view;
-    CubeScene       *b_scene;
+    QGraphicsView   *view;
+    CubeScene       *scene;
 };
 
 #endif // MAINWINDOW_H
