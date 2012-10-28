@@ -15,9 +15,6 @@
 #include "cubecellitem.h"
 #include "fbcellitem.h"
 
-#define DEFAULT_FB_WIDTH	480
-#define DEFAULT_FB_HEIGHT	800
-
 #define DEFAULT_CELL_WIDTH 120
 #define MIN_PAD 15
 #define MAX_ROW_COL_SIZE 16
@@ -163,16 +160,14 @@ signals:
     void disconnected(void);
 
 private:
-	char *buf;
 	bool do_compress;
-	int delay;
 	bool stopped;
+	int delay;
 	int fb_width;
 	int fb_height;
 	int fb_format;
 	QMutex mutex;
 	QWaitCondition readDelay;
-	uchar *fb_addr;
 };
 
 class CubeScene : public QGraphicsScene
@@ -195,8 +190,8 @@ public:
 
     void checkAllCell(void);
 
-    void setBgVisible(bool visible) { bg_mask->setVisible(visible); };
-    bool getBgVisible(void)         { return bg_mask->isVisible(); };
+    void setBgVisible(bool visible) { fb.setVisible(visible); };
+    bool getBgVisible(void)         { return fb.isVisible(); };
 
     QSize getSize(void) { return QSize(cube_width, cube_height); }
 
@@ -222,7 +217,9 @@ public slots:
     void fbDisconnected(void);
 
 private:
-    FBCellItem *bg_mask;
+    FBCellItem fb;
+    QGraphicsRectItem grayMask;
+    QGraphicsSimpleTextItem promptItem;
     CubeCellItem *b_items[MAX_ROW_COL_SIZE][MAX_ROW_COL_SIZE];
     CubeCellItem *b_curr_items[MAX_ROW_COL_SIZE][MAX_ROW_COL_SIZE];
     int m_white_row;

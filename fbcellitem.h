@@ -7,6 +7,9 @@
 #include <QMutex>
 #include <QMutexLocker>
 
+#define DEFAULT_FB_WIDTH	480
+#define DEFAULT_FB_HEIGHT	800
+
 class FBCellItem : public QGraphicsItem
 {
 public:
@@ -15,11 +18,12 @@ public:
 	    UPDATE_IGNORED,
     };
 
-    explicit FBCellItem(QGraphicsItem *parent = 0);
-    FBCellItem(const QPixmap &pixmap);
+    FBCellItem(QGraphicsItem *parent);
+    FBCellItem(const QPixmap &p);
+    FBCellItem();
 
+    void setPixmap(const QPixmap &p);
     QRectF boundingRect() const;
-
     void paint(QPainter *painter,
                const QStyleOptionGraphicsItem *option,
                QWidget *widget = 0);
@@ -43,10 +47,10 @@ private:
     QPixmap pixmap;
     QSize cellSize;
 
-    QPixmap *fb;
+    QPixmap fb;
     QByteArray bytes;
-    QSize fbSize;
     int bpp;
+    QSize fbSize;
     bool fbConnected;
     QMutex mutex;
     quint16 lastSum;

@@ -9,25 +9,31 @@
 #include "fbcellitem.h"
 #include "debug.h"
 
-FBCellItem::FBCellItem(QGraphicsItem *parent)
+FBCellItem::FBCellItem()
 {
 	fbConnected = false;
-}
-
-FBCellItem::FBCellItem(const QPixmap &pixmap) :
-        pixmap(pixmap),
-	fbConnected(false)
-{
-	cellSize.setWidth(pixmap.width());
-	cellSize.setHeight(pixmap.height());
-	qDebug() << "Cell size" << cellSize;
-
-	fbSize = cellSize;
-	fb = new QPixmap(fbSize);
-	fb->fill(QColor(Qt::black));
-
 	lastSum = -1;
 	bpp = 4;
+	cellSize = QSize(DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT);
+
+	fbSize = cellSize;
+	fb = QPixmap(fbSize);
+	fb.fill(QColor(Qt::black));
+}
+
+FBCellItem::FBCellItem(QGraphicsItem *parent)
+{
+}
+
+FBCellItem::FBCellItem(const QPixmap &p)
+{
+	setPixmap(pixmap);
+}
+
+void FBCellItem::setPixmap(const QPixmap &p)
+{
+	pixmap = p;
+	cellSize = pixmap.size();
 }
 
 QRectF FBCellItem::boundingRect() const
@@ -45,11 +51,8 @@ void FBCellItem::setFBSize(QSize size)
 	qDebug() << "New FB size:" << size << fbSize;
 	fbSize = size;
 
-	if (fb != NULL)
-		free(fb);
-
-	fb = new QPixmap(fbSize);
-	fb->fill(QColor(Qt::black));
+	fb = QPixmap(fbSize);
+	fb.fill(QColor(Qt::black));
 }
 
 void convert_rgba32_rgb888(char *buf, int len, int w, int h)
@@ -104,15 +107,6 @@ void FBCellItem::setFBConnected(bool state)
 	if (state != fbConnected) {
 		qDebug() << "FB" << (state ? "Connected" : "Disconnected");
 		fbConnected = state;
-
-		if (! state) {
-			// Grayscale image
-			QImage image;
-			image = pixmap.toImage();
-			image = image.convertToFormat(QImage::Format_Indexed8);
-			pixmap.convertFromImage(image);
-		}
-
 		update(boundingRect());
 	}
 }
@@ -124,10 +118,10 @@ void FBCellItem::paintFB(QPainter *painter)
 
 	DT_TRACE("PAIT RAW S");
 
-	fbPainter.begin(fb);
+	fbPainter.begin(&fb);
 	image = QImage((const uchar*)bytes.data(), fbSize.width(), fbSize.height(),
 			QImage::Format_RGB888);
-	fbPainter.drawImage(fb->rect(), image);
+	fbPainter.drawImage(fb.rect(), image);
 	fbPainter.end();
 
 	DT_TRACE("PAIT RAW E");
@@ -144,7 +138,7 @@ void FBCellItem::paint(QPainter *painter,
     DT_TRACE("FB PAINT S");
     if (fbConnected) {
 	paintFB(painter);
-	pixmap = fb->scaled(cellSize,
+	pixmap = fb.scaled(cellSize,
 			Qt::KeepAspectRatio,
 			Qt::SmoothTransformation);
     }
@@ -154,17 +148,6 @@ void FBCellItem::paint(QPainter *painter,
     }
 
     painter->drawPixmap(pixmap.rect(), pixmap);
-
-    if (! fbConnected) {
-	    QPen pen;
-	    pen.setColor(Qt::yellow);
-	    pen.setWidth(2);
-	    pen.setStyle(Qt::SolidLine);
-	    painter->setPen(pen);
-	    painter->drawText(boundingRect(),
-			    Qt::AlignCenter,
-			    QString("Connecting..."));
-    }
 
     DT_TRACE("FB PAINT E");
 }

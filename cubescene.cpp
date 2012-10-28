@@ -228,16 +228,20 @@ void CubeScene::stopFbReader()
 
 void CubeScene::fbDisconnected(void)
 {
-	bg_mask->setFBConnected(false);
+	fb.setFBConnected(false);
+	grayMask.setVisible(true);
+	promptItem.setVisible(true);
 }
 
 void CubeScene::updateSceen(QByteArray *bytes)
 {
 	int ret;
 
-	bg_mask->setFBConnected(true);
+	fb.setFBConnected(true);
+	grayMask.setVisible(false);
+	promptItem.setVisible(false);
 
-	ret = bg_mask->setFBRaw(bytes);
+	ret = fb.setFBRaw(bytes);
 
 	if (ret == FBCellItem::UPDATE_DONE) {
 		reader->setDelay(0);
@@ -282,15 +286,27 @@ void CubeScene::initialize (void)
     /* Background */
     setBackgroundBrush(QBrush(pixmap_scaled));
 
-    FBCellItem *fb;
+    fb.setPixmap(pixmap_scaled);
+    fb.setPos(QPoint(0, 0));
+    fb.setZValue(0); /* lay in the bottom*/
+    fb.setFBSize(QSize(fb_width, fb_height));
+    addItem(&fb);
 
-    fb = new FBCellItem(pixmap_scaled);
-    fb->setPos(QPoint(0, 0));
-    fb->setZValue(0); /* lay in the bottom*/
-    fb->setFBSize(QSize(fb_width, fb_height));
-    addItem(fb);
+    grayMask.setRect(QRectF(0, 0, cube_width, cube_height));
+    grayMask.setBrush(QBrush(QColor(128, 128, 128, 135)));
+    grayMask.setPen(Qt::NoPen);
+    grayMask.setZValue(99);
+    grayMask.setVisible(false);
+    addItem(&grayMask);
 
-    bg_mask = fb;
+    promptItem.setText("Connecting...");
+    promptItem.setBrush(QBrush(QColor(240, 240, 70)));
+    promptItem.setPen(QPen(QColor(20, 20, 20)));
+    promptItem.setFont(QFont("Arail", 16, QFont::Bold));
+    promptItem.setPos(20, 20);
+    promptItem.setZValue(100); /* lay in the top*/
+    promptItem.setVisible(false);
+    addItem(&promptItem);
 
 #if 0
     QPixmap cell_bg;
