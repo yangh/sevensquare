@@ -7,8 +7,8 @@
 #include <QMutex>
 #include <QMutexLocker>
 
-#define DEFAULT_FB_WIDTH	480
-#define DEFAULT_FB_HEIGHT	800
+#define DEFAULT_FB_WIDTH	320
+#define DEFAULT_FB_HEIGHT	533
 
 class FBCellItem : public QGraphicsItem
 {

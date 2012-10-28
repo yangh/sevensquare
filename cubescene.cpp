@@ -264,7 +264,7 @@ void CubeScene::initialize (void)
     QPixmap pixmap_scaled;
 
     if (! pixmap.width()) {
-	    pixmap = QPixmap(480, 800);
+	    pixmap = QPixmap(DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT);
 	    pixmap.fill(Qt::black);
     }
 
