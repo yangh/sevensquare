@@ -30,19 +30,6 @@ public:
     void setFBSize(QSize size);
     int setFBRaw(QByteArray *raw);
 
-    const QPoint cubePos(void) { return curr_pos; };
-    const QPoint originalCubePos(void) { return orig_pos; };
-
-    void setCubePos(int row, int col) {
-        curr_pos.setX(row);
-        curr_pos.setY(col);
-    }
-
-    void setOriginalCubePos(int row, int col) {
-        orig_pos.setX(row);
-        orig_pos.setY(col);
-    }
-
 protected:
     virtual void mousePressEvent(QGraphicsSceneMouseEvent *event);
     virtual void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
@@ -50,12 +37,10 @@ protected:
 
 private:
     QPixmap pixmap;
-    QPoint orig_pos;
-    QPoint curr_pos;
     QSize cellSize;
 
     QPixmap *fb;
-    QByteArray *bytes;
+    QByteArray bytes;
     QSize fbSize;
     bool fbConnected;
     QMutex mutex;

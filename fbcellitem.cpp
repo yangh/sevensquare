@@ -2,6 +2,8 @@
 #include <QPainter>
 #include <QMutexLocker>
 #include <QDateTime>
+#include <QImage>
+
 #include <stdint.h>
 
 #include "fbcellitem.h"
@@ -23,7 +25,6 @@ FBCellItem::FBCellItem(const QPixmap &pixmap) :
 	fb = new QPixmap(fbSize);
 	fb->fill(QColor(Qt::black));
 
-	bytes = NULL;
 	lastSum = -1;
 }
 
@@ -60,7 +61,7 @@ int FBCellItem::setFBRaw(QByteArray *raw)
 		return UPDATE_IGNORED;
 
 	lastSum = sum;
-	bytes = raw;
+	bytes = *raw;
 	update(boundingRect());
 
 	return UPDATE_DONE;
@@ -70,30 +71,34 @@ void FBCellItem::paintFB(QPainter *painter)
 {
 	QMutexLocker locker(&mutex);
 	QPainter fbPainter;
-	uint8_t *buf;
+	QImage image;
+	uchar *buf, *p, *n;
 	int x, y;
 
-	if (bytes == NULL ||
-		bytes->length() < fbSize.width() * fbSize.height() * 4)
+	if (bytes.length() < fbSize.width() * fbSize.height() * 4)
 	{
-		qDebug() << "Invalid data:" << bytes->length();
+		qDebug() << "Invalid data:" << bytes.length();
 		return;
 	}
-
-	//qDebug() << "Painting FB...";
 	DT_TRACE("PAIT RAW S");
 
-	buf = (uint8_t *) bytes->data();
-	buf += 12; // Skip header
+	buf = (uchar*) bytes.data();
+	p = n = buf;
 
-	fbPainter.begin(fb);
+	// RGBX32 -> RGB888
 	for (y = 0; y < fbSize.height(); y++) {
 		for (x = 0; x < fbSize.width(); x++) {
-			fbPainter.setPen(QColor(buf[0], buf[1], buf[2]));
-			buf += 4;
-			fbPainter.drawPoint(x, y);
+			*p++ = *n++;
+			*p++ = *n++;
+			*p++ = *n++;
+			n++;
 		}
 	}
+
+	fbPainter.begin(fb);
+	image = QImage((const uchar*)buf, fbSize.width(), fbSize.height(),
+			QImage::Format_RGB888);
+	fbPainter.drawImage(fb->rect(), image);
 	fbPainter.end();
 
 	DT_TRACE("PAIT RAW E");
