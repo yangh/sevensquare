@@ -168,6 +168,7 @@ void FbReader::run()
 		if (ret == 0) {
 			emit newFbReceived(new QByteArray(bytes));
 		} else {
+			emit disconnected();
 			ms = DELAY_MAX;
 		}
 
@@ -190,8 +191,8 @@ CubeScene::CubeScene(QObject * parent) :
 {
     cell_width = DEFAULT_CELL_WIDTH;
 
-    fb_width = 48;
-    fb_height = 64;
+    fb_width = DEFAULT_FB_WIDTH;
+    fb_height = DEFAULT_FB_HEIGHT;
 
     reader = new FbReader(parent);
 
@@ -200,6 +201,8 @@ CubeScene::CubeScene(QObject * parent) :
 
     QObject::connect(reader, SIGNAL(newFbReceived(QByteArray*)),
 		    this, SLOT(updateSceen(QByteArray*)));
+    QObject::connect(reader, SIGNAL(disconnected(void)),
+		    this, SLOT(fbDisconnected(void)));
 
     //TODO: Check and Enable compress here
     reader->setCompress(true);
@@ -221,6 +224,11 @@ void CubeScene::stopFbReader()
 {
 	reader->stop();
 	reader->quit();
+}
+
+void CubeScene::fbDisconnected(void)
+{
+	bg_mask->setFBConnected(false);
 }
 
 void CubeScene::updateSceen(QByteArray *bytes)
@@ -525,14 +533,14 @@ void CubeScene::sendVirtualClick(QPoint pos)
 		return;
 	}
 
+	reader->setDelay(0);
+
 	// TODO: Check device version to send event in diff way
 	if (isIcs) {
 		sendEvent(pos);
 	} else {
 		sendTap(pos);
 	}
-
-	reader->setDelay(0);
 }
 
 void CubeScene::sendTap(QPoint pos)
@@ -592,16 +600,16 @@ void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
      QGraphicsItem *item = 0;
      CubeCellItem *cell = 0;
 
-     qDebug() << "Scene clicked: " << event->scenePos();
+     //qDebug() << "Scene clicked: " << event->scenePos();
      DT_TRACE("CLICK");
+     DT_TRACE(event->scenePos());
 
      QPoint vpos;
 
      vpos = scenePosToVirtual(event->scenePos());
-
-     qDebug() << "Virtual pos: " << vpos;
-
+     DT_TRACE(vpos);
      sendVirtualClick(vpos);
+     //qDebug() << "Virtual pos: " << vpos;
 
 #if 0
      item = itemAt(event->scenePos());
@@ -655,11 +663,11 @@ void CubeScene::sendVirtualKey(int key)
 	cmds << "shell" << "input keyevent";
         cmds << QString::number(key);
 
+	reader->setDelay(0);
+
 	adb.clear();
 	adb.addArg(cmds);
 	adb.run();
-
-	reader->setDelay(0);
 }
 
 #define ANDROID_KEY_HOME	3

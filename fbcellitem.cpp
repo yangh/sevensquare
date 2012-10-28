@@ -27,6 +27,7 @@ FBCellItem::FBCellItem(const QPixmap &pixmap) :
 	fb->fill(QColor(Qt::black));
 
 	lastSum = -1;
+	bpp = 4;
 }
 
 QRectF FBCellItem::boundingRect() const
@@ -56,11 +57,6 @@ void convert_rgba32_rgb888(char *buf, int len, int w, int h)
 	int x, y;
 	char *p, *n;
 
-	if (len < w * h * 4) {
-		qDebug() << "Invalid data len:" << len;
-		return;
-	}
-
 	p = n = buf;
 
 	// RGBX32 -> RGB888
@@ -78,7 +74,15 @@ int FBCellItem::setFBRaw(QByteArray *raw)
 {
 	QMutexLocker locker(&mutex);
 	quint16 sum;
+	int len;
        
+	len = raw->length();
+
+	if (len < getFBDataSize()) {
+		qDebug() << "Invalid data len:" << len;
+		return -1;
+	}
+
 	// TODO: Check and update partially, block by block
 	sum = qChecksum(raw->data(), raw->length());
 	if (sum == lastSum)
@@ -93,9 +97,19 @@ int FBCellItem::setFBRaw(QByteArray *raw)
 	return UPDATE_DONE;
 }
 
-void FBCellItem::paintFB(QPainter *painter)
+void FBCellItem::setFBConnected(bool state)
 {
 	QMutexLocker locker(&mutex);
+
+	if (state != fbConnected) {
+		qDebug() << "FB" << (state ? "Connected" : "Disconnected");
+		fbConnected = state;
+		update(boundingRect());
+	}
+}
+
+void FBCellItem::paintFB(QPainter *painter)
+{
 	QPainter fbPainter;
 	QImage image;
 
@@ -114,6 +128,7 @@ void FBCellItem::paint(QPainter *painter,
                          const QStyleOptionGraphicsItem *option,
                          QWidget *widget)
 {
+    QMutexLocker locker(&mutex);
     Q_UNUSED(option);
     Q_UNUSED(widget);
 
@@ -130,6 +145,18 @@ void FBCellItem::paint(QPainter *painter,
     }
 
     painter->drawPixmap(pixmap.rect(), pixmap);
+
+    if (! fbConnected) {
+	    QPen pen;
+	    pen.setColor(Qt::white);
+	    pen.setWidth(2);
+	    pen.setStyle(Qt::SolidLine);
+	    painter->setPen(pen);
+	    painter->drawText(boundingRect(),
+			    Qt::AlignCenter,
+			    QString("Connecting..."));
+    }
+
     DT_TRACE("FB PAINT E");
 }
 

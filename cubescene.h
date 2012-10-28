@@ -15,6 +15,9 @@
 #include "cubecellitem.h"
 #include "fbcellitem.h"
 
+#define DEFAULT_FB_WIDTH	480
+#define DEFAULT_FB_HEIGHT	800
+
 #define DEFAULT_CELL_WIDTH 120
 #define MIN_PAD 15
 #define MAX_ROW_COL_SIZE 16
@@ -157,6 +160,7 @@ protected:
 
 signals:
     void newFbReceived(QByteArray *bytes);
+    void disconnected(void);
 
 private:
 	char *buf;
@@ -215,6 +219,7 @@ protected:
 
 public slots:
     void updateSceen(QByteArray *bytes);
+    void fbDisconnected(void);
 
 private:
     FBCellItem *bg_mask;

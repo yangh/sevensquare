@@ -26,9 +26,13 @@ public:
 
     void paintFB(QPainter *painter);
 
-    void setFBConnected(bool state) { fbConnected = state; };
+    void setFBConnected(bool state);
     void setFBSize(QSize size);
-    int setFBRaw(QByteArray *raw);
+    int  setFBRaw(QByteArray *raw);
+    void setBPP(int n) { bpp = n; };
+    int  getFBDataSize(void) {
+	    return fbSize.width() * fbSize.height() * bpp;
+    }
 
 protected:
     virtual void mousePressEvent(QGraphicsSceneMouseEvent *event);
@@ -42,6 +46,7 @@ private:
     QPixmap *fb;
     QByteArray bytes;
     QSize fbSize;
+    int bpp;
     bool fbConnected;
     QMutex mutex;
     quint16 lastSum;
