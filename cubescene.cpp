@@ -15,6 +15,7 @@
 #include <time.h>
 #include <strings.h>
 #include <stdint.h>
+#include <zlib.h>
 
 #include "cubescene.h"
 
@@ -67,6 +68,15 @@ int FbReader::AndrodDecompress(QByteArray &src, QByteArray &dest)
 
 	dest = p.readAllStandardOutput();
 	//qDebug() << "Uncompress ret:" << dest.length() << p.readAllStandardError();
+
+#if 0
+	//TODO: Use zlib to uncompress data, instead external cmd
+	// The follow code ret = 3, something is wrong here.
+	uLongf len = dest.length();
+	ret = uncompress ((Bytef*) dest.data(), &len,
+			(Bytef*) src.data(), src.length());
+	qDebug() << "Uncompress ret:" << ret << len;
+#endif
 
 	return 0;
 }
@@ -146,7 +156,7 @@ void FbReader::run()
 	QByteArray bytes;
 	int ret;
 
-	//bytes.fill(0x00, caclBufferSize());
+	bytes.fill(0x00, caclBufferSize());
 
 	while (1) {
 		int ms = delay;
