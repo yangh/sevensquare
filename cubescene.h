@@ -63,7 +63,7 @@ public:
 	int run(bool waitForFinished = true) {
 		cmd = "adb";
 
-		//qDebug() << "Exec: " << cmd << " " << args;
+		qDebug() << "Exec: " << cmd << " " << args;
 		p.start(cmd, args);
 
 		if (waitForFinished) {
@@ -131,7 +131,7 @@ public:
 
 	void IncreaseDelay() {
 		if (delay < DELAY_MAX)
-			setDelay(delay + DELAY_STEP);
+			delay += DELAY_STEP;
 	};
 
 	void stop() {

@@ -66,11 +66,10 @@ int FBCellItem::setFBRaw(QByteArray *raw)
 
 void FBCellItem::paintFB(QPainter *painter)
 {
+	QMutexLocker locker(&mutex);
 	QPainter fbPainter;
-	QPen pen;
 	uint8_t *buf;
 	int x, y;
-	QMutexLocker locker(&mutex);
 
 	if (bytes == NULL ||
 		bytes->length() < fbSize.width() * fbSize.height() * 4)
@@ -80,39 +79,19 @@ void FBCellItem::paintFB(QPainter *painter)
 	}
 
 	qDebug() << "Painting FB...";
+
+	// FIXME: adb bug, converted '\n' (0x0A) to '\r\n' (0x0D0A)
+	// while dump binary file from shell
+	bytes->replace("\r\n", "\n");
+
 	buf = (uint8_t *) bytes->data();
 	buf += 12; // Skip header
-
-	pen.setWidth(1);
 
 	fbPainter.begin(fb);
 	for (x = 0; x < fbSize.height(); x++) {
 		for (y = 0; y < fbSize.width(); y++) {
-#if 0
-			uint32_t v;
-			uint8_t r, g, b;
-			bcopy(buf, &v, sizeof(uint32_t));
-			r = (v >> 24) & 0xFF;
-			g = (v >> 16) & 0xFF;
-			b = (v >> 8) & 0xFF;
+			fbPainter.setPen(QColor(buf[0], buf[1], buf[2]));
 			buf += 4;
-#endif
-			// FIXME: adb bug, converted '\n' (0x0A) to '\r\n' (0x0D0A)
-			// while dump binary file from shell
-
-			int i;
-			uint8_t c[3];
-			for (i = 0; i < 3; i++) {
-				if (buf[0] == 0x0D && buf[1] == 0x0A) {
-					c[i] = 0x0A;
-					buf += 2;
-				} else {
-					c[i] = *buf++;
-				}
-			}
-			buf++;
-			pen.setColor(QColor(c[0], c[1], c[2]));
-			fbPainter.setPen(pen);
 			fbPainter.drawPoint(y, x);
 		}
 	}
