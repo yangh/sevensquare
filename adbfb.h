@@ -130,7 +130,6 @@ public:
 			delay += DELAY_STEP;
 	};
 
-	void setStopped(bool s) { stopped = s; };
 	bool isStopped(void)	{ return stopped; };
 
 	void stop() {
@@ -148,6 +147,7 @@ public:
 	}
 
 protected:
+	bool stopped;
 	bool connected;
 	virtual void run();
 
@@ -156,7 +156,6 @@ signals:
 	void deviceDisconnected(void);
 
 private:
-	bool stopped;
 	QMutex mutex;
 	QWaitCondition delayCond;
 	unsigned long delay;
@@ -207,7 +206,6 @@ private:
 	uchar *mmbuf;
 	bool mmaped;
 	bool do_compress;
-	bool stopped;
 	int fb_width;
 	int fb_height;
 	int fb_format;

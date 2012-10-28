@@ -169,10 +169,9 @@ void FBReader::run()
 	setMaxiDelay();
 	loopDelay();
 
-	setStopped(false);
 	bytes.fill(0x00, length());
 
-	while (! isStopped()) {
+	while (! stopped) {
 		DT_TRACE("CAP");
 		ret = screenCap(bytes, do_compress, true);
 
@@ -185,7 +184,6 @@ void FBReader::run()
 		}
 
 		loopDelay();
-		DT_TRACE(isStopped());
 	}
 	qDebug() << "FBReader stopped";
 
@@ -199,7 +197,7 @@ void FBReader::deviceConnected(void)
 
 ADB::ADB()
 {
-	stopped = true;
+	stopped = false;
 	delay = DELAY_INFINITE;
 	connected = false;
 }
@@ -209,9 +207,7 @@ void ADB::run()
 	AdbExecutor adb("wait-for-device");
 	QByteArray bytes;
 
-	setStopped(false);
-
-	while (! isStopped()) {
+	while (! stopped) {
 		DT_TRACE("ADB wait");
 		adb.run();
 		DT_TRACE("ADB found");
