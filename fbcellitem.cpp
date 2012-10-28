@@ -80,10 +80,6 @@ void FBCellItem::paintFB(QPainter *painter)
 
 	qDebug() << "Painting FB...";
 
-	// FIXME: adb bug, converted '\n' (0x0A) to '\r\n' (0x0D0A)
-	// while dump binary file from shell
-	bytes->replace("\r\n", "\n");
-
 	buf = (uint8_t *) bytes->data();
 	buf += 12; // Skip header
 

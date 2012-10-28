@@ -15,7 +15,6 @@
 #include <time.h>
 #include <strings.h>
 #include <stdint.h>
-#include <zlib.h>
 
 #include "cubescene.h"
 
@@ -50,30 +49,29 @@ int bigEndianToInt32(const QByteArray &bytes)
 	return v;
 }
 
-int AndrodDecompress(QByteArray &src, QByteArray &dest)
+#define GZ_FILE "/dev/shm/android-fb.gz"
+int FbReader::AndrodDecompress(QByteArray &src, QByteArray &dest)
 {
 	int ret;
-	uLongf destLen;
+	QFile gz;
 	QProcess p;
-	AdbExecutor adb;
 
-	adb.addArg("pull");
-	adb.addArg("/data/fb.gz");
-	adb.addArg("/dev/shm/android-fb.gz");
-	adb.run();
-	qDebug() << adb.error;
+	gz.setFileName(GZ_FILE);
+	gz.open(QIODevice::WriteOnly|QIODevice::Unbuffered);
+	gz.seek(0);
+	gz.write(src.data(), src.length());
+	gz.flush();
 
-	p.start("minigzip", QStringList() << "-d" << "-c" << "/dev/shm/android-fb.gz");
+	p.start("minigzip", QStringList() << "-d" << "-c" << GZ_FILE);
 	p.waitForFinished();
 
 	dest = p.readAllStandardOutput();
-
-	qDebug() << "Uncompress ret:" << dest.length() << p.readAllStandardError();
+	//qDebug() << "Uncompress ret:" << dest.length() << p.readAllStandardError();
 
 	return 0;
 }
 
-int FbReader::screenCap(QByteArray &bytes, bool compress = false)
+int FbReader::screenCap(QByteArray &bytes, bool compress = false, bool removeHeader = false)
 {
 	int ret;
 	AdbExecutor adb;
@@ -83,15 +81,10 @@ int FbReader::screenCap(QByteArray &bytes, bool compress = false)
 	adb.addArg("screencap");
 
 	if (compress) {
-		adb.addArg("/data/fb");
+		adb.addArg("|");
+		adb.addArg("gzip");
 		adb.run();
-		//qDebug() << adb.error;
-
-		adb.clear();
-		adb.addArg("shell");
-		adb.addArg("gzip /data/fb");
-		adb.run();
-		//qDebug() << adb.error;
+		//qDebug() << adb.error << adb.output.length();
 
 		AndrodDecompress(adb.output, bytes);
 		return 0;
@@ -100,12 +93,15 @@ int FbReader::screenCap(QByteArray &bytes, bool compress = false)
 	ret = adb.run();
 
 	if (adb.exitSuccess()) {
-		bytes = adb.output;
+		if (removeHeader)
+			bytes = adb.output.mid(12);
+		else
+			bytes = adb.output;
 	} else {
 		adb.printErrorInfo();
 	}
 
-	//<< QDateTime::currentMSecsSinceEpoch() / 1000;
+	qDebug()<< QDateTime::currentMSecsSinceEpoch();
 
 	return ret;
 }
@@ -155,7 +151,7 @@ void FbReader::run()
 	while (1) {
 		int ms = delay;
 
-		ret = screenCap(bytes, do_compress);
+		ret = screenCap(bytes, do_compress, true);
 
 		if (ret == 0) {
 			emit newFbReceived(&bytes);
@@ -163,10 +159,12 @@ void FbReader::run()
 			ms = DELAY_MAX;
 		}
 
+#if 0
 		//qDebug() << "Delay:" << ms<< "ms";
 		mutex.lock();
 		readDelay.wait(&mutex, ms);
 		mutex.unlock();
+#endif
 
 		if (stopped) {
 			qDebug() << "FbReader stopped";
@@ -194,7 +192,7 @@ CubeScene::CubeScene(QObject * parent) :
 		    this, SLOT(updateSceen(QByteArray*)));
 
     //TODO: Check and Enable compress here
-    reader->setCompress(false);
+    reader->setCompress(true);
     startFbReader();
 }
 

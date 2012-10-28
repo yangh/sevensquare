@@ -63,7 +63,7 @@ public:
 	int run(bool waitForFinished = true) {
 		cmd = "adb";
 
-		qDebug() << "Exec: " << cmd << " " << args;
+		//qDebug() << "Exec: " << cmd << " " << args;
 		p.start(cmd, args);
 
 		if (waitForFinished) {
@@ -78,6 +78,10 @@ public:
 
 		output = p.readAllStandardOutput();
 		error = p.readAllStandardError();
+
+		// FIXME: adb bug, converted '\n' (0x0A) to '\r\n' (0x0D0A)
+		// while dump binary file from shell
+		output.replace("\r\n", "\n");
 
 		return p.exitCode();
 	}
@@ -110,7 +114,7 @@ public:
 	FbReader(QObject * parent);
 
 	enum {
-		DELAY_STEP	= 100,
+		DELAY_STEP	= 200,
 		DELAY_FAST	= 200,
 		DELAY_NORMAL	= 400,
 		DELAY_SLOW	= 800,
@@ -143,7 +147,8 @@ public:
 	int caclBufferSize();
 
 protected:
-	int screenCap(QByteArray &bytes, bool);
+	int AndrodDecompress(QByteArray &src, QByteArray &dest);
+	int screenCap(QByteArray &bytes, bool, bool);
 	void run();
 
 signals:
