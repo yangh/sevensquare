@@ -264,7 +264,7 @@ void CubeScene::initialize (void)
     QPixmap pixmap_scaled;
 
     if (! pixmap.width()) {
-	    pixmap = QPixmap(400, 800);
+	    pixmap = QPixmap(480, 800);
 	    pixmap.fill(Qt::black);
     }
 
@@ -281,7 +281,7 @@ void CubeScene::initialize (void)
     x_pad = (cube_width - cell_width * col_size) / 2;
     y_pad = (cube_height - cell_height * row_size) / 2;
 
-    pixmap_scaled = pixmap.copy(0, 0, cube_width, cube_height);
+    pixmap_scaled = pixmap.scaled(QSize(cube_width, cube_height));
 
     /* Background */
     setBackgroundBrush(QBrush(pixmap_scaled));
