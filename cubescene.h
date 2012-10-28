@@ -113,12 +113,16 @@ class FbReader : public QThread
 public:
 	FbReader(QObject * parent);
 
+	// int w, h, h on header
+	// Refer: frameworks/base/cmds/screencap/screencap.cpp
+#define FB_DATA_OFFSET (12)
+
 	enum {
 		DELAY_STEP	= 200,
 		DELAY_FAST	= 200,
 		DELAY_NORMAL	= 400,
 		DELAY_SLOW	= 800,
-		DELAY_MAX	= 3000,
+		DELAY_MAX	= 2000,
 	};
 	bool supportCompress();
 	void setCompress(bool value);
@@ -147,7 +151,7 @@ public:
 	int caclBufferSize();
 
 protected:
-	int AndrodDecompress(QByteArray &src, QByteArray &dest);
+	int AndrodDecompress(QByteArray &);
 	int screenCap(QByteArray &bytes, bool, bool);
 	void run();
 

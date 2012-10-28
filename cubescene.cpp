@@ -52,7 +52,7 @@ int bigEndianToInt32(const QByteArray &bytes)
 }
 
 #define GZ_FILE "/dev/shm/android-fb.gz"
-int FbReader::AndrodDecompress(QByteArray &src, QByteArray &dest)
+int FbReader::AndrodDecompress(QByteArray &bytes)
 {
 	int ret;
 	QFile gz;
@@ -61,16 +61,16 @@ int FbReader::AndrodDecompress(QByteArray &src, QByteArray &dest)
 	gz.setFileName(GZ_FILE);
 	gz.open(QIODevice::WriteOnly|QIODevice::Unbuffered);
 	gz.seek(0);
-	gz.write(src.data(), src.length());
+	gz.write(bytes.data(), bytes.length());
 	gz.flush();
 
 	p.start("minigzip", QStringList() << "-d" << "-c" << GZ_FILE);
 	p.waitForFinished();
 	ret = p.exitCode();
 
-	dest = p.readAllStandardOutput();
+	bytes = p.readAllStandardOutput();
 	DT_TRACE("DECOMP");
-	//qDebug() << "Uncompress ret:" << dest.length() << p.readAllStandardError();
+	//qDebug() << "Uncompress ret:" << bytes.length();
 
 #if 0
 	//TODO: Use zlib to uncompress data, instead external cmd
@@ -95,25 +95,25 @@ int FbReader::screenCap(QByteArray &bytes, bool compress = false, bool removeHea
 	if (compress) {
 		adb.addArg("|");
 		adb.addArg("gzip");
-		adb.run();
-		//qDebug() << adb.error << adb.output.length();
-		DT_TRACE("NEW FB");
-
-		AndrodDecompress(adb.output, bytes);
-		return 0;
 	}
 
 	ret = adb.run();
-
-	if (adb.exitSuccess()) {
-		if (removeHeader)
-			bytes = adb.output.mid(12);
-		else
-			bytes = adb.output;
-	} else {
-		adb.printErrorInfo();
-	}
 	DT_TRACE("NEW FB");
+
+	if (! adb.exitSuccess()) {
+		adb.printErrorInfo();
+		return ret;
+	}
+
+	bytes = adb.output;
+
+	if (compress) {
+		AndrodDecompress(bytes);
+	}
+
+	if (removeHeader) {
+		bytes = bytes.mid(FB_DATA_OFFSET);
+	}
 
 	return ret;
 }
@@ -166,17 +166,15 @@ void FbReader::run()
 		ret = screenCap(bytes, do_compress, true);
 
 		if (ret == 0) {
-			emit newFbReceived(&bytes);
+			emit newFbReceived(new QByteArray(bytes));
 		} else {
 			ms = DELAY_MAX;
 		}
 
-#if 0
-		//qDebug() << "Delay:" << ms<< "ms";
+		DT_TRACE(ms);
 		mutex.lock();
 		readDelay.wait(&mutex, ms);
 		mutex.unlock();
-#endif
 
 		if (stopped) {
 			qDebug() << "FbReader stopped";
