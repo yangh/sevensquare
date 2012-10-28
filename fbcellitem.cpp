@@ -104,6 +104,15 @@ void FBCellItem::setFBConnected(bool state)
 	if (state != fbConnected) {
 		qDebug() << "FB" << (state ? "Connected" : "Disconnected");
 		fbConnected = state;
+
+		if (! state) {
+			// Grayscale image
+			QImage image;
+			image = pixmap.toImage();
+			image = image.convertToFormat(QImage::Format_Indexed8);
+			pixmap.convertFromImage(image);
+		}
+
 		update(boundingRect());
 	}
 }
@@ -148,7 +157,7 @@ void FBCellItem::paint(QPainter *painter,
 
     if (! fbConnected) {
 	    QPen pen;
-	    pen.setColor(Qt::white);
+	    pen.setColor(Qt::yellow);
 	    pen.setWidth(2);
 	    pen.setStyle(Qt::SolidLine);
 	    painter->setPen(pen);
