@@ -1,9 +1,11 @@
 #include <QDebug>
 #include <QPainter>
 #include <QMutexLocker>
+#include <QDateTime>
 #include <stdint.h>
 
 #include "fbcellitem.h"
+#include "debug.h"
 
 FBCellItem::FBCellItem(QGraphicsItem *parent)
 {
@@ -78,20 +80,23 @@ void FBCellItem::paintFB(QPainter *painter)
 		return;
 	}
 
-	qDebug() << "Painting FB...";
+	//qDebug() << "Painting FB...";
+	DT_TRACE("PAIT RAW S");
 
 	buf = (uint8_t *) bytes->data();
 	buf += 12; // Skip header
 
 	fbPainter.begin(fb);
-	for (x = 0; x < fbSize.height(); x++) {
-		for (y = 0; y < fbSize.width(); y++) {
+	for (y = 0; y < fbSize.height(); y++) {
+		for (x = 0; x < fbSize.width(); x++) {
 			fbPainter.setPen(QColor(buf[0], buf[1], buf[2]));
 			buf += 4;
-			fbPainter.drawPoint(y, x);
+			fbPainter.drawPoint(x, y);
 		}
 	}
 	fbPainter.end();
+
+	DT_TRACE("PAIT RAW E");
 }
 
 void FBCellItem::paint(QPainter *painter,
@@ -101,6 +106,7 @@ void FBCellItem::paint(QPainter *painter,
     Q_UNUSED(option);
     Q_UNUSED(widget);
 
+    DT_TRACE("FB PAINT S");
     if (fbConnected) {
 	paintFB(painter);
 	pixmap = fb->scaled(cellSize,
@@ -113,6 +119,7 @@ void FBCellItem::paint(QPainter *painter,
     }
 
     painter->drawPixmap(pixmap.rect(), pixmap);
+    DT_TRACE("FB PAINT E");
 }
 
 void FBCellItem::mousePressEvent(QGraphicsSceneMouseEvent *event)

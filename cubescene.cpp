@@ -18,6 +18,7 @@
 #include <zlib.h>
 
 #include "cubescene.h"
+#include "debug.h"
 
 FbReader::FbReader(QObject * parent) :
 	QThread(parent)
@@ -65,8 +66,10 @@ int FbReader::AndrodDecompress(QByteArray &src, QByteArray &dest)
 
 	p.start("minigzip", QStringList() << "-d" << "-c" << GZ_FILE);
 	p.waitForFinished();
+	ret = p.exitCode();
 
 	dest = p.readAllStandardOutput();
+	DT_TRACE("DECOMP");
 	//qDebug() << "Uncompress ret:" << dest.length() << p.readAllStandardError();
 
 #if 0
@@ -77,8 +80,7 @@ int FbReader::AndrodDecompress(QByteArray &src, QByteArray &dest)
 			(Bytef*) src.data(), src.length());
 	qDebug() << "Uncompress ret:" << ret << len;
 #endif
-
-	return 0;
+	return ret;
 }
 
 int FbReader::screenCap(QByteArray &bytes, bool compress = false, bool removeHeader = false)
@@ -95,6 +97,7 @@ int FbReader::screenCap(QByteArray &bytes, bool compress = false, bool removeHea
 		adb.addArg("gzip");
 		adb.run();
 		//qDebug() << adb.error << adb.output.length();
+		DT_TRACE("NEW FB");
 
 		AndrodDecompress(adb.output, bytes);
 		return 0;
@@ -110,8 +113,7 @@ int FbReader::screenCap(QByteArray &bytes, bool compress = false, bool removeHea
 	} else {
 		adb.printErrorInfo();
 	}
-
-	qDebug()<< QDateTime::currentMSecsSinceEpoch();
+	DT_TRACE("NEW FB");
 
 	return ret;
 }
@@ -590,6 +592,7 @@ void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
      CubeCellItem *cell = 0;
 
      qDebug() << "Scene clicked: " << event->scenePos();
+     DT_TRACE("CLICK");
 
      QPoint vpos;
 
@@ -670,6 +673,7 @@ void CubeScene::keyReleaseEvent(QKeyEvent * event)
 {
 	int key;
 
+	DT_TRACE("KEY");
 	key = event->key();
 
 	switch(key) {

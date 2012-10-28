@@ -14,5 +14,6 @@ SOURCES += main.cpp \
     cubescene.cpp
 HEADERS += mainwindow.h \
     cubecellitem.h \
+    debug.h \
     fbcellitem.h \
     cubescene.h
