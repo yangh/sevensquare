@@ -1,3 +1,10 @@
+/*
+ * mainwindow.h
+ *
+ * Copyright 2012-2012 Yang Hong
+ *
+ */
+
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 

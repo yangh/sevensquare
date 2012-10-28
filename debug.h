@@ -1,3 +1,10 @@
+/*
+ * debug.cpp
+ *
+ * Copyright 2012-2012 Yang Hong
+ *
+ */
+
 #ifndef DEBUG_H_
 #define DEBUG_H_
 

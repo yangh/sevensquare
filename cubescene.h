@@ -1,3 +1,10 @@
+/*
+ * cubescene.h
+ *
+ * Copyright 2012-2012 Yang Hong
+ *
+ */
+
 #ifndef CUBESCENE_H
 #define CUBESCENE_H
 

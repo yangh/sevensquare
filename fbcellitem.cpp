@@ -1,3 +1,10 @@
+/*
+ * fbcellitem.cpp
+ *
+ * Copyright 2012-2012 Yang Hong
+ *
+ */
+
 #include <QPainter>
 #include <QMutexLocker>
 #include <QDateTime>
@@ -96,7 +103,7 @@ int FBCellItem::setFBRaw(QByteArray *raw)
 
 	lastSum = sum;
 	bytes = *raw;
-	convert_rgba32_to_rgb888(bytes.data(), 
+	convert_rgba32_to_rgb888(bytes.data(),
 				 fbSize.width(),
 				 fbSize.height());
 	update(boundingRect());

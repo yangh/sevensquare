@@ -1,3 +1,10 @@
+/*
+ * fbcellitem.h
+ *
+ * Copyright 2012-2012 Yang Hong
+ *
+ */
+
 #ifndef FBCELLITEM_H
 #define FBCELLITEM_H
 

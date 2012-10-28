@@ -1,3 +1,10 @@
+/*
+ * cubescene.cpp
+ *
+ * Copyright 2012-2012 Yang Hong
+ *
+ */
+
 #include <QThread>
 
 #include <stdlib.h>
@@ -66,7 +73,7 @@ int FBReader::AndrodDecompress(QByteArray &bytes)
 	QProcess p;
 
 	if (mmaped) {
-		//TODO: 
+		//TODO:
 		qDebug() << "Maped write file";
 		memcpy(mmbuf, bytes.data(), bytes.length());
 	} else {
@@ -378,7 +385,7 @@ void CubeScene::startPlay(void)
     int lr = row_size - 1;
     int lc = col_size - 2;
 
-    moveCell (b_items[lr][lc]->cubePos(), lr, lc + 1); 
+    moveCell (b_items[lr][lc]->cubePos(), lr, lc + 1);
     MASK_CURRENT_MAP[lr][lc] = 1;
 
     m_white_row = lr;

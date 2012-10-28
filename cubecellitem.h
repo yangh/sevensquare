@@ -1,3 +1,10 @@
+/*
+ * cubecellitem.cpp
+ *
+ * Copyright 2012-2012 Yang Hong
+ *
+ */
+
 #ifndef CUBECELLITEM_H
 #define CUBECELLITEM_H
 

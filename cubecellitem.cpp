@@ -1,3 +1,10 @@
+/*
+ * cubecellitem.cpp
+ *
+ * Copyright 2012-2012 Yang Hong
+ *
+ */
+
 #include <QDebug>
 #include <QPainter>
 
