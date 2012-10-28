@@ -15,180 +15,6 @@
 
 #include "cubescene.h"
 
-FBReader::FBReader()
-{
-	do_compress = false;
-	stopped = false;
-	delay = 300;
-	fb_width = DEFAULT_FB_WIDTH;
-	fb_height = DEFAULT_FB_HEIGHT;
-	fb_format = 1; //TODO:...
-	bpp = FB_BPP_MAX;
-	mmbuf = NULL;
-	mmaped = false;
-}
-
-bool FBReader::supportCompress()
-{
-	return false;
-}
-
-void FBReader::setCompress(bool value)
-{
-	if (do_compress != value) {
-		do_compress = value;
-		// Notify compress status changed.
-	}
-
-	if (do_compress) {
-		gz.setFileName(GZ_FILE);
-		gz.open(QIODevice::WriteOnly|QIODevice::Unbuffered);
-		gz.resize(fb_width * fb_height * FB_BPP_MAX);
-		//TODO: the map alway fail, find a new way.
-		mmbuf = gz.map(0, gz.size());
-		mmaped = (mmbuf != 0);
-	} else {
-		if (mmaped) {
-			mmaped = false;
-			mmbuf = NULL;
-			gz.unmap(mmbuf);
-		}
-		gz.close();
-	}
-}
-
-int bigEndianToInt32(const QByteArray &bytes)
-{
-	uint32_t v;
-	const char *buf = bytes.data();
-
-	bcopy(buf, &v, sizeof(uint32_t));
-
-	return v;
-}
-
-int FBReader::AndrodDecompress(QByteArray &bytes)
-{
-	int ret;
-	QProcess p;
-
-	if (mmaped) {
-		//TODO:
-		qDebug() << "Maped write file";
-		memcpy(mmbuf, bytes.data(), bytes.length());
-	} else {
-		gz.seek(0);
-		gz.write(bytes.data(), bytes.length());
-		gz.flush();
-	}
-	DT_TRACE("DECOMP TO FILE");
-
-	p.start("minigzip", QStringList() << "-d" << "-c" << GZ_FILE);
-	p.waitForFinished();
-	ret = p.exitCode();
-
-	bytes = p.readAllStandardOutput();
-	DT_TRACE("DECOMP FINISHED");
-#if 0
-	//TODO: Use zlib to uncompress data, instead external cmd
-	// The follow code ret = 3, something is wrong here.
-	uLongf len = dest.length();
-	ret = uncompress ((Bytef*) dest.data(), &len,
-			(Bytef*) src.data(), src.length());
-	qDebug() << "Uncompress ret:" << ret << len;
-#endif
-	return ret;
-}
-
-int FBReader::screenCap(QByteArray &bytes,
-			bool compress = false,
-			bool removeHeader = false)
-{
-	int ret;
-	AdbExecutor adb;
-	QStringList args;
-
-	args << "shell" << "screencap";
-
-	if (compress) {
-		args << "|" << "gzip";
-	}
-
-	adb.run(args);
-	DT_TRACE("NEW FB");
-
-	if (! adb.exitSuccess()) {
-		adb.printErrorInfo();
-		return ret;
-	}
-
-	bytes = adb.output;
-
-	if (compress) {
-		AndrodDecompress(bytes);
-	}
-
-	if (removeHeader) {
-		bytes = bytes.mid(FB_DATA_OFFSET);
-	}
-
-	return adb.ret;
-}
-
-int FBReader::getScreenInfo(int &width, int &height, int &format)
-{
-	QByteArray bytes;
-	int ret;
-
-	ret = screenCap(bytes);
-
-	if (ret != 0)
-		return -1;
-
-	width = bigEndianToInt32(bytes.mid(0, 4));
-	height = bigEndianToInt32(bytes.mid(4, 4));
-	format = bigEndianToInt32(bytes.mid(8, 4));
-
-	fb_width = width;
-	fb_height = height;
-	fb_format = format;
-
-	//TODO: emit screenInfoChanged
-
-	return 0;
-}
-
-void FBReader::run()
-{
-	QByteArray bytes;
-	int ret;
-	int ms;
-
-	stopped = false;
-	bytes.fill(0x00, length());
-
-	while (! stopped) {
-		ret = screenCap(bytes, do_compress, true);
-
-		if (ret == 0) {
-			emit newFbReceived(new QByteArray(bytes));
-			ms = delay;
-		} else {
-			emit disconnected();
-			ms = DELAY_MAX;
-		}
-
-		DT_TRACE(ms);
-		mutex.lock();
-		readDelay.wait(&mutex, ms);
-		mutex.unlock();
-	}
-
-	qDebug() << "FBReader stopped";
-
-	return;
-}
-
 CubeScene::CubeScene(QObject * parent) :
         QGraphicsScene(parent)
 {
@@ -202,7 +28,7 @@ CubeScene::CubeScene(QObject * parent) :
 
     QObject::connect(&reader, SIGNAL(newFbReceived(QByteArray*)),
 		    this, SLOT(updateScene(QByteArray*)));
-    QObject::connect(&reader, SIGNAL(disconnected(void)),
+    QObject::connect(&reader, SIGNAL(deviceDisconnected(void)),
 		    this, SLOT(fbDisconnected(void)));
 
     //TODO: Check and Enable compress here
@@ -217,14 +43,13 @@ CubeScene::~CubeScene()
 
 void CubeScene::startFBReader()
 {
-	reader.start();
+	reader.startRead();
 	reader.setPriority(QThread::HighPriority);
 }
 
 void CubeScene::stopFBReader()
 {
 	reader.stop();
-	reader.quit();
 }
 
 void CubeScene::fbDisconnected(void)
@@ -247,7 +72,7 @@ void CubeScene::updateScene(QByteArray *bytes)
 	if (ret == FBCellItem::UPDATE_DONE) {
 		reader.setDelay(0);
 	} else {
-		reader.IncreaseDelay();
+		reader.increaseDelay();
 	}
 }
 

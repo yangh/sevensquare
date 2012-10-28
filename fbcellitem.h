@@ -11,8 +11,7 @@
 #include <QGraphicsItem>
 #include <QMutex>
 
-#define DEFAULT_FB_WIDTH	320
-#define DEFAULT_FB_HEIGHT	533
+#include "adbfb.h"
 
 class FBCellItem : public QGraphicsItem
 {

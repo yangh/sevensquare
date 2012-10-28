@@ -9,11 +9,13 @@ TEMPLATE = app
 CONFIG += debug
 SOURCES += main.cpp \
     mainwindow.cpp \
+    adbfb.cpp \
     cubecellitem.cpp \
     fbcellitem.cpp \
     cubescene.cpp
 HEADERS += mainwindow.h \
     cubecellitem.h \
+    adbfb.h \
     debug.h \
     fbcellitem.h \
     cubescene.h

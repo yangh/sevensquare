@@ -126,7 +126,7 @@ void FBCellItem::paintFB(QPainter *painter)
 	QPainter fbPainter;
 	QImage image;
 
-	DT_TRACE("PAIT RAW S");
+	DT_TRACE("FB PAINT RAW S");
 
 	fbPainter.begin(&fb);
 	image = QImage((const uchar*)bytes.data(),
@@ -135,7 +135,7 @@ void FBCellItem::paintFB(QPainter *painter)
 	fbPainter.drawImage(fb.rect(), image);
 	fbPainter.end();
 
-	DT_TRACE("PAIT RAW E");
+	DT_TRACE("FB PAINT RAW E");
 }
 
 void FBCellItem::paint(QPainter *painter,
