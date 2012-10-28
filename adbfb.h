@@ -24,8 +24,8 @@
 class AdbExecutor
 {
 public:
-	AdbExecutor() {};
-	AdbExecutor(const char *a)	{ args << a; };
+	AdbExecutor() : ret(0) {};
+	AdbExecutor(const char *a) : ret(0) { args << a; };
 
 	void addArg(const char *a)	{ args << a; };
 	void addArg(const QString &a)	{ args << a; };
@@ -33,43 +33,13 @@ public:
 
 	bool exitSuccess(void)		{ return ret == 0; };
 
-	void clear(void) {
-		args.clear();
-		error.clear();
-		output.clear();
-		ret = 0;
-	}
+	int run(bool waitUntilFinished = true);
+	void clear(void);
+	int wait();
 
-	int run(const QStringList &cmd) {
-		args << cmd;
+	int run(const QStringList &strs) {
+		args << strs;
 		return run();
-	}
-
-	int run(bool waitForFinished = true) {
-		cmd = "adb";
-
-		//qDebug() << "Exec: " << cmd << " " << args;
-		p.start(cmd, args);
-
-		if (waitForFinished) {
-			return wait();
-		}
-
-		return 0;
-	}
-
-	int wait() {
-		p.waitForFinished();
-
-		output = p.readAllStandardOutput();
-		error = p.readAllStandardError();
-		ret = p.exitCode();
-
-		// FIXME: adb bug, converted '\n' (0x0A) to '\r\n' (0x0D0A)
-		// while dump binary file from shell
-		output.replace("\r\n", "\n");
-
-		return ret;
 	}
 
 	void printErrorInfo() {
@@ -106,21 +76,9 @@ public:
 		DELAY_INFINITE	= ULONG_MAX,
 	};
 
-	void loopDelay() {
-		mutex.lock();
-		if (delay) {
-			DT_TRACE(delay);
-			delayCond.wait(&mutex, delay);
-		}
-		mutex.unlock();
-	}
-
-	void setDelay(int d) {
-		mutex.lock();
-		delay = d;
-		delayCond.wakeAll();
-		mutex.unlock();
-	};
+	void stop();
+	void loopDelay();
+	void setDelay(int d);
 
 	void setMiniDelay() { delay = DELAY_FAST; };
 	void setMaxiDelay() { delay = DELAY_INFINITE; };
@@ -131,14 +89,6 @@ public:
 	};
 
 	bool isStopped(void)	{ return stopped; };
-
-	void stop() {
-		stopped = true;
-		setDelay(0);
-		while (! isFinished()) msleep(100);
-		quit();
-	};
-
 	bool isConnected(void)	{ return connected; };
 
 	void disconnect(void) {

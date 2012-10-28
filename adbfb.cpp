@@ -15,6 +15,43 @@
 
 #include "adbfb.h"
 
+void AdbExecutor::clear(void)
+{
+	args.clear();
+	error.clear();
+	output.clear();
+	ret = 0;
+}
+
+int AdbExecutor::run(bool waitUntilFinished)
+{
+	cmd = "adb";
+
+	//qDebug() << "Exec: " << cmd << " " << args;
+	p.start(cmd, args);
+
+	if (waitUntilFinished) {
+		return wait();
+	}
+
+	return 0;
+}
+
+int AdbExecutor::wait()
+{
+	p.waitForFinished();
+
+	output = p.readAllStandardOutput();
+	error = p.readAllStandardError();
+	ret = p.exitCode();
+
+	// FIXME: adb bug, converted '\n' (0x0A) to '\r\n' (0x0D0A)
+	// while dump binary file from shell
+	output.replace("\r\n", "\n");
+
+	return ret;
+}
+
 FBReader::FBReader()
 {
 	do_compress = false;
@@ -227,4 +264,31 @@ void ADB::run()
 
 	return;
 }
+
+void ADB::stop()
+{
+	stopped = true;
+	setDelay(0);
+	while (! isFinished())
+		msleep(100);
+	quit();
+}
+
+void ADB::loopDelay()
+{
+	mutex.lock();
+	if (delay) {
+		DT_TRACE(delay);
+		delayCond.wait(&mutex, delay);
+	}
+	mutex.unlock();
+}
+
+void ADB::setDelay(int d)
+{
+	mutex.lock();
+	delay = d;
+	delayCond.wakeAll();
+	mutex.unlock();
+};
 
