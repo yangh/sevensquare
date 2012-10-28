@@ -196,7 +196,7 @@ CubeScene::CubeScene(QObject * parent) :
     reader = new FbReader(parent);
 
     reader->getScreenInfo(fb_width, fb_height, pixel_format);
-    qDebug() << "Screen:" << fb_width << fb_height << pixel_format;
+    qDebug() << "Remote screen FB:" << fb_width << fb_height << pixel_format;
 
     QObject::connect(reader, SIGNAL(newFbReceived(QByteArray*)),
 		    this, SLOT(updateSceen(QByteArray*)));
@@ -251,7 +251,10 @@ void CubeScene::initialize (void)
     int row, col;
     QPixmap pixmap_scaled;
 
-    qDebug() << "Scene initialize.";
+    if (! pixmap.width()) {
+	    pixmap = QPixmap(400, 800);
+	    pixmap.fill(Qt::black);
+    }
 
     cube_width = pixmap.width();
     cube_height = fb_height * ((float) cube_width / fb_width);

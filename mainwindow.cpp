@@ -26,8 +26,9 @@ MainWindow::MainWindow(QWidget *parent) :
     b_scene->loadImage(file);
 
     QSize b_size = b_scene->getSize();
-    QSize size(b_size.width() + WINDOW_BORDER,
-		    b_size.height() + WINDOW_BORDER);
+    QSize size(b_size.width() + 2,
+		    b_size.height() + 2);
+    qDebug() << "Mini windows size" << size;
 
     resize (size);
     setMinimumSize(size);
