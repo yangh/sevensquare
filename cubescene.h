@@ -93,6 +93,9 @@ public slots:
     void updateScene(QByteArray *bytes);
     void fbDisconnected(void);
 
+signals:
+    void sceneSizeChanged(QSize);
+
 private:
     FBCellItem fb;
     QGraphicsRectItem grayMask;

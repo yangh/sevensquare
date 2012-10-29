@@ -47,7 +47,7 @@ void FBCellItem::setPixmap(const QPixmap &p)
 
 QRectF FBCellItem::boundingRect() const
 {
-	return QRectF(pixmap.rect());
+	return QRectF(QPoint(0, 0), cellSize);
 }
 
 void FBCellItem::setFBSize(QSize size)
@@ -65,8 +65,10 @@ void FBCellItem::setFBSize(QSize size)
 	fb.fill(QColor(Qt::black));
 
 	w = cellSize.width();
-	h = fbSize.height() * ((float) fbSize.width() / w);
+	h = fbSize.height() * ((float) w / fbSize.width());
 	cellSize = QSize(w, h);
+
+	update(boundingRect());
 }
 
 void convert_rgba32_to_rgb888(char *buf, int w, int h)

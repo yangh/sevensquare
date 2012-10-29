@@ -10,6 +10,7 @@
 
 #include <QMainWindow>
 #include <QGraphicsView>
+#include <QSize>
 
 #include "cubescene.h"
 
@@ -19,12 +20,17 @@ public:
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+public slots:
+    void cubeSizeChanged(QSize);
+
 protected:
     void changeEvent(QEvent *e);
+    void setupScene(void);
 
 private:
     QGraphicsView   *view;
     CubeScene       *scene;
+    QString          bg_file;
 };
 
 #endif // MAINWINDOW_H

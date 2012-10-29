@@ -16,9 +16,6 @@
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent)
 {
-    view = new QGraphicsView(this);
-    scene = new CubeScene(this);
-
     QStringList argv = qApp->arguments();
     QString file;
     const char *bg = getenv("SQ_BG");
@@ -31,7 +28,17 @@ MainWindow::MainWindow(QWidget *parent) :
         file = BACKGROUND_FILE;
     }
 
-    scene->loadImage(file);
+    bg_file = file;
+
+    setupScene();
+}
+
+void MainWindow::setupScene(void)
+{
+    view = new QGraphicsView(this);
+    scene = new CubeScene(this);
+
+    scene->loadImage(bg_file);
 
     QSize size = scene->getSize();
     size += QSize(WINDOW_BORDER, WINDOW_BORDER);
@@ -42,7 +49,30 @@ MainWindow::MainWindow(QWidget *parent) :
     //setMaximumSize(size);
 
     view->setScene(scene);
+    view->show();
     setCentralWidget (view);
+
+    QObject::connect(scene, SIGNAL(sceneSizeChanged(QSize)),
+			this, SLOT(cubeSizeChanged(QSize)));
+}
+
+void MainWindow::cubeSizeChanged(QSize size)
+{
+#if 0
+    setupScene();
+#else
+
+    QSize wins(size);
+
+    wins += QSize(WINDOW_BORDER, WINDOW_BORDER);
+
+    qDebug() << "Resize main window" << size;
+    setMinimumSize(wins);
+    view->resize(size);
+    resize(wins);
+
+    //setCentralWidget (view);
+#endif
 }
 
 MainWindow::~MainWindow()

@@ -35,7 +35,7 @@ CubeScene::CubeScene(QObject * parent) :
 	//TODO: Check and Enable compress here
 	reader.setCompress(true);
 
-	//TODO: Start after UI is ok.
+	//TODO: Start after UI presents.
 	startFBReader();
 }
 
@@ -87,6 +87,15 @@ void CubeScene::deviceConnected(void)
 
 	cube_height = fb_height * ((float) cube_width / fb_width);
 	qDebug() << "New screne size:" << cube_width << cube_height;
+
+	emit sceneSizeChanged(QSize(cube_width, cube_height));
+#if 0
+	fb.setPos(0, 0);
+	grayMask.setPos(0, 0);
+	promptItem.setPos(20, 20);
+	//setSceneRect(QRect(0, 0, cube_width, cube_height));
+	update(QRect(0, 0, cube_width, cube_height));
+#endif
 
 	os_type = getDeviceOSType();
 }
