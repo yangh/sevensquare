@@ -83,11 +83,13 @@ protected:
     void sendEvent(QPoint pos);
     void sendVirtualClick(QPoint pos);
     void sendVirtualKey(int key);
+    int getDeviceOSType(void);
 
     void startFBReader();
     void stopFBReader();
 
 public slots:
+    void deviceConnected(void);
     void updateScene(QByteArray *bytes);
     void fbDisconnected(void);
 
@@ -100,6 +102,7 @@ private:
     int m_white_row;
     int m_white_col;
 
+    int os_type;
     int fb_width;
     int fb_height;
     int pixel_format;

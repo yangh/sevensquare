@@ -21,11 +21,17 @@
 #define DEFAULT_FB_WIDTH	320
 #define DEFAULT_FB_HEIGHT	533
 
+enum {
+	ANDROID_ICS,
+	ANDROID_JB,
+	ANDROID_UNKNOWN,
+};
+
 class AdbExecutor
 {
 public:
-	AdbExecutor() : ret(0) {};
-	AdbExecutor(const char *a) : ret(0) { args << a; };
+	AdbExecutor() : ret(-1), cmd("adb") {};
+	AdbExecutor(const char *a) { args << a; };
 
 	void addArg(const char *a)	{ args << a; };
 	void addArg(const QString &a)	{ args << a; };
@@ -33,14 +39,18 @@ public:
 
 	bool exitSuccess(void)		{ return ret == 0; };
 
-	int run(bool waitUntilFinished = true);
 	void clear(void);
-	int wait();
+
+	int wait(int msecs = 30000);
+
+	int run(bool waitUntilFinished = true);
 
 	int run(const QStringList &strs) {
 		args << strs;
 		return run();
 	}
+
+	bool isRunning() { return (p.state() == QProcess::Running); }
 
 	void printErrorInfo() {
 		qDebug() << "Process error:" << ret;
@@ -66,9 +76,10 @@ class ADB : public QThread
 	Q_OBJECT
 public:
 	ADB();
+	~ADB();
 
 	enum {
-		DELAY_STEP	= 100,
+		DELAY_STEP	= 200,
 		DELAY_FAST	= 200,
 		DELAY_NORMAL	= 400,
 		DELAY_SLOW	= 800,

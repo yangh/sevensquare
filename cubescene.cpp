@@ -18,22 +18,25 @@
 CubeScene::CubeScene(QObject * parent) :
         QGraphicsScene(parent)
 {
-    cell_width = DEFAULT_CELL_WIDTH;
+	cell_width = DEFAULT_CELL_WIDTH;
 
-    fb_width = DEFAULT_FB_WIDTH;
-    fb_height = DEFAULT_FB_HEIGHT;
+	fb_width = DEFAULT_FB_WIDTH;
+	fb_height = DEFAULT_FB_HEIGHT;
+	pixel_format = 1;
+	os_type =  ANDROID_JB;
 
-    reader.getScreenInfo(fb_width, fb_height, pixel_format);
-    qDebug() << "Remote screen FB:" << fb_width << fb_height << pixel_format;
+	QObject::connect(&reader, SIGNAL(newFbReceived(QByteArray*)),
+			this, SLOT(updateScene(QByteArray*)));
+	QObject::connect(&reader, SIGNAL(deviceDisconnected(void)),
+			this, SLOT(fbDisconnected(void)));
+	QObject::connect(&reader, SIGNAL(deviceFound(void)),
+			this, SLOT(deviceConnected(void)));
 
-    QObject::connect(&reader, SIGNAL(newFbReceived(QByteArray*)),
-		    this, SLOT(updateScene(QByteArray*)));
-    QObject::connect(&reader, SIGNAL(deviceDisconnected(void)),
-		    this, SLOT(fbDisconnected(void)));
+	//TODO: Check and Enable compress here
+	reader.setCompress(true);
 
-    //TODO: Check and Enable compress here
-    reader.setCompress(true);
-    startFBReader();
+	//TODO: Start after UI is ok.
+	startFBReader();
 }
 
 CubeScene::~CubeScene()
@@ -59,6 +62,52 @@ void CubeScene::fbDisconnected(void)
 	promptItem.setVisible(true);
 }
 
+void CubeScene::deviceConnected(void)
+{
+	int w, h, f;
+	int ret;
+
+	ret = reader.getScreenInfo(w, h, f);
+	if (ret == -1) {
+		qDebug() << "Failed to get screen info.";
+		return;
+	}
+
+	if (w == fb_width && h == fb_height) {
+		qDebug() << "Remove screen size unchanged.";
+		return;
+	}
+
+	fb_width = w;
+	fb_height = h;
+	pixel_format = f;
+
+	qDebug() << "Remote new screen FB:" << fb_width << fb_height << pixel_format;
+	fb.setFBSize(QSize(fb_width, fb_height));
+
+	cube_height = fb_height * ((float) cube_width / fb_width);
+	qDebug() << "New screne size:" << cube_width << cube_height;
+
+	os_type = getDeviceOSType();
+}
+
+int CubeScene::getDeviceOSType(void)
+{
+	AdbExecutor adb;
+	int os = ANDROID_ICS;
+
+	adb.addArg("shell");
+	adb.addArg("input");
+	adb.run();
+
+	if (adb.output.indexOf("swipe") > 0) {
+		os = ANDROID_JB;
+	}
+	//qDebug() << "OS type:" << os << adb.output;
+
+	return os;
+}
+
 void CubeScene::updateScene(QByteArray *bytes)
 {
 	int ret;
@@ -70,7 +119,7 @@ void CubeScene::updateScene(QByteArray *bytes)
 	ret = fb.setFBRaw(bytes);
 
 	if (ret == FBCellItem::UPDATE_DONE) {
-		reader.setDelay(0);
+		reader.setMiniDelay();
 	} else {
 		reader.increaseDelay();
 	}
@@ -122,7 +171,7 @@ void CubeScene::initialize (void)
     grayMask.setBrush(QBrush(QColor(128, 128, 128, 135)));
     grayMask.setPen(Qt::NoPen);
     grayMask.setZValue(99);
-    grayMask.setVisible(false);
+    grayMask.setVisible(true);
     addItem(&grayMask);
 
     promptItem.setText("Connecting...");
@@ -131,7 +180,7 @@ void CubeScene::initialize (void)
     promptItem.setFont(QFont("Arail", 16, QFont::Bold));
     promptItem.setPos(20, 20);
     promptItem.setZValue(100); /* lay in the top*/
-    promptItem.setVisible(false);
+    promptItem.setVisible(true);
     addItem(&promptItem);
 
 #if 0
@@ -359,7 +408,7 @@ QPoint CubeScene::scenePosToVirtual(QPointF pos)
 
 void CubeScene::sendVirtualClick(QPoint pos)
 {
-	bool isIcs = true;
+	bool isIcs = false;
 
 	if (pos.x() < 0 || pos.y() < 0
 		|| pos.x() > fb_width
@@ -369,13 +418,18 @@ void CubeScene::sendVirtualClick(QPoint pos)
 		return;
 	}
 
+	DT_TRACE("CLICK" << pos);
 	reader.setDelay(0);
 
-	// TODO: Check device version to send event in diff way
-	if (isIcs) {
-		sendEvent(pos);
-	} else {
-		sendTap(pos);
+	switch(os_type) {
+		case ANDROID_ICS:
+			sendEvent(pos);
+			break;
+		case ANDROID_JB:
+			sendTap(pos);
+			break;
+		default:
+			qDebug() << "Unknown OS type, click dropped.";
 	}
 }
 
@@ -431,21 +485,17 @@ void CubeScene::sendEvent(QPoint pos)
 
 void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 {
+     QPoint vpos;
+
+     DT_TRACE("SCREEN" << event->scenePos());
+
+     vpos = scenePosToVirtual(event->scenePos());
+     sendVirtualClick(vpos);
+
+#if 0
      QGraphicsItem *item = 0;
      CubeCellItem *cell = 0;
 
-     //qDebug() << "Scene clicked: " << event->scenePos();
-     DT_TRACE("CLICK");
-     DT_TRACE(event->scenePos());
-
-     QPoint vpos;
-
-     vpos = scenePosToVirtual(event->scenePos());
-     DT_TRACE(vpos);
-     sendVirtualClick(vpos);
-     //qDebug() << "Virtual pos: " << vpos;
-
-#if 0
      item = itemAt(event->scenePos());
      cell =  dynamic_cast<CubeCellItem *>(item);
      if (!cell) {
@@ -497,6 +547,7 @@ void CubeScene::sendVirtualKey(int key)
 	args << "shell" << "input keyevent";
         args << QString::number(key);
 
+	DT_TRACE("KEY" << key);
 	reader.setDelay(0);
 
 	adb.clear();
@@ -516,7 +567,6 @@ void CubeScene::keyReleaseEvent(QKeyEvent * event)
 {
 	int key;
 
-	DT_TRACE("KEY");
 	key = event->key();
 
 	switch(key) {

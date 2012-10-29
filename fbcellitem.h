@@ -51,11 +51,13 @@ private:
 	QPixmap pixmap;
 	QSize cellSize;
 
-	QPixmap fb;
 	QByteArray bytes;
-	int bpp;
+	QByteArray inn;
+	QPixmap fb;
 	QSize fbSize;
+	int bpp;
 	bool fbConnected;
+
 	QMutex mutex;
 	quint16 lastSum;
 };

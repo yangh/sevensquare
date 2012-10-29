@@ -26,7 +26,9 @@ FBCellItem::FBCellItem()
 	pixmap.fill(QColor(Qt::black));
 
 	fbSize = cellSize;
-	qDebug() << "Default constructor";
+	fb = QPixmap(fbSize);
+	fb.fill(QColor(Qt::black));
+	qDebug() << "FBCellItem Default constructor";
 
 	// Clickable
 	setFlags(QGraphicsItem::ItemIsSelectable);
@@ -51,6 +53,7 @@ QRectF FBCellItem::boundingRect() const
 void FBCellItem::setFBSize(QSize size)
 {
 	QMutexLocker locker(&mutex);
+	int w, h;
 
 	if (fbSize == size)
 		return;
@@ -60,6 +63,10 @@ void FBCellItem::setFBSize(QSize size)
 
 	fb = QPixmap(fbSize);
 	fb.fill(QColor(Qt::black));
+
+	w = cellSize.width();
+	h = fbSize.height() * ((float) fbSize.width() / w);
+	cellSize = QSize(w, h);
 }
 
 void convert_rgba32_to_rgb888(char *buf, int w, int h)
@@ -97,15 +104,17 @@ int FBCellItem::setFBRaw(QByteArray *raw)
 	// not for it.
 
 	// TODO: Check and update partially, block by block
-	sum = qChecksum(raw->data(), raw->length());
+	inn = *raw;
+	sum = qChecksum(inn.data(), inn.length());
 	if (sum == lastSum)
 		return UPDATE_IGNORED;
 
-	lastSum = sum;
-	bytes = *raw;
-	convert_rgba32_to_rgb888(bytes.data(),
+	convert_rgba32_to_rgb888(inn.data(),
 				 fbSize.width(),
 				 fbSize.height());
+
+	lastSum = sum;
+	bytes = inn; // Any thin way to swap theme?
 	update(boundingRect());
 
 	return UPDATE_DONE;

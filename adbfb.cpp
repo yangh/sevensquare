@@ -20,13 +20,11 @@ void AdbExecutor::clear(void)
 	args.clear();
 	error.clear();
 	output.clear();
-	ret = 0;
+	ret = -1;
 }
 
 int AdbExecutor::run(bool waitUntilFinished)
 {
-	cmd = "adb";
-
 	//qDebug() << "Exec: " << cmd << " " << args;
 	p.start(cmd, args);
 
@@ -37,9 +35,12 @@ int AdbExecutor::run(bool waitUntilFinished)
 	return 0;
 }
 
-int AdbExecutor::wait()
+int AdbExecutor::wait(int msecs)
 {
-	p.waitForFinished();
+	p.waitForFinished(msecs);
+
+	if (p.state() == QProcess::Running)
+		return QProcess::Running;
 
 	output = p.readAllStandardOutput();
 	error = p.readAllStandardError();
@@ -49,7 +50,7 @@ int AdbExecutor::wait()
 	// while dump binary file from shell
 	output.replace("\r\n", "\n");
 
-	return ret;
+	return QProcess::NotRunning;
 }
 
 FBReader::FBReader()
@@ -198,8 +199,8 @@ int FBReader::getScreenInfo(int &width, int &height, int &format)
 
 void FBReader::run()
 {
-	AdbExecutor adbFinder("wait-for-device");
 	QByteArray bytes;
+	QByteArray out;
 	int ret;
 
 	DT_TRACE("FBR START");
@@ -213,7 +214,8 @@ void FBReader::run()
 		ret = screenCap(bytes, do_compress, true);
 
 		if (ret == 0) {
-			emit newFbReceived(new QByteArray(bytes));
+			out = bytes;
+			emit newFbReceived(&out);
 		} else {
 			disconnect();
 			setMaxiDelay();
@@ -230,6 +232,9 @@ void FBReader::run()
 void FBReader::deviceConnected(void)
 {
 	setDelay(0);
+
+	// Notify cubescene
+	emit deviceFound();
 }
 
 ADB::ADB()
@@ -239,26 +244,35 @@ ADB::ADB()
 	connected = false;
 }
 
+ADB::~ADB()
+{
+	//::close();
+}
+
 void ADB::run()
 {
-	AdbExecutor adb("wait-for-device");
+	AdbExecutor adb;
 	QByteArray bytes;
 
 	while (! stopped) {
-		DT_TRACE("ADB wait");
-		adb.run();
-		DT_TRACE("ADB found");
+		if (! adb.isRunning()) {
+			DT_TRACE("ADB wait");
+			adb.clear();
+			adb.addArg("wait-for-device");
+			adb.run(false);
+		}
+
+		adb.wait(500);
 
 		if (adb.ret == 0) {
+			DT_TRACE("ADB found");
 			connected = true;
 			delay = DELAY_INFINITE;
 			emit deviceFound();
-		} else {
-			emit deviceDisconnected();
-			increaseDelay();
-		}
 
-		loopDelay();
+			// Wait for next request
+			loopDelay();
+		}
 	}
 	qDebug() << "ADB stopped";
 
@@ -278,7 +292,7 @@ void ADB::loopDelay()
 {
 	mutex.lock();
 	if (delay) {
-		DT_TRACE(delay);
+		DT_TRACE("DELAY" << delay);
 		delayCond.wait(&mutex, delay);
 	}
 	mutex.unlock();
