@@ -92,7 +92,7 @@ public:
 	void setDelay(int d);
 
 	void setMiniDelay() { delay = DELAY_FAST; };
-	void setMaxiDelay() { delay = DELAY_INFINITE; };
+	void setMaxiDelay() { delay = DELAY_MAX; };
 
 	void increaseDelay() {
 		if (delay < DELAY_MAX)
