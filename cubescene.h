@@ -48,6 +48,8 @@
 
 #define BACKGROUND_FILE "sandbox.jpg"
 #define WINDOW_BORDER 0
+#define KEY_BTN_SIZE  32
+#define POINTER_ANCHOR_SIZE 24
 
 class CubeView : public QGraphicsView
 {
@@ -89,6 +91,7 @@ protected:
     void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
     void mouseReleaseEvent(QGraphicsSceneMouseEvent *event);
     void keyReleaseEvent(QKeyEvent * event);
+    CubeCellItem *createCellItem(const char* name, int size, int key = 0);
 
     void drawGrid (int row, int col);
     QPoint getCellPos(int row, int col);

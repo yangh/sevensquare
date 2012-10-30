@@ -213,6 +213,7 @@ void FBReader::run()
 
 		if (ret == 0 && new_device_found) {
 			ret = probeFBInfo(bytes);
+			connected = true;
 		}
 
 		if (ret == 0) {

@@ -6,8 +6,6 @@
  */
 
 #include <QThread>
-#include <QGraphicsAnchorLayout>
-#include <QGraphicsAnchor>
 
 #include <stdlib.h>
 #include <time.h>
@@ -156,13 +154,13 @@ void CubeScene::setMenuIconsPos(void)
     back->setPos(home->pos() + QPoint(home->boundingRect().width() + padding, 0));
 }
 
-CubeCellItem *newMenuIcon(const char* name, int key)
+CubeCellItem *CubeScene::createCellItem(const char* name, int size, int key)
 {
 	CubeCellItem *item;
 	QPixmap p;
-    	QSize s(32, 32);
 
-	p =  QPixmap(name).scaled(s,
+	p =  QPixmap(name).scaled(
+			QSize (size, size),
 			Qt::KeepAspectRatio,
 			Qt::SmoothTransformation);
 	item = new CubeCellItem(p);	
@@ -210,9 +208,9 @@ void CubeScene::initialize (void)
     promptItem.setVisible(true);
     addItem(&promptItem);
 
-    home = newMenuIcon(":/images/ic_menu_home.png", ANDROID_KEY_HOME);
-    back = newMenuIcon(":/images/ic_menu_revert.png", ANDROID_KEY_BACK);
-    menu = newMenuIcon(":/images/ic_menu_copy.png", ANDROID_KEY_MENU);
+    home = createCellItem(":/images/ic_menu_home.png", KEY_BTN_SIZE, ANDROID_KEY_HOME);
+    back = createCellItem(":/images/ic_menu_revert.png", KEY_BTN_SIZE, ANDROID_KEY_BACK);
+    menu = createCellItem(":/images/ic_menu_copy.png", KEY_BTN_SIZE, ANDROID_KEY_MENU);
     addItem(home);
     addItem(back);
     addItem(menu);
@@ -226,13 +224,8 @@ void CubeScene::initialize (void)
     grayMask.setVisible(true);
     addItem(&grayMask);
 
-    QPixmap p(":/images/pointer_spot_anchor.png");
-
-    p =  p.scaled(QSize(24, 24),
-			Qt::KeepAspectRatio,
-			Qt::SmoothTransformation);
-
-    pointer = new CubeCellItem(p);
+    pointer = createCellItem(":/images/pointer_spot_anchor.png",
+		    POINTER_ANCHOR_SIZE);
     grayMask.setZValue(101);
     pointer->setVisible(false);
     addItem(pointer);
@@ -453,11 +446,13 @@ void CubeScene::setPointerPos(QPointF pos, bool visible)
 	pointer->update(pointer->boundingRect());
 
 }
+
 void CubeScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
 	QPointF pos = event->scenePos();
 
 	if (poinInFB(pos)) {
+		qDebug() << "Show pointer";
 		setPointerPos(event->scenePos(), true);
 	}
 }
@@ -467,6 +462,7 @@ void CubeScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 	QPointF pos = event->scenePos();
 
 	if (pointer->isVisible() && poinInFB(pos)) {
+		qDebug() << "Show pointer on move";
 		setPointerPos(event->scenePos(), true);
 	}
 }
@@ -477,11 +473,16 @@ void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 
      DT_TRACE("SCREEN" << pos);
 
-     if (poinInFB(pos)) {
-	     if (pointer->isVisible()) {
-		     setPointerPos(event->scenePos(), false);
-	     }
+     if (pointer->isVisible()) {
+		qDebug() << "Hide pointer on release";
+	     setPointerPos(event->scenePos(), false);
+     }
 
+     if (! reader.isConnected()) {
+	     return;
+     }
+
+     if (poinInFB(pos)) {
 	     QPoint vpos;
 	     vpos = scenePosToVirtual(event->scenePos());
 	     sendVirtualClick(vpos);
@@ -633,6 +634,10 @@ void CubeScene::sendVirtualKey(int key)
 void CubeScene::keyReleaseEvent(QKeyEvent * event)
 {
 	int key;
+
+	if (! reader.isConnected()) {
+		return;
+	}
 
 	key = event->key();
 

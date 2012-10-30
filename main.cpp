@@ -8,6 +8,7 @@
 #include <QtGui/QApplication>
 #include <QSize>
 #include <QPoint>
+#include <QIcon>
 #include <QGLWidget>
 #include <QGraphicsView>
 
@@ -34,7 +35,11 @@ int main(int argc, char *argv[])
     view.resize(size);
     view.show();
 
-    //scene.startFBReader();
+    QPixmap icon(":/images/panda-ribbon.jpg");
+    view.setWindowIcon(QIcon(icon.scaled(
+		    QSize(24, 24),
+		    Qt::KeepAspectRatio,
+		    Qt::SmoothTransformation)));
 
     return a.exec();
 }
