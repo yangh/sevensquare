@@ -70,24 +70,6 @@ void FBCellItem::setFBSize(QSize size)
 	update(boundingRect());
 }
 
-void convert_rgba32_to_rgb888(char *buf, int w, int h)
-{
-	int x, y;
-	char *p, *n;
-
-	p = n = buf;
-
-	// RGBX32 -> RGB888
-	for (y = 0; y < h; y++) {
-		for (x = 0; x < w; x++) {
-			*p++ = *n++;
-			*p++ = *n++;
-			*p++ = *n++;
-			n++;
-		}
-	}
-}
-
 int FBCellItem::setFBRaw(QByteArray *raw)
 {
 	QMutexLocker locker(&mutex);
@@ -109,10 +91,6 @@ int FBCellItem::setFBRaw(QByteArray *raw)
 	sum = qChecksum(inn.data(), inn.length());
 	if (sum == lastSum)
 		return UPDATE_IGNORED;
-
-	convert_rgba32_to_rgb888(inn.data(),
-				 fbSize.width(),
-				 fbSize.height());
 
 	lastSum = sum;
 	bytes = inn; // Any thin way to swap theme?

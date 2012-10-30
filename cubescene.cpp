@@ -158,6 +158,7 @@ void CubeScene::initialize (void)
     fb.setPos(QPoint(0, 0));
     fb.setZValue(0); /* lay in the bottom*/
     fb.setFBSize(QSize(fb_width, fb_height));
+    fb.setBPP(3); // We converted data in the reader.
     grayMask.setVisible(true);
     addItem(&fb);
 

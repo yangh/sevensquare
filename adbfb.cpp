@@ -144,12 +144,10 @@ int FBReader::screenCap(QByteArray &bytes,
 			bool compress = false,
 			bool removeHeader = false)
 {
-	int ret;
 	AdbExecutor adb;
 	QStringList args;
 
 	args << "shell" << "screencap";
-
 	if (compress) {
 		args << "|" << "gzip";
 	}
@@ -176,14 +174,34 @@ int FBReader::screenCap(QByteArray &bytes,
 	return adb.ret;
 }
 
+int FBReader::convertRGBAtoRGB888(QByteArray &bytes, int offset)
+{
+	int x, y;
+	char *p, *n;
+
+	p = n = bytes.data() + offset;
+
+	// RGBX32 -> RGB888
+	for (y = 0; y < fb_height; y++) {
+		for (x = 0; x < fb_width; x++) {
+			*p++ = *n++;
+			*p++ = *n++;
+			*p++ = *n++;
+			n++;
+		}
+	}
+
+	return fb_width * fb_height * 3;
+}
+
 void FBReader::run()
 {
 	QByteArray bytes;
 	QByteArray out;
 	int ret;
+	int len;
 
 	DT_TRACE("FBR START");
-	bytes.fill(0x00, length());
 
 	while (! stopped) {
 		if (! adbInstance.isConnected()) {
@@ -198,7 +216,8 @@ void FBReader::run()
 		}
 
 		if (ret == 0) {
-			out = bytes.mid(FB_DATA_OFFSET);
+			len = convertRGBAtoRGB888(bytes, FB_DATA_OFFSET);
+			out = bytes.mid(FB_DATA_OFFSET, len);
 			emit newFbReceived(&out);
 		} else {
 			disconnect();

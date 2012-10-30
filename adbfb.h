@@ -162,6 +162,7 @@ protected:
 	int screenCap(QByteArray &bytes, bool, bool);
 	int probeFBInfo(const QByteArray &);
 	int getScreenInfo(const QByteArray &);
+	int convertRGBAtoRGB888(QByteArray &, int);
 
 	void run();
 	ADB adbInstance;
