@@ -15,28 +15,69 @@
 
 #include "cubescene.h"
 
+CubeView::CubeView(QWidget * parent) :
+        QGraphicsView(parent)
+{
+	setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+	setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+	setCacheMode(QGraphicsView::CacheBackground);
+	setRenderHints(QPainter::Antialiasing
+			| QPainter::SmoothPixmapTransform
+			| QPainter::TextAntialiasing);
+}
+
+void CubeView::cubeSizeChanged(QSize size)
+{
+	size += QSize(WINDOW_BORDER, WINDOW_BORDER);
+	qDebug() << "Resize main window" << size;
+	setMinimumSize(size);
+	resize(size);
+}
+
+void CubeView::resizeEvent(QResizeEvent * event)
+{
+	QGraphicsView::resizeEvent(event);
+
+	//TODO: Resize scene as required.
+	qDebug() << event;
+}
+
+void CubeView::showEvent(QShowEvent * event)
+{
+	CubeScene *sc;
+
+	QWidget::showEvent(event);
+
+	sc = (CubeScene *) scene();
+	sc->startFBReader();
+
+	qDebug() << event;
+}
+
 CubeScene::CubeScene(QObject * parent) :
         QGraphicsScene(parent)
 {
 	cell_width = DEFAULT_CELL_WIDTH;
-
 	fb_width = DEFAULT_FB_WIDTH;
 	fb_height = DEFAULT_FB_HEIGHT;
 	pixel_format = 1;
 	os_type =  ANDROID_JB;
 
+	pixmap = QPixmap(":/images/sandbox.jpg");
+	setItemIndexMethod(QGraphicsScene::NoIndex);
+	setBackgroundBrush(pixmap);
+
 	QObject::connect(&reader, SIGNAL(newFbReceived(QByteArray*)),
 			this, SLOT(updateScene(QByteArray*)));
 	QObject::connect(&reader, SIGNAL(deviceDisconnected(void)),
 			this, SLOT(fbDisconnected(void)));
-	QObject::connect(&reader, SIGNAL(deviceFound(void)),
-			this, SLOT(deviceConnected(void)));
+	QObject::connect(&reader, SIGNAL(newFBFound(int, int, int, int)),
+			this, SLOT(deviceConnected(int, int, int, int)));
 
 	//TODO: Check and Enable compress here
 	reader.setCompress(true);
 
-	//TODO: Start after UI presents.
-	startFBReader();
+	initialize();
 }
 
 CubeScene::~CubeScene()
@@ -52,7 +93,7 @@ void CubeScene::startFBReader()
 
 void CubeScene::stopFBReader()
 {
-	reader.stop();
+	reader.stopRead();
 }
 
 void CubeScene::fbDisconnected(void)
@@ -62,17 +103,8 @@ void CubeScene::fbDisconnected(void)
 	promptItem.setVisible(true);
 }
 
-void CubeScene::deviceConnected(void)
+void CubeScene::deviceConnected(int w, int h, int f, int os)
 {
-	int w, h, f;
-	int ret;
-
-	ret = reader.getScreenInfo(w, h, f);
-	if (ret == -1) {
-		qDebug() << "Failed to get screen info.";
-		return;
-	}
-
 	if (w == fb_width && h == fb_height) {
 		qDebug() << "Remove screen size unchanged.";
 		return;
@@ -88,33 +120,11 @@ void CubeScene::deviceConnected(void)
 	cube_height = fb_height * ((float) cube_width / fb_width);
 	qDebug() << "New screne size:" << cube_width << cube_height;
 
+	grayMask.setRect(QRect(0, 0, cube_width, cube_height));
+	setSceneRect(QRect(0, 0, cube_width, cube_height));
 	emit sceneSizeChanged(QSize(cube_width, cube_height));
-#if 0
-	fb.setPos(0, 0);
-	grayMask.setPos(0, 0);
-	promptItem.setPos(20, 20);
-	//setSceneRect(QRect(0, 0, cube_width, cube_height));
-	update(QRect(0, 0, cube_width, cube_height));
-#endif
 
-	os_type = getDeviceOSType();
-}
-
-int CubeScene::getDeviceOSType(void)
-{
-	AdbExecutor adb;
-	int os = ANDROID_ICS;
-
-	adb.addArg("shell");
-	adb.addArg("input");
-	adb.run();
-
-	if (adb.output.indexOf("swipe") > 0) {
-		os = ANDROID_JB;
-	}
-	//qDebug() << "OS type:" << os << adb.output;
-
-	return os;
+	os_type = os;
 }
 
 void CubeScene::updateScene(QByteArray *bytes)
@@ -134,18 +144,9 @@ void CubeScene::updateScene(QByteArray *bytes)
 	}
 }
 
-void CubeScene::loadImage (const QString &file)
-{
-    qDebug() << "Load image from: " << file;
-
-    pixmap.load (file, 0);
-    initialize();
-}
-
 void CubeScene::initialize (void)
 {
     int row, col;
-    QPixmap pixmap_scaled;
 
     if (! pixmap.width()) {
 	    pixmap = QPixmap(DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT);
@@ -165,15 +166,11 @@ void CubeScene::initialize (void)
     x_pad = (cube_width - cell_width * col_size) / 2;
     y_pad = (cube_height - cell_height * row_size) / 2;
 
-    pixmap_scaled = pixmap.scaled(QSize(cube_width, cube_height));
-
-    /* Background */
-    setBackgroundBrush(QBrush(pixmap));
-
-    fb.setPixmap(pixmap_scaled);
+    fb.setPixmap(pixmap.scaled(QSize(cube_width, cube_height)));
     fb.setPos(QPoint(0, 0));
     fb.setZValue(0); /* lay in the bottom*/
     fb.setFBSize(QSize(fb_width, fb_height));
+    grayMask.setVisible(true);
     addItem(&fb);
 
     grayMask.setRect(QRectF(0, 0, cube_width, cube_height));
@@ -183,7 +180,7 @@ void CubeScene::initialize (void)
     grayMask.setVisible(true);
     addItem(&grayMask);
 
-    promptItem.setText("Connecting...");
+    promptItem.setText("ADB wait...");
     promptItem.setBrush(QBrush(QColor(240, 240, 70)));
     promptItem.setPen(QPen(QColor(20, 20, 20)));
     promptItem.setFont(QFont("Arail", 16, QFont::Bold));
@@ -417,8 +414,6 @@ QPoint CubeScene::scenePosToVirtual(QPointF pos)
 
 void CubeScene::sendVirtualClick(QPoint pos)
 {
-	bool isIcs = false;
-
 	if (pos.x() < 0 || pos.y() < 0
 		|| pos.x() > fb_width
 		|| pos.y() > fb_height)

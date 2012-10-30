@@ -6,14 +6,15 @@ QT += opengl \
     svg
 TARGET = seven-square
 TEMPLATE = app
-CONFIG += debug
-SOURCES += main.cpp \
-    mainwindow.cpp \
+#CONFIG += debug
+RESOURCES = sq-images.qrc
+SOURCES += \
+    main.cpp \
     adbfb.cpp \
     cubecellitem.cpp \
     fbcellitem.cpp \
     cubescene.cpp
-HEADERS += mainwindow.h \
+HEADERS += \
     cubecellitem.h \
     adbfb.h \
     debug.h \

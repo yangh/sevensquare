@@ -15,6 +15,9 @@
 #include <QGraphicsSceneMouseEvent>
 #include <QMutex>
 #include <QKeyEvent>
+#include <QWidget>
+
+#include <QGraphicsView>
 
 #include "cubecellitem.h"
 #include "fbcellitem.h"
@@ -44,6 +47,21 @@
 #define STARTBUTTON_CELL_IDX (STARTBUTTON_CELL_POS * 2)
 
 #define BACKGROUND_FILE "sandbox.jpg"
+#define WINDOW_BORDER 3
+
+class CubeView : public QGraphicsView
+{
+	Q_OBJECT
+public:
+    CubeView(QWidget * parent = 0);
+
+protected:
+    void resizeEvent ( QResizeEvent * event );
+    void showEvent ( QShowEvent * event );
+
+public slots:
+    void cubeSizeChanged(QSize);
+};
 
 class CubeScene : public QGraphicsScene
 {
@@ -51,8 +69,6 @@ class CubeScene : public QGraphicsScene
 public:
     CubeScene(QObject * parent = 0);
     ~CubeScene();
-
-    void loadImage (const QString &file);
 
     void initialize (void);
 
@@ -66,7 +82,8 @@ public:
 
     void setBgVisible(bool visible) { fb.setVisible(visible); };
 
-    QSize getSize(void) { return QSize(cube_width, cube_height); }
+    void startFBReader();
+    void stopFBReader();
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event);
@@ -83,13 +100,9 @@ protected:
     void sendEvent(QPoint pos);
     void sendVirtualClick(QPoint pos);
     void sendVirtualKey(int key);
-    int getDeviceOSType(void);
-
-    void startFBReader();
-    void stopFBReader();
 
 public slots:
-    void deviceConnected(void);
+    void deviceConnected(int, int, int, int);
     void updateScene(QByteArray *bytes);
     void fbDisconnected(void);
 

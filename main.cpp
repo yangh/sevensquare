@@ -6,14 +6,35 @@
  */
 
 #include <QtGui/QApplication>
-#include "mainwindow.h"
+#include <QSize>
+#include <QPoint>
+#include <QGLWidget>
+#include <QGraphicsView>
+
+#include "cubescene.h"
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    MainWindow w;
+    CubeView  view;
+    CubeScene scene;
+    QSizeF sizef;
+    QSize size;
 
-    w.show();
+    QObject::connect(&scene, SIGNAL(sceneSizeChanged(QSize)),
+			&view, SLOT(cubeSizeChanged(QSize)));
+
+    view.setScene(&scene);
+
+    sizef = scene.itemsBoundingRect().size();
+    size = QSize(sizef.width(), sizef.height())
+	    + QSize(WINDOW_BORDER, WINDOW_BORDER);
+
+    view.setMinimumSize(size);
+    view.resize(size);
+    view.show();
+
+    //scene.startFBReader();
 
     return a.exec();
 }

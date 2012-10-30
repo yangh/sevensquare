@@ -231,10 +231,19 @@ void FBReader::run()
 
 void FBReader::deviceConnected(void)
 {
-	setDelay(0);
+	int w, h, f, os;
+	int ret;
 
-	// Notify cubescene
-	emit deviceFound();
+	ret = getScreenInfo(w, h, f);
+
+	if (ret == -1) {
+		qDebug() << "Failed to get screen info.";
+		return;
+	}
+
+	os = getDeviceOSType();
+	emit newFBFound(w, h, f, os);
+	setDelay(0);
 }
 
 ADB::ADB()
@@ -246,7 +255,6 @@ ADB::ADB()
 
 ADB::~ADB()
 {
-	//::close();
 }
 
 void ADB::run()
@@ -304,5 +312,22 @@ void ADB::setDelay(int d)
 	delay = d;
 	delayCond.wakeAll();
 	mutex.unlock();
-};
+}
+
+int ADB::getDeviceOSType(void)
+{
+	AdbExecutor adb;
+	int os = ANDROID_ICS;
+
+	adb.addArg("shell");
+	adb.addArg("input");
+	adb.run();
+
+	if (adb.output.indexOf("swipe") > 0) {
+		os = ANDROID_JB;
+	}
+	//qDebug() << "OS type:" << os << adb.output;
+
+	return os;
+}
 

@@ -107,6 +107,8 @@ public:
 		emit deviceDisconnected();
 	}
 
+	int getDeviceOSType(void);
+
 protected:
 	bool stopped;
 	bool connected;
@@ -138,8 +140,16 @@ public:
 #define GZ_FILE		"/dev/shm/android-fb.gz"
 
 	void startRead(void) {
+		DT_TRACE("Start reader...");
 		start();
+		DT_TRACE("Start adb waiter...");
 		adbInstance.start();
+		DT_TRACE("Start adb waiter end...");
+	}
+
+	void stopRead() {
+		stop();
+		adbInstance.stop();
 	}
 
 	bool supportCompress();
@@ -158,6 +168,7 @@ protected:
 
 signals:
 	void newFbReceived(QByteArray *bytes);
+	void newFBFound(int, int, int, int);
 
 public slots:
 	void deviceConnected(void);
