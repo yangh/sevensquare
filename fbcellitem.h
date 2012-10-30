@@ -57,6 +57,7 @@ private:
 	QSize fbSize;
 	int bpp;
 	bool fbConnected;
+	bool fbUpdated;
 
 	QMutex mutex;
 	quint16 lastSum;

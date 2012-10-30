@@ -47,7 +47,7 @@
 #define STARTBUTTON_CELL_IDX (STARTBUTTON_CELL_POS * 2)
 
 #define BACKGROUND_FILE "sandbox.jpg"
-#define WINDOW_BORDER 3
+#define WINDOW_BORDER 0
 
 class CubeView : public QGraphicsView
 {
@@ -99,6 +99,9 @@ protected:
     void sendEvent(QPoint pos);
     void sendVirtualClick(QPoint pos);
     void sendVirtualKey(int key);
+    void setMenuIconsPos(void);
+    void setPointerPos(QPointF, bool);
+    bool poinInFB(QPointF);
 
 public slots:
     void deviceConnected(int, int, int, int);
@@ -114,6 +117,11 @@ private:
     QGraphicsSimpleTextItem promptItem;
     CubeCellItem *b_items[MAX_ROW_COL_SIZE][MAX_ROW_COL_SIZE];
     CubeCellItem *b_curr_items[MAX_ROW_COL_SIZE][MAX_ROW_COL_SIZE];
+    CubeCellItem *home;
+    CubeCellItem *back;
+    CubeCellItem *menu;
+    CubeCellItem *pointer;
+
     int m_white_row;
     int m_white_col;
 

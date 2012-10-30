@@ -1,5 +1,9 @@
  <!DOCTYPE RCC><RCC version="1.0">
  <qresource>
      <file>images/sandbox.jpg</file>
+     <file>images/ic_menu_home.png</file>
+     <file>images/ic_menu_revert.png</file>
+     <file>images/ic_menu_copy.png</file>
+     <file>images/pointer_spot_anchor.png</file>
  </qresource>
  </RCC>

@@ -15,7 +15,6 @@
 class CubeCellItem : public QGraphicsItem
 {
 public:
-    explicit CubeCellItem(QGraphicsItem *parent = 0);
     CubeCellItem(const QPixmap &pixmap);
 
     QRectF boundingRect() const;
@@ -37,6 +36,8 @@ public:
         orig_pos.setX(row);
         orig_pos.setY(col);
     }
+    void setKey(int k)	{ virtual_key = k; };
+    int  key(void)	{ return virtual_key; };
 
 protected:
     virtual void mousePressEvent(QGraphicsSceneMouseEvent *event);
@@ -47,6 +48,7 @@ private:
     QPixmap pixmap;
     QPoint orig_pos;
     QPoint curr_pos;
+    int virtual_key;
 };
 
 #endif // CUBECELLITEM_H

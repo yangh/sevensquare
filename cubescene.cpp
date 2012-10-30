@@ -6,6 +6,8 @@
  */
 
 #include <QThread>
+#include <QGraphicsAnchorLayout>
+#include <QGraphicsAnchor>
 
 #include <stdlib.h>
 #include <time.h>
@@ -14,6 +16,14 @@
 #include <zlib.h>
 
 #include "cubescene.h"
+
+#define ANDROID_KEY_HOME	3
+#define ANDROID_KEY_BACK	4
+#define ANDROID_KEY_MENU	82
+#define ANDROID_KEY_ENTER	66
+#define ANDROID_KEY_DPAD_UP	19
+#define ANDROID_KEY_DPAD_DOWN	20
+#define ANDROID_KEY_DPAD_CENTER	23
 
 CubeView::CubeView(QWidget * parent) :
         QGraphicsView(parent)
@@ -52,7 +62,7 @@ CubeScene::CubeScene(QObject * parent) :
 
 	pixmap = QPixmap(":/images/sandbox.jpg");
 	setItemIndexMethod(QGraphicsScene::NoIndex);
-	setBackgroundBrush(pixmap);
+	setBackgroundBrush(QBrush(Qt::gray));
 
 	QObject::connect(&reader, SIGNAL(newFbReceived(QByteArray*)),
 			this, SLOT(updateScene(QByteArray*)));
@@ -108,9 +118,12 @@ void CubeScene::deviceConnected(int w, int h, int f, int os)
 	cube_height = fb_height * ((float) cube_width / fb_width);
 	qDebug() << "New screne size:" << cube_width << cube_height;
 
-	grayMask.setRect(QRect(0, 0, cube_width, cube_height));
-	setSceneRect(QRect(0, 0, cube_width, cube_height));
-	emit sceneSizeChanged(QSize(cube_width, cube_height));
+	setMenuIconsPos();
+
+	int height = cube_height + home->boundingRect().height();
+	grayMask.setRect(QRect(0, 0, cube_width, height));
+	setSceneRect(QRect(0, 0, cube_width, height));
+	emit sceneSizeChanged(QSize(cube_width, height));
 
 	os_type = os;
 }
@@ -130,6 +143,32 @@ void CubeScene::updateScene(QByteArray *bytes)
 	} else {
 		reader.increaseDelay();
 	}
+}
+
+void CubeScene::setMenuIconsPos(void)
+{
+    int padding;
+    int margin = 8;
+
+    padding = (cube_width - home->boundingRect().width() * 3 - margin * 2) / 2;
+    menu ->setPos(fb.boundingRect().bottomLeft() + QPoint(margin, 0));
+    home ->setPos(menu->pos() + QPoint(menu->boundingRect().width() + padding, 0));
+    back->setPos(home->pos() + QPoint(home->boundingRect().width() + padding, 0));
+}
+
+CubeCellItem *newMenuIcon(const char* name, int key)
+{
+	CubeCellItem *item;
+	QPixmap p;
+    	QSize s(32, 32);
+
+	p =  QPixmap(name).scaled(s,
+			Qt::KeepAspectRatio,
+			Qt::SmoothTransformation);
+	item = new CubeCellItem(p);	
+	item->setKey(key);
+
+	return item;
 }
 
 void CubeScene::initialize (void)
@@ -159,15 +198,8 @@ void CubeScene::initialize (void)
     fb.setZValue(0); /* lay in the bottom*/
     fb.setFBSize(QSize(fb_width, fb_height));
     fb.setBPP(3); // We converted data in the reader.
-    grayMask.setVisible(true);
+    fb.setVisible(true);
     addItem(&fb);
-
-    grayMask.setRect(QRectF(0, 0, cube_width, cube_height));
-    grayMask.setBrush(QBrush(QColor(128, 128, 128, 135)));
-    grayMask.setPen(Qt::NoPen);
-    grayMask.setZValue(99);
-    grayMask.setVisible(true);
-    addItem(&grayMask);
 
     promptItem.setText("ADB wait...");
     promptItem.setBrush(QBrush(QColor(240, 240, 70)));
@@ -177,6 +209,33 @@ void CubeScene::initialize (void)
     promptItem.setZValue(100); /* lay in the top*/
     promptItem.setVisible(true);
     addItem(&promptItem);
+
+    home = newMenuIcon(":/images/ic_menu_home.png", ANDROID_KEY_HOME);
+    back = newMenuIcon(":/images/ic_menu_revert.png", ANDROID_KEY_BACK);
+    menu = newMenuIcon(":/images/ic_menu_copy.png", ANDROID_KEY_MENU);
+    addItem(home);
+    addItem(back);
+    addItem(menu);
+    setMenuIconsPos();
+
+    grayMask.setRect(QRectF(0, 0, cube_width,
+			    cube_height + home->boundingRect().height()));
+    grayMask.setBrush(QBrush(QColor(128, 128, 128, 135)));
+    grayMask.setPen(Qt::NoPen);
+    grayMask.setZValue(99);
+    grayMask.setVisible(true);
+    addItem(&grayMask);
+
+    QPixmap p(":/images/pointer_spot_anchor.png");
+
+    p =  p.scaled(QSize(24, 24),
+			Qt::KeepAspectRatio,
+			Qt::SmoothTransformation);
+
+    pointer = new CubeCellItem(p);
+    grayMask.setZValue(101);
+    pointer->setVisible(false);
+    addItem(pointer);
 
 #if 0
     QPixmap cell_bg;
@@ -385,14 +444,95 @@ void CubeScene::checkAllCell(void)
     }
 }
 
+void CubeScene::setPointerPos(QPointF pos, bool visible)
+{
+	QSizeF s = pointer->boundingRect().size();
+
+	pointer->setPos(pos - QPoint(s.width() / 2, s.height() / 2));
+	pointer->setVisible(visible);
+	pointer->update(pointer->boundingRect());
+
+}
 void CubeScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
-    //qDebug() << "Item pressed: " << curr_pos;
+	QPointF pos = event->scenePos();
+
+	if (poinInFB(pos)) {
+		setPointerPos(event->scenePos(), true);
+	}
 }
 
 void CubeScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
-    //qDebug() << "Item moveded: " << curr_pos;
+	QPointF pos = event->scenePos();
+
+	if (pointer->isVisible() && poinInFB(pos)) {
+		setPointerPos(event->scenePos(), true);
+	}
+}
+
+void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
+{
+     QPointF pos = event->scenePos();
+
+     DT_TRACE("SCREEN" << pos);
+
+     if (poinInFB(pos)) {
+	     if (pointer->isVisible()) {
+		     setPointerPos(event->scenePos(), false);
+	     }
+
+	     QPoint vpos;
+	     vpos = scenePosToVirtual(event->scenePos());
+	     sendVirtualClick(vpos);
+     }
+
+     QGraphicsItem *item = 0;
+     CubeCellItem *cell = 0;
+
+     item = itemAt(event->scenePos());
+     cell =  dynamic_cast<CubeCellItem *>(item);
+     if (!cell) {
+         return;
+     }
+
+     sendVirtualKey(cell->key());
+
+#if 0
+     qDebug() << "Item clicked, curr pos: " << cell->cubePos()
+             << ", orig pos: " << cell->originalCubePos();
+     QPoint pos;
+
+     pos = cell->originalCubePos();
+
+     /* Check command cell */
+     if (THUMNAIL_CELL_IDX == (pos.x() + pos.y())) {
+         setBgVisible (!getBgVisible()); /* color egg */
+         return;
+     }
+
+     /* Check command start */
+     if (STARTBUTTON_CELL_IDX == (pos.x() + pos.y())) {
+         startPlay();
+         return;
+     }
+
+     /* Check cell move */
+     int off_row, off_col;
+
+     pos = cell->cubePos();
+     off_row = m_white_row - pos.x();
+     off_col = m_white_col - pos.y();
+
+     if (off_row == 0 || off_col == 0) {
+         qDebug() << "Clicked move able cell: " << cell->cubePos()
+                 << ", Offset: " << off_row << ", " << off_col;
+
+         moveAllCell (pos, off_row, off_col);
+
+         checkAllCell();
+     }
+#endif
 }
 
 QPoint CubeScene::scenePosToVirtual(QPointF pos)
@@ -401,16 +541,14 @@ QPoint CubeScene::scenePosToVirtual(QPointF pos)
 		      (pos.y() * fb_height / cube_height));
 }
 
+bool CubeScene::poinInFB(QPointF pos)
+{
+	// TODO: don't use cube_width as fb_width
+	return QRectF(0, 0, cube_width, cube_height).contains(pos);
+}
+
 void CubeScene::sendVirtualClick(QPoint pos)
 {
-	if (pos.x() < 0 || pos.y() < 0
-		|| pos.x() > fb_width
-		|| pos.y() > fb_height)
-	{
-		qDebug() << "Out of range click" << pos;
-		return;
-	}
-
 	DT_TRACE("CLICK" << pos);
 	reader.setDelay(0);
 
@@ -476,62 +614,6 @@ void CubeScene::sendEvent(QPoint pos)
 	adb.run();
 }
 
-void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
-{
-     QPoint vpos;
-
-     DT_TRACE("SCREEN" << event->scenePos());
-
-     vpos = scenePosToVirtual(event->scenePos());
-     sendVirtualClick(vpos);
-
-#if 0
-     QGraphicsItem *item = 0;
-     CubeCellItem *cell = 0;
-
-     item = itemAt(event->scenePos());
-     cell =  dynamic_cast<CubeCellItem *>(item);
-     if (!cell) {
-         return;
-     }
-
-     qDebug() << "Item clicked, curr pos: " << cell->cubePos()
-             << ", orig pos: " << cell->originalCubePos();
-
-     QPoint pos;
-
-     pos = cell->originalCubePos();
-
-     /* Check command cell */
-     if (THUMNAIL_CELL_IDX == (pos.x() + pos.y())) {
-         setBgVisible (!getBgVisible()); /* color egg */
-         return;
-     }
-
-     /* Check command start */
-     if (STARTBUTTON_CELL_IDX == (pos.x() + pos.y())) {
-         startPlay();
-         return;
-     }
-
-     /* Check cell move */
-     int off_row, off_col;
-
-     pos = cell->cubePos();
-     off_row = m_white_row - pos.x();
-     off_col = m_white_col - pos.y();
-
-     if (off_row == 0 || off_col == 0) {
-         qDebug() << "Clicked move able cell: " << cell->cubePos()
-                 << ", Offset: " << off_row << ", " << off_col;
-
-         moveAllCell (pos, off_row, off_col);
-
-         checkAllCell();
-     }
-#endif
-}
-
 void CubeScene::sendVirtualKey(int key)
 {
 	AdbExecutor adb;
@@ -547,14 +629,6 @@ void CubeScene::sendVirtualKey(int key)
 	adb.addArg(args);
 	adb.run();
 }
-
-#define ANDROID_KEY_HOME	3
-#define ANDROID_KEY_BACK	4
-#define ANDROID_KEY_MENU	82
-#define ANDROID_KEY_ENTER	66
-#define ANDROID_KEY_DPAD_UP	19
-#define ANDROID_KEY_DPAD_DOWN	20
-#define ANDROID_KEY_DPAD_CENTER	23
 
 void CubeScene::keyReleaseEvent(QKeyEvent * event)
 {

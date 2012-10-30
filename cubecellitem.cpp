@@ -10,12 +10,9 @@
 
 #include "cubecellitem.h"
 
-CubeCellItem::CubeCellItem(QGraphicsItem *parent)
-{
-}
-
 CubeCellItem::CubeCellItem(const QPixmap &pixmap) :
-        pixmap(pixmap)
+        pixmap(pixmap),
+	virtual_key(0)
 {
 }
 

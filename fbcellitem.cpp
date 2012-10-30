@@ -18,6 +18,7 @@
 FBCellItem::FBCellItem()
 {
 	fbConnected = false;
+	fbUpdated = false;
 	lastSum = -1;
 	bpp = 4;
 
@@ -94,6 +95,7 @@ int FBCellItem::setFBRaw(QByteArray *raw)
 
 	lastSum = sum;
 	bytes = inn; // Any thin way to swap theme?
+	fbUpdated = true;
 	update(boundingRect());
 
 	return UPDATE_DONE;
@@ -136,11 +138,12 @@ void FBCellItem::paint(QPainter *painter,
 
 	DT_TRACE("FB PAINT S");
 
-	if (fbConnected) {
+	if (fbConnected && fbUpdated) {
 		paintFB(painter);
 		pixmap = fb.scaled(cellSize,
 				Qt::KeepAspectRatio,
 				Qt::SmoothTransformation);
+		fbUpdated = false;
 	}
 
 	painter->drawPixmap(pixmap.rect(), pixmap);
