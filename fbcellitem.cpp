@@ -28,7 +28,6 @@ FBCellItem::FBCellItem()
 	fbSize = cellSize;
 	fb = QPixmap(fbSize);
 	fb.fill(QColor(Qt::black));
-	qDebug() << "FBCellItem Default constructor";
 
 	// Clickable
 	setFlags(QGraphicsItem::ItemIsSelectable);

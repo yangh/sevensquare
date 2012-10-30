@@ -55,6 +55,7 @@ int AdbExecutor::wait(int msecs)
 
 FBReader::FBReader()
 {
+	new_device_found = false;
 	do_compress = false;
 	fb_width = DEFAULT_FB_WIDTH;
 	fb_height = DEFAULT_FB_HEIGHT;
@@ -98,7 +99,7 @@ void FBReader::setCompress(bool value)
 
 int bigEndianToInt32(const QByteArray &bytes)
 {
-	uint32_t v;
+	uint32_t v = 0;
 	const char *buf = bytes.data();
 
 	bcopy(buf, &v, sizeof(uint32_t));
@@ -153,6 +154,7 @@ int FBReader::screenCap(QByteArray &bytes,
 		args << "|" << "gzip";
 	}
 
+	DT_TRACE("CAP");
 	adb.run(args);
 	DT_TRACE("CAP NEW FB");
 
@@ -174,29 +176,6 @@ int FBReader::screenCap(QByteArray &bytes,
 	return adb.ret;
 }
 
-int FBReader::getScreenInfo(int &width, int &height, int &format)
-{
-	QByteArray bytes;
-	int ret;
-
-	ret = screenCap(bytes);
-
-	if (ret != 0)
-		return -1;
-
-	width = bigEndianToInt32(bytes.mid(0, 4));
-	height = bigEndianToInt32(bytes.mid(4, 4));
-	format = bigEndianToInt32(bytes.mid(8, 4));
-
-	fb_width = width;
-	fb_height = height;
-	fb_format = format;
-
-	//TODO: emit screenInfoChanged
-
-	return 0;
-}
-
 void FBReader::run()
 {
 	QByteArray bytes;
@@ -204,17 +183,22 @@ void FBReader::run()
 	int ret;
 
 	DT_TRACE("FBR START");
-	setMaxiDelay();
-	loopDelay();
-
 	bytes.fill(0x00, length());
 
 	while (! stopped) {
-		DT_TRACE("CAP");
-		ret = screenCap(bytes, do_compress, true);
+		if (! adbInstance.isConnected()) {
+			setMaxiDelay();
+			loopDelay();
+		}
+
+		ret = screenCap(bytes, do_compress, false);
+
+		if (ret == 0 && new_device_found) {
+			ret = probeFBInfo(bytes);
+		}
 
 		if (ret == 0) {
-			out = bytes;
+			out = bytes.mid(FB_DATA_OFFSET);
 			emit newFbReceived(&out);
 		} else {
 			disconnect();
@@ -229,20 +213,49 @@ void FBReader::run()
 	return;
 }
 
-void FBReader::deviceConnected(void)
+int FBReader::getScreenInfo(const QByteArray &bytes)
 {
-	int w, h, f, os;
+	int width, height, format;
+
+	// FB header
+	width = bigEndianToInt32(bytes.mid(0, 4));
+	height = bigEndianToInt32(bytes.mid(4, 4));
+	format = bigEndianToInt32(bytes.mid(8, 4));
+
+	if (width <= 0 || height <= 0) {
+		qDebug() << "Failed to get screen info.";
+		return -1;
+	}
+
+	fb_width = width;
+	fb_height = height;
+	fb_format = format;
+
+	return 0;
+}
+
+int FBReader::probeFBInfo(const QByteArray &bytes)
+{
+	int os;
 	int ret;
 
-	ret = getScreenInfo(w, h, f);
+	new_device_found = false;
 
-	if (ret == -1) {
-		qDebug() << "Failed to get screen info.";
-		return;
+	ret =  getScreenInfo(bytes);
+	if (ret != 0) {
+		qDebug() << "Failed to probe screen info.";
+		return ret;
 	}
 
 	os = getDeviceOSType();
-	emit newFBFound(w, h, f, os);
+	emit newFBFound(fb_width, fb_height, fb_format, os);
+
+	return 0;
+}
+
+void FBReader::deviceConnected(void)
+{
+	new_device_found = true;
 	setDelay(0);
 }
 
@@ -275,10 +288,10 @@ void ADB::run()
 		if (adb.ret == 0) {
 			DT_TRACE("ADB found");
 			connected = true;
-			delay = DELAY_INFINITE;
 			emit deviceFound();
 
 			// Wait for next request
+			delay = DELAY_INFINITE;
 			loopDelay();
 		}
 	}

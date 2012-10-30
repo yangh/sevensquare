@@ -117,6 +117,7 @@ protected:
 signals:
 	void deviceFound(void);
 	void deviceDisconnected(void);
+	void newFBFound(int, int, int, int);
 
 private:
 	QMutex mutex;
@@ -140,11 +141,8 @@ public:
 #define GZ_FILE		"/dev/shm/android-fb.gz"
 
 	void startRead(void) {
-		DT_TRACE("Start reader...");
 		start();
-		DT_TRACE("Start adb waiter...");
 		adbInstance.start();
-		DT_TRACE("Start adb waiter end...");
 	}
 
 	void stopRead() {
@@ -154,7 +152,6 @@ public:
 
 	bool supportCompress();
 	void setCompress(bool value);
-	int  getScreenInfo(int &, int &, int &);
 
 	int length() {
 		return fb_width * fb_height * bpp;
@@ -163,12 +160,14 @@ public:
 protected:
 	int AndrodDecompress(QByteArray &);
 	int screenCap(QByteArray &bytes, bool, bool);
+	int probeFBInfo(const QByteArray &);
+	int getScreenInfo(const QByteArray &);
+
 	void run();
 	ADB adbInstance;
 
 signals:
 	void newFbReceived(QByteArray *bytes);
-	void newFBFound(int, int, int, int);
 
 public slots:
 	void deviceConnected(void);
@@ -178,6 +177,7 @@ private:
 	uchar *mmbuf;
 	bool mmaped;
 	bool do_compress;
+	bool new_device_found;
 	int fb_width;
 	int fb_height;
 	int fb_format;

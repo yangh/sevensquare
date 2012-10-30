@@ -39,19 +39,6 @@ void CubeView::resizeEvent(QResizeEvent * event)
 	QGraphicsView::resizeEvent(event);
 
 	//TODO: Resize scene as required.
-	qDebug() << event;
-}
-
-void CubeView::showEvent(QShowEvent * event)
-{
-	CubeScene *sc;
-
-	QWidget::showEvent(event);
-
-	sc = (CubeScene *) scene();
-	sc->startFBReader();
-
-	qDebug() << event;
 }
 
 CubeScene::CubeScene(QObject * parent) :
@@ -78,6 +65,7 @@ CubeScene::CubeScene(QObject * parent) :
 	reader.setCompress(true);
 
 	initialize();
+	startFBReader();
 }
 
 CubeScene::~CubeScene()

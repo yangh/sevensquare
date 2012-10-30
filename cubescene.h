@@ -57,7 +57,6 @@ public:
 
 protected:
     void resizeEvent ( QResizeEvent * event );
-    void showEvent ( QShowEvent * event );
 
 public slots:
     void cubeSizeChanged(QSize);
