@@ -593,7 +593,7 @@ void CubeScene::sendTap(QPoint pos, bool press, bool release)
 		return;
 	}
 
-	isTap = QRect(-2, -2, 2, 2).contains(pos - posPress);
+	isTap = QRect(-1, -1, 2, 2).contains(pos - posPress);
 	//qDebug() << "Tap as swipe" << isTap;
 
 	cmds.clear();
