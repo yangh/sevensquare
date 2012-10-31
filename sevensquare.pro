@@ -6,7 +6,7 @@ QT += opengl \
     svg
 TARGET = seven-square
 TEMPLATE = app
-#CONFIG += debug
+CONFIG += debug
 RESOURCES = sq-images.qrc
 SOURCES += \
     main.cpp \

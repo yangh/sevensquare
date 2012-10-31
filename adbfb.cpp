@@ -121,14 +121,14 @@ int FBReader::AndrodDecompress(QByteArray &bytes)
 		gz.write(bytes.data(), bytes.length());
 		gz.flush();
 	}
-	DT_TRACE("DECOMP GZ TO FILE");
+	//DT_TRACE("DECOMP GZ TO FILE");
 
 	p.start("minigzip", QStringList() << "-d" << "-c" << GZ_FILE);
 	p.waitForFinished();
 	ret = p.exitCode();
 
 	bytes = p.readAllStandardOutput();
-	DT_TRACE("DECOMP FINISHED");
+	//DT_TRACE("DECOMP FINISHED");
 #if 0
 	//TODO: Use zlib to uncompress data, instead external cmd
 	// The follow code ret = 3, something is wrong here.

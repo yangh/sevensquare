@@ -112,6 +112,7 @@ protected:
     void mouseReleaseEvent(QGraphicsSceneMouseEvent *event);
     void keyReleaseEvent(QKeyEvent * event);
     CubeCellItem *createCellItem(const char* name, int size, int key = 0);
+    CubeCellItem *findCellAt(QPointF);
 
     void drawGrid (int row, int col);
     QPoint getCellPos(int row, int col);

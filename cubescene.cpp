@@ -457,9 +457,7 @@ void CubeScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
 	QPointF pos = event->scenePos();
 
-	if (poinInFB(pos)) {
-		setPointerPos(event->scenePos(), true);
-	}
+	setPointerPos(event->scenePos(), true);
 
 	if (poinInFB(pos)) {
 		sendVirtualClick(pos, true, false);
@@ -471,9 +469,7 @@ void CubeScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
 	QPointF pos = event->scenePos();
 
-	if (pointer->isVisible() && poinInFB(pos)) {
-		setPointerPos(event->scenePos(), true);
-	}
+	setPointerPos(event->scenePos(), true);
 
 	if (poinInFB(pos)) {
 		sendVirtualClick(pos, false, false);
@@ -481,15 +477,22 @@ void CubeScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 	}
 }
 
+CubeCellItem *CubeScene::findCellAt(QPointF pos)
+{
+     QGraphicsItem *item = 0;
+
+     item = itemAt(pos);
+
+     return dynamic_cast<CubeCellItem *>(item);
+}
+
 void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 {
+     CubeCellItem *cell = 0;
      QPointF pos = event->scenePos();
 
      DT_TRACE("SCREEN" << pos);
-
-     if (pointer->isVisible()) {
-	     setPointerPos(pos, false);
-     }
+     setPointerPos(pos, false);
 
      if (! reader.isConnected()) {
 	     return;
@@ -501,15 +504,11 @@ void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
      }
 
      // Virtual key on the scene bottom
-     QGraphicsItem *item = 0;
-     CubeCellItem *cell = 0;
-
-     item = itemAt(pos);
-     cell =  dynamic_cast<CubeCellItem *>(item);
+     cell = findCellAt(pos);
 
      if (cell) {
-         sendVirtualKey(cell->key());
-         return;
+	     sendVirtualKey(cell->key());
+	     return;
      }
 
 #if 0
@@ -589,20 +588,20 @@ void CubeScene::sendVirtualClick(QPointF scene_pos,
 
 void CubeScene::sendTap(QPoint pos, bool press, bool release)
 {
-	bool swipe = false;
+	bool isTap = false;
 
 	if (press) {
 		posPress = pos;
 		return;
 	}
 
-	swipe = QRect(-2, -2, 2, 2).contains(pos - posPress);
-	qDebug() << "Tap as swipe" << swipe;
+	isTap = QRect(-2, -2, 2, 2).contains(pos - posPress);
+	//qDebug() << "Tap as swipe" << isTap;
 
 	cmds.clear();
 	cmds << "shell";
 
-	if (swipe) {
+	if (isTap) {
 		cmds << "input tap";
 	} else {
 		cmds << "input swipe";
