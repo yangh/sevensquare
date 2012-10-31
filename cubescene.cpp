@@ -62,12 +62,24 @@ CubeScene::CubeScene(QObject * parent) :
 	setItemIndexMethod(QGraphicsScene::NoIndex);
 	setBackgroundBrush(QBrush(Qt::gray));
 
-	QObject::connect(&reader, SIGNAL(newFbReceived(QByteArray*)),
-			this, SLOT(updateScene(QByteArray*)));
+	QObject::connect(&reader, SIGNAL(newFrame(QByteArray*)),
+			this, SLOT(updateFBCell(QByteArray*)));
 	QObject::connect(&reader, SIGNAL(deviceDisconnected(void)),
-			this, SLOT(fbDisconnected(void)));
+			this, SLOT(deviceDisconnected(void)));
+
 	QObject::connect(&reader, SIGNAL(newFBFound(int, int, int, int)),
-			this, SLOT(deviceConnected(int, int, int, int)));
+			this, SLOT(newFBFound(int, int, int, int)));
+
+	reader.connect(this, SIGNAL(readFrame(void)),
+			SLOT(readFrame(void)));
+	reader.connect(this, SIGNAL(waitForDevice(void)),
+			SLOT(waitForDevice(void)));
+	reader.connect(&reader, SIGNAL(deviceFound(void)),
+			SLOT(probeFBInfo(void)));
+	reader.moveToThread(&fbThread);
+
+	fbThread.start();
+	fbThread.setPriority(QThread::HighPriority);
 
 	adbex.connect(this, SIGNAL(execAdbCmd(QStringList*)),
 			SLOT(exec(QStringList*)));
@@ -78,36 +90,34 @@ CubeScene::CubeScene(QObject * parent) :
 	reader.setCompress(true);
 
 	initialize();
-	startFBReader();
+
+	emit waitForDevice();
 }
 
 CubeScene::~CubeScene()
 {
-	stopFBReader();
 	adbThread.quit();
+	fbThread.quit();
+	adbThread.wait();
+	fbThread.wait();
 }
 
-void CubeScene::startFBReader()
-{
-	reader.startRead();
-	reader.setPriority(QThread::HighPriority);
-}
-
-void CubeScene::stopFBReader()
-{
-	reader.stopRead();
-}
-
-void CubeScene::fbDisconnected(void)
+void CubeScene::deviceDisconnected(void)
 {
 	grayMask.setVisible(true);
 	promptItem.setVisible(true);
+
+	emit waitForDevice();
 }
 
-void CubeScene::deviceConnected(int w, int h, int f, int os)
+void CubeScene::newFBFound(int w, int h, int f, int os)
 {
+	qDebug() << "Remote new screen FB:" << fb_width << fb_height << pixel_format;
+
 	if (w == fb_width && h == fb_height) {
 		qDebug() << "Remove screen size unchanged.";
+		// Start read frame
+		emit readFrame();
 		return;
 	}
 
@@ -115,7 +125,6 @@ void CubeScene::deviceConnected(int w, int h, int f, int os)
 	fb_height = h;
 	pixel_format = f;
 
-	qDebug() << "Remote new screen FB:" << fb_width << fb_height << pixel_format;
 	fb.setFBSize(QSize(fb_width, fb_height));
 
 	cube_height = fb_height * ((float) cube_width / fb_width);
@@ -129,9 +138,12 @@ void CubeScene::deviceConnected(int w, int h, int f, int os)
 	emit sceneSizeChanged(QSize(cube_width, height));
 
 	os_type = os;
+
+	// Start read frame
+	emit readFrame();
 }
 
-void CubeScene::updateScene(QByteArray *bytes)
+void CubeScene::updateFBCell(QByteArray *bytes)
 {
 	int ret;
 
@@ -145,6 +157,8 @@ void CubeScene::updateScene(QByteArray *bytes)
 	} else {
 		reader.increaseDelay();
 	}
+
+	emit readFrame();
 }
 
 void CubeScene::setMenuIconsPos(void)

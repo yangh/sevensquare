@@ -103,9 +103,6 @@ public:
 
     void setBgVisible(bool visible) { fb.setVisible(visible); };
 
-    void startFBReader();
-    void stopFBReader();
-
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event);
     void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
@@ -128,13 +125,15 @@ protected:
     bool poinInFB(QPointF);
 
 public slots:
-    void deviceConnected(int, int, int, int);
-    void updateScene(QByteArray *bytes);
-    void fbDisconnected(void);
+    void newFBFound(int, int, int, int);
+    void updateFBCell(QByteArray *bytes);
+    void deviceDisconnected(void);
 
 signals:
     void sceneSizeChanged(QSize);
     void execAdbCmd(QStringList *cmds);
+    void waitForDevice(void);
+    void readFrame(void);
 
 private:
     FBCellItem fb;
@@ -165,7 +164,9 @@ private:
 
     QMutex update_mutex;
     QPixmap pixmap;
-    FBReader reader;
+
+    FBEx reader;
+    QThread fbThread;
 
     AdbEx adbex;
     QThread adbThread;

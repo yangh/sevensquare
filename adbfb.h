@@ -71,7 +71,7 @@ private:
 	QStringList args;
 };
 
-class ADB : public QThread
+class ADB : public QObject 
 {
 	Q_OBJECT
 public:
@@ -87,7 +87,6 @@ public:
 		DELAY_INFINITE	= ULONG_MAX,
 	};
 
-	void stop();
 	void loopDelay();
 	void setDelay(int d);
 
@@ -99,40 +98,21 @@ public:
 			delay += DELAY_STEP;
 	};
 
-	bool isStopped(void)	{ return stopped; };
-	bool isConnected(void)	{ return connected; };
-
-	void disconnect(void) {
-		connected = false;
-		emit deviceDisconnected();
-	}
-
-	int getDeviceOSType(void);
-
-protected:
-	bool stopped;
-	bool connected;
-	virtual void run();
-
-signals:
-	void deviceFound(void);
-	void deviceDisconnected(void);
-	void newFBFound(int, int, int, int);
+	bool isConnected(void)  { return connected; };
+	bool setConnected(bool c)  { connected = c; };
 
 private:
 	QMutex mutex;
 	QWaitCondition delayCond;
 	unsigned long delay;
+	bool connected;
 };
 
-class FBReader : public ADB
+class FBEx: public ADB
 {
 	Q_OBJECT
 public:
-	FBReader();
-	~FBReader() {
-		adbInstance.stop();
-	}
+	FBEx();
 
 	// int w, h, h on header
 	// Refer: frameworks/base/cmd/screencap/screencap.cpp
@@ -140,46 +120,35 @@ public:
 #define FB_BPP_MAX	4
 #define GZ_FILE		"/dev/shm/android-fb.gz"
 
-	void startRead(void) {
-		start();
-		adbInstance.start();
-	}
-
-	void stopRead() {
-		stop();
-		adbInstance.stop();
-	}
-
-	bool supportCompress();
 	void setCompress(bool value);
 
 	int length() {
 		return fb_width * fb_height * bpp;
 	}
 
-protected:
-	int AndrodDecompress(QByteArray &);
-	int screenCap(QByteArray &bytes, bool, bool);
-	int probeFBInfo(const QByteArray &);
-	int getScreenInfo(const QByteArray &);
-	int convertRGBAtoRGB888(QByteArray &, int);
-
-	void run();
-	ADB adbInstance;
+public slots:
+	void waitForDevice();
+	void readFrame();
+	void probeFBInfo();
 
 signals:
-	void newFbReceived(QByteArray *bytes);
-
-public slots:
-	void deviceConnected(void);
+	void deviceFound(void);
+	void deviceDisconnected(void);
+	void newFBFound(int, int, int, int);
+	void newFrame(QByteArray *bytes);
+	void error(QString *msg);
 
 private:
+	int AndrodDecompress(QByteArray &);
+	int screenCap(QByteArray &bytes, bool, bool);
+	int getScreenInfo(const QByteArray &);
+	int getDeviceOSType(void);
+	int convertRGBAtoRGB888(QByteArray &, int);
+
+	QByteArray bytes;
 	QByteArray out;
 	QFile gz;
-	uchar *mmbuf;
-	bool mmaped;
 	bool do_compress;
-	bool new_device_found;
 	int fb_width;
 	int fb_height;
 	int fb_format;
