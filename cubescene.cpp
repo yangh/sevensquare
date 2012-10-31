@@ -206,7 +206,7 @@ void CubeScene::initialize (void)
     addItem(&fb);
 
     promptItem.setText("ADB wait...");
-    promptItem.setBrush(QBrush(QColor(240, 240, 70)));
+    promptItem.setBrush(QBrush(QColor(250, 250, 10, 255)));
     promptItem.setPen(QPen(QColor(20, 20, 20)));
     promptItem.setFont(QFont("Arail", 16, QFont::Bold));
     promptItem.setPos(20, 20);
