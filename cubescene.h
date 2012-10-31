@@ -16,6 +16,7 @@
 #include <QMutex>
 #include <QKeyEvent>
 #include <QWidget>
+#include <QThread>
 
 #include <QGraphicsView>
 
@@ -64,6 +65,25 @@ public slots:
     void cubeSizeChanged(QSize);
 };
 
+class AdbEx : public QObject
+{
+	Q_OBJECT
+public:
+	AdbEx() {};
+
+public slots:
+	void exec(QStringList *cmds) {
+		AdbExecutor adb;
+		adb.run(*cmds);
+	}
+
+signals:
+	void error(QString *msg);
+
+private:
+	//QThread thread;
+};
+
 class CubeScene : public QGraphicsScene
 {
 	Q_OBJECT
@@ -100,7 +120,7 @@ protected:
     QPoint scenePosToVirtual(QPointF pos);
     void sendTap(QPoint pos);
     void sendEvent(QPoint pos);
-    void sendVirtualClick(QPoint pos);
+    void sendVirtualClick(QPointF);
     void sendVirtualKey(int key);
     void setMenuIconsPos(void);
     void setPointerPos(QPointF, bool);
@@ -113,6 +133,7 @@ public slots:
 
 signals:
     void sceneSizeChanged(QSize);
+    void execAdbCmd(QStringList *cmds);
 
 private:
     FBCellItem fb;
@@ -144,6 +165,10 @@ private:
     QMutex update_mutex;
     QPixmap pixmap;
     FBReader reader;
+
+    AdbEx adbex;
+    QThread adbThread;
+    QStringList cmds;
 };
 
 #endif // CUBESCENE_H

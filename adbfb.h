@@ -45,9 +45,9 @@ public:
 
 	int run(bool waitUntilFinished = true);
 
-	int run(const QStringList &strs) {
+	int run(const QStringList &strs, bool w = true) {
 		args << strs;
-		return run();
+		return run(w);
 	}
 
 	bool isRunning() { return (p.state() == QProcess::Running); }

@@ -69,6 +69,11 @@ CubeScene::CubeScene(QObject * parent) :
 	QObject::connect(&reader, SIGNAL(newFBFound(int, int, int, int)),
 			this, SLOT(deviceConnected(int, int, int, int)));
 
+	adbex.connect(this, SIGNAL(execAdbCmd(QStringList*)),
+			SLOT(exec(QStringList*)));
+	adbex.moveToThread(&adbThread);
+	adbThread.start();
+
 	//TODO: Check and Enable compress here
 	reader.setCompress(true);
 
@@ -79,6 +84,7 @@ CubeScene::CubeScene(QObject * parent) :
 CubeScene::~CubeScene()
 {
 	stopFBReader();
+	adbThread.exit();
 }
 
 void CubeScene::startFBReader()
@@ -452,7 +458,6 @@ void CubeScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 	QPointF pos = event->scenePos();
 
 	if (poinInFB(pos)) {
-		qDebug() << "Show pointer";
 		setPointerPos(event->scenePos(), true);
 	}
 }
@@ -462,7 +467,6 @@ void CubeScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 	QPointF pos = event->scenePos();
 
 	if (pointer->isVisible() && poinInFB(pos)) {
-		qDebug() << "Show pointer on move";
 		setPointerPos(event->scenePos(), true);
 	}
 }
@@ -474,8 +478,7 @@ void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
      DT_TRACE("SCREEN" << pos);
 
      if (pointer->isVisible()) {
-		qDebug() << "Hide pointer on release";
-	     setPointerPos(event->scenePos(), false);
+	     setPointerPos(pos, false);
      }
 
      if (! reader.isConnected()) {
@@ -483,21 +486,21 @@ void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
      }
 
      if (poinInFB(pos)) {
-	     QPoint vpos;
-	     vpos = scenePosToVirtual(event->scenePos());
-	     sendVirtualClick(vpos);
+	     sendVirtualClick(pos);
+	     return;
      }
 
+     // Virtual key on the scene bottom
      QGraphicsItem *item = 0;
      CubeCellItem *cell = 0;
 
-     item = itemAt(event->scenePos());
+     item = itemAt(pos);
      cell =  dynamic_cast<CubeCellItem *>(item);
-     if (!cell) {
+
+     if (cell) {
+         sendVirtualKey(cell->key());
          return;
      }
-
-     sendVirtualKey(cell->key());
 
 #if 0
      qDebug() << "Item clicked, curr pos: " << cell->cubePos()
@@ -548,10 +551,14 @@ bool CubeScene::poinInFB(QPointF pos)
 	return QRectF(0, 0, cube_width, cube_height).contains(pos);
 }
 
-void CubeScene::sendVirtualClick(QPoint pos)
+void CubeScene::sendVirtualClick(QPointF scene_pos)
 {
+	QPoint pos;
+
 	DT_TRACE("CLICK" << pos);
 	reader.setDelay(0);
+
+	pos = scenePosToVirtual(scene_pos);
 
 	switch(os_type) {
 		case ANDROID_ICS:
@@ -567,16 +574,12 @@ void CubeScene::sendVirtualClick(QPoint pos)
 
 void CubeScene::sendTap(QPoint pos)
 {
-	AdbExecutor adb;
-	QStringList args;
+	cmds.clear();
+	cmds << "shell" << "input tap";
+        cmds << QString::number(pos.x());
+	cmds << QString::number(pos.y());
 
-	args << "shell" << "input tap";
-        args << QString::number(pos.x());
-	args << QString::number(pos.y());
-
-	adb.clear();
-	adb.addArg(args);
-	adb.run();
+	emit execAdbCmd(&cmds);
 }
 
 QStringList CubeScene::newEventCmd (int type, int code, int value)
@@ -595,45 +598,37 @@ QStringList CubeScene::newEventCmd (int type, int code, int value)
 
 void CubeScene::sendEvent(QPoint pos)
 {
-	AdbExecutor adb;
-	QStringList events;
+	cmds.clear();
+	cmds << "shell";
+	cmds << newEventCmd(3, 0x35, pos.x());
+	cmds << newEventCmd(3, 0x36, pos.y());
+	cmds << newEventCmd(1, 0x14a, 1);
 
-	events << newEventCmd(3, 0x35, pos.x());
-	events << newEventCmd(3, 0x36, pos.y());
-	events << newEventCmd(1, 0x14a, 1);
+	cmds << newEventCmd(3, 0, pos.x());
+	cmds << newEventCmd(3, 1, pos.y());
+	cmds << newEventCmd(0, 0, 0);
 
-	events << newEventCmd(3, 0, pos.x());
-	events << newEventCmd(3, 1, pos.y());
-	events << newEventCmd(0, 0, 0);
+	cmds << newEventCmd(1, 0x14a, 0);
+	cmds << newEventCmd(0, 0, 0);
 
-	events << newEventCmd(1, 0x14a, 0);
-	events << newEventCmd(0, 0, 0);
-
-	adb.clear();
-	adb.addArg("shell");
-	adb.addArg(events);
-	adb.run();
+	emit execAdbCmd(&cmds);
 }
 
 void CubeScene::sendVirtualKey(int key)
 {
-	AdbExecutor adb;
-	QStringList args;
-
-	args << "shell" << "input keyevent";
-        args << QString::number(key);
+	cmds.clear();
+	cmds << "shell" << "input keyevent";
+        cmds << QString::number(key);
 
 	DT_TRACE("KEY" << key);
 	reader.setDelay(0);
 
-	adb.clear();
-	adb.addArg(args);
-	adb.run();
+	emit execAdbCmd(&cmds);
 }
 
 void CubeScene::keyReleaseEvent(QKeyEvent * event)
 {
-	int key;
+	int key, vkey;
 
 	if (! reader.isConnected()) {
 		return;
@@ -643,28 +638,33 @@ void CubeScene::keyReleaseEvent(QKeyEvent * event)
 
 	switch(key) {
 	case Qt::Key_B:
-		sendVirtualKey(ANDROID_KEY_BACK);
+		vkey = ANDROID_KEY_BACK;
 		break;
 	case Qt::Key_H:
-		sendVirtualKey(ANDROID_KEY_HOME);
+		vkey = ANDROID_KEY_HOME;
 		break;
 	case Qt::Key_M:
-		sendVirtualKey(ANDROID_KEY_MENU);
+		vkey = ANDROID_KEY_MENU;
 		break;
 
 	case Qt::Key_J:
 	case Qt::Key_Up:
-		sendVirtualKey(ANDROID_KEY_DPAD_UP);
+		vkey = ANDROID_KEY_DPAD_UP;
 		break;
 	case Qt::Key_K:
 	case Qt::Key_Down:
-		sendVirtualKey(ANDROID_KEY_DPAD_DOWN);
+		vkey = ANDROID_KEY_DPAD_DOWN;
 		break;
 	case Qt::Key_G:
 	case Qt::Key_Enter: // Why no action?
 	case Qt::Key_Space:
-		sendVirtualKey(ANDROID_KEY_DPAD_CENTER);
+		vkey = ANDROID_KEY_DPAD_CENTER;
 		break;
+	default:
+		qDebug() << "Unknown key pressed:" << key;
+		return;
 	}
+
+	sendVirtualKey(vkey);
 }
 
