@@ -118,9 +118,9 @@ protected:
 
     QStringList newEventCmd (int type, int code, int value);
     QPoint scenePosToVirtual(QPointF pos);
-    void sendTap(QPoint pos);
-    void sendEvent(QPoint pos);
-    void sendVirtualClick(QPointF);
+    void sendTap(QPoint pos, bool, bool);
+    void sendEvent(QPoint pos, bool, bool);
+    void sendVirtualClick(QPointF, bool, bool);
     void sendVirtualKey(int key);
     void setMenuIconsPos(void);
     void setPointerPos(QPointF, bool);
@@ -169,6 +169,7 @@ private:
     AdbEx adbex;
     QThread adbThread;
     QStringList cmds;
+    QPoint posPress;
 };
 
 #endif // CUBESCENE_H

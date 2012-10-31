@@ -460,6 +460,11 @@ void CubeScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 	if (poinInFB(pos)) {
 		setPointerPos(event->scenePos(), true);
 	}
+
+	if (poinInFB(pos)) {
+		sendVirtualClick(pos, true, false);
+		return;
+	}
 }
 
 void CubeScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
@@ -468,6 +473,11 @@ void CubeScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 
 	if (pointer->isVisible() && poinInFB(pos)) {
 		setPointerPos(event->scenePos(), true);
+	}
+
+	if (poinInFB(pos)) {
+		sendVirtualClick(pos, false, false);
+		return;
 	}
 }
 
@@ -486,7 +496,7 @@ void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
      }
 
      if (poinInFB(pos)) {
-	     sendVirtualClick(pos);
+	     sendVirtualClick(pos, false, true);
 	     return;
      }
 
@@ -551,7 +561,8 @@ bool CubeScene::poinInFB(QPointF pos)
 	return QRectF(0, 0, cube_width, cube_height).contains(pos);
 }
 
-void CubeScene::sendVirtualClick(QPointF scene_pos)
+void CubeScene::sendVirtualClick(QPointF scene_pos,
+				bool press, bool release)
 {
 	QPoint pos;
 
@@ -562,20 +573,43 @@ void CubeScene::sendVirtualClick(QPointF scene_pos)
 
 	switch(os_type) {
 		case ANDROID_ICS:
-			sendEvent(pos);
+			sendEvent(pos, press, release);
 			break;
 		case ANDROID_JB:
-			sendTap(pos);
+			// Mouse move, ignored.
+			// Both true is impossible
+			if (press || release) {
+				sendTap(pos, press, release);
+			}
 			break;
 		default:
 			qDebug() << "Unknown OS type, click dropped.";
 	}
 }
 
-void CubeScene::sendTap(QPoint pos)
+void CubeScene::sendTap(QPoint pos, bool press, bool release)
 {
+	bool swipe = false;
+
+	if (press) {
+		posPress = pos;
+		return;
+	}
+
+	swipe = QRect(-2, -2, 2, 2).contains(pos - posPress);
+	qDebug() << "Tap as swipe" << swipe;
+
 	cmds.clear();
-	cmds << "shell" << "input tap";
+	cmds << "shell";
+
+	if (swipe) {
+		cmds << "input tap";
+	} else {
+		cmds << "input swipe";
+		cmds << QString::number(posPress.x());
+		cmds << QString::number(posPress.y());
+	}
+
         cmds << QString::number(pos.x());
 	cmds << QString::number(pos.y());
 
@@ -596,20 +630,25 @@ QStringList CubeScene::newEventCmd (int type, int code, int value)
 	return event;
 }
 
-void CubeScene::sendEvent(QPoint pos)
+void CubeScene::sendEvent(QPoint pos, bool press, bool release)
 {
 	cmds.clear();
 	cmds << "shell";
+
 	cmds << newEventCmd(3, 0x35, pos.x());
 	cmds << newEventCmd(3, 0x36, pos.y());
-	cmds << newEventCmd(1, 0x14a, 1);
+	if (press) {
+		cmds << newEventCmd(1, 0x14a, 1);
+	}
 
 	cmds << newEventCmd(3, 0, pos.x());
 	cmds << newEventCmd(3, 1, pos.y());
 	cmds << newEventCmd(0, 0, 0);
 
-	cmds << newEventCmd(1, 0x14a, 0);
-	cmds << newEventCmd(0, 0, 0);
+	if (release) {
+		cmds << newEventCmd(1, 0x14a, 0);
+		cmds << newEventCmd(0, 0, 0);
+	}
 
 	emit execAdbCmd(&cmds);
 }
