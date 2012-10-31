@@ -84,7 +84,7 @@ CubeScene::CubeScene(QObject * parent) :
 CubeScene::~CubeScene()
 {
 	stopFBReader();
-	adbThread.exit();
+	adbThread.quit();
 }
 
 void CubeScene::startFBReader()
@@ -457,7 +457,7 @@ void CubeScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
 	QPointF pos = event->scenePos();
 
-	setPointerPos(event->scenePos(), true);
+	setPointerPos(pos, true);
 
 	if (poinInFB(pos)) {
 		sendVirtualClick(pos, true, false);
@@ -469,7 +469,7 @@ void CubeScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
 	QPointF pos = event->scenePos();
 
-	setPointerPos(event->scenePos(), true);
+	setPointerPos(pos, true);
 
 	if (poinInFB(pos)) {
 		sendVirtualClick(pos, false, false);
@@ -565,10 +565,10 @@ void CubeScene::sendVirtualClick(QPointF scene_pos,
 {
 	QPoint pos;
 
-	DT_TRACE("CLICK" << pos);
 	reader.setDelay(0);
 
 	pos = scenePosToVirtual(scene_pos);
+	DT_TRACE("CLICK" << pos);
 
 	switch(os_type) {
 		case ANDROID_ICS:
@@ -611,6 +611,7 @@ void CubeScene::sendTap(QPoint pos, bool press, bool release)
 
         cmds << QString::number(pos.x());
 	cmds << QString::number(pos.y());
+	qDebug() << cmds;
 
 	emit execAdbCmd(&cmds);
 }

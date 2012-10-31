@@ -18,7 +18,6 @@
 FBCellItem::FBCellItem()
 {
 	fbConnected = false;
-	fbUpdated = false;
 	lastSum = -1;
 	bpp = 4;
 
@@ -88,15 +87,13 @@ int FBCellItem::setFBRaw(QByteArray *raw)
 	// not for it.
 
 	// TODO: Check and update partially, block by block
-	inn = *raw;
-	sum = qChecksum(inn.data(), inn.length());
+	sum = qChecksum(raw->data(), raw->length());
 	if (sum == lastSum)
 		return UPDATE_IGNORED;
 
 	lastSum = sum;
-	bytes = inn; // Any thin way to swap theme?
-	fbUpdated = true;
-	update(boundingRect());
+	// TODO: Do in a separate thread?
+	paintFB(raw);
 
 	return UPDATE_DONE;
 }
@@ -111,7 +108,7 @@ void FBCellItem::setFBConnected(bool state)
 	}
 }
 
-void FBCellItem::paintFB(QPainter *painter)
+void FBCellItem::paintFB(QByteArray *bytes)
 {
 	QPainter fbPainter;
 	QImage image;
@@ -119,12 +116,16 @@ void FBCellItem::paintFB(QPainter *painter)
 	DT_TRACE("FB PAINT RAW S");
 
 	fbPainter.begin(&fb);
-	image = QImage((const uchar*)bytes.data(),
+	image = QImage((const uchar*)bytes->data(),
 			fbSize.width(), fbSize.height(),
 			QImage::Format_RGB888);
 	fbPainter.drawImage(fb.rect(), image);
 	fbPainter.end();
 
+	pixmap = fb.scaled(cellSize,
+			Qt::KeepAspectRatio,
+			Qt::SmoothTransformation);
+	update(boundingRect());
 	DT_TRACE("FB PAINT RAW E");
 }
 
@@ -137,14 +138,6 @@ void FBCellItem::paint(QPainter *painter,
 	Q_UNUSED(widget);
 
 	DT_TRACE("FB PAINT S");
-
-	if (fbConnected && fbUpdated) {
-		paintFB(painter);
-		pixmap = fb.scaled(cellSize,
-				Qt::KeepAspectRatio,
-				Qt::SmoothTransformation);
-		fbUpdated = false;
-	}
 
 	painter->drawPixmap(pixmap.rect(), pixmap);
 

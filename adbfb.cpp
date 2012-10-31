@@ -197,7 +197,6 @@ int FBReader::convertRGBAtoRGB888(QByteArray &bytes, int offset)
 void FBReader::run()
 {
 	QByteArray bytes;
-	QByteArray out;
 	int ret;
 	int len;
 

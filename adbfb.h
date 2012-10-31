@@ -174,6 +174,7 @@ public slots:
 	void deviceConnected(void);
 
 private:
+	QByteArray out;
 	QFile gz;
 	uchar *mmbuf;
 	bool mmaped;

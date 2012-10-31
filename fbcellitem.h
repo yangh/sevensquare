@@ -30,7 +30,7 @@ public:
 			const QStyleOptionGraphicsItem *option,
 			QWidget *widget = 0);
 
-	void paintFB(QPainter *painter);
+	void paintFB(QByteArray*);
 
 	void setPixmap(const QPixmap &p);
 	void setFBConnected(bool state);
@@ -51,8 +51,6 @@ private:
 	QPixmap pixmap;
 	QSize cellSize;
 
-	QByteArray bytes;
-	QByteArray inn;
 	QPixmap fb;
 	QSize fbSize;
 	int bpp;
