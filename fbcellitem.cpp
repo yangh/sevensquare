@@ -17,7 +17,6 @@
 
 FBCellItem::FBCellItem()
 {
-	fbConnected = false;
 	lastSum = -1;
 	bpp = 4;
 
@@ -96,16 +95,6 @@ int FBCellItem::setFBRaw(QByteArray *raw)
 	paintFB(raw);
 
 	return UPDATE_DONE;
-}
-
-void FBCellItem::setFBConnected(bool state)
-{
-	QMutexLocker locker(&mutex);
-
-	if (state != fbConnected) {
-		fbConnected = state;
-		//qDebug() << "FB" << (state ? "Connected" : "Disconnected");
-	}
 }
 
 void FBCellItem::paintFB(QByteArray *bytes)

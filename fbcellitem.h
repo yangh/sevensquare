@@ -33,7 +33,6 @@ public:
 	void paintFB(QByteArray*);
 
 	void setPixmap(const QPixmap &p);
-	void setFBConnected(bool state);
 	void setFBSize(QSize size);
 	int  setFBRaw(QByteArray *raw);
 	void setBPP(int n) { bpp = n; };
@@ -54,8 +53,6 @@ private:
 	QPixmap fb;
 	QSize fbSize;
 	int bpp;
-	bool fbConnected;
-	bool fbUpdated;
 
 	QMutex mutex;
 	quint16 lastSum;

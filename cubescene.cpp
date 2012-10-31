@@ -100,7 +100,6 @@ void CubeScene::stopFBReader()
 
 void CubeScene::fbDisconnected(void)
 {
-	fb.setFBConnected(false);
 	grayMask.setVisible(true);
 	promptItem.setVisible(true);
 }
@@ -136,7 +135,6 @@ void CubeScene::updateScene(QByteArray *bytes)
 {
 	int ret;
 
-	fb.setFBConnected(true);
 	grayMask.setVisible(false);
 	promptItem.setVisible(false);
 
