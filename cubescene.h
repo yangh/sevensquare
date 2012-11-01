@@ -59,9 +59,10 @@ public:
     AdbEx() {}
 
 public slots:
-    void exec(QStringList *cmds) {
+    void execCmd(const QStringList cmds) {
         AdbExecutor adb;
-        adb.run(*cmds);
+        //qDebug() << "AdbEx" << cmds;
+        adb.run(cmds);
     }
 
 signals:
@@ -103,7 +104,7 @@ public slots:
 
 signals:
     void sceneSizeChanged(QSize);
-    void execAdbCmd(QStringList *cmds);
+    void execAdbCmd(const QStringList);
     void waitForDevice(void);
     void readFrame(void);
 
@@ -133,6 +134,10 @@ private:
     QThread adbThread;
     QStringList cmds;
     QPoint posPress;
+
+    // Previous mouse event pos, used to filter
+    // out too mouch event.
+    QPoint posPrevious;
 };
 
 #endif // CUBESCENE_H

@@ -69,7 +69,7 @@ void FBCellItem::setFBSize(QSize size)
     if (fbSize == size)
         return;
 
-    qDebug() << "New FB size:" << size << fbSize;
+    //qDebug() << "New FB size:" << size << fbSize;
     fbSize = size;
 
     fb = QPixmap(fbSize);

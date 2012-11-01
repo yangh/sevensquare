@@ -72,20 +72,20 @@ CubeScene::CubeScene(QObject * parent) :
     QObject::connect(&reader, SIGNAL(newFBFound(int, int, int, int)),
                      this, SLOT(newFBFound(int, int, int, int)));
 
+    reader.moveToThread(&fbThread);
     reader.connect(this, SIGNAL(readFrame(void)),
                    SLOT(readFrame(void)));
     reader.connect(this, SIGNAL(waitForDevice(void)),
                    SLOT(waitForDevice(void)));
     reader.connect(&reader, SIGNAL(deviceFound(void)),
                    SLOT(probeFBInfo(void)));
-    reader.moveToThread(&fbThread);
 
     fbThread.start();
     fbThread.setPriority(QThread::HighPriority);
 
-    adbex.connect(this, SIGNAL(execAdbCmd(QStringList*)),
-                  SLOT(exec(QStringList*)));
     adbex.moveToThread(&adbThread);
+    adbex.connect(this, SIGNAL(execAdbCmd(const QStringList)),
+                  SLOT(execCmd(const QStringList)));
     adbThread.start();
 
     //TODO: Check and Enable compress here
@@ -116,6 +116,7 @@ void CubeScene::cubeResize(QSize size)
 {
     cube_height = size.height() - home->boundingRect().height();
     cube_width = fb_width * ((float) cube_height / fb_height);
+    DT_TRACE("New scene size:" << cube_width << cube_height);
 
     fb.setCellSize(QSize(cube_width, cube_height));
     setMenuIconsPos();
@@ -127,11 +128,11 @@ void CubeScene::cubeResize(QSize size)
 
 void CubeScene::newFBFound(int w, int h, int f, int os)
 {
-    qDebug() << "Remote new screen FB:"
-             << fb_width << fb_height << pixel_format;
+    DT_TRACE("New Remote screen FB:"
+             << fb_width << fb_height << pixel_format);
 
     if (w == fb_width && h == fb_height) {
-        qDebug() << "Remove screen size unchanged.";
+        //qDebug() << "Remove screen size unchanged.";
         // Start read frame
         emit readFrame();
         return;
@@ -144,7 +145,7 @@ void CubeScene::newFBFound(int w, int h, int f, int os)
     fb.setFBSize(QSize(fb_width, fb_height));
 
     cube_height = fb_height * ((float) cube_width / fb_width);
-    qDebug() << "New screne size:" << cube_width << cube_height;
+    DT_TRACE("New scene size:" << cube_width << cube_height);
 
     setMenuIconsPos();
 
@@ -217,7 +218,7 @@ void CubeScene::initialize (void)
 
     cube_width = pixmap.width();
     cube_height = fb_height * ((float) cube_width / fb_width);
-    qDebug() << "Cube size:" << cube_width << cube_height;
+    //qDebug() << "Cube size:" << cube_width << cube_height;
 
     fb.setPixmap(pixmap.scaled(QSize(cube_width, cube_height)));
     fb.setPos(QPoint(0, 0));
@@ -286,10 +287,15 @@ void CubeScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 
     setPointerPos(pos, true);
 
+#if 0
+    // Disable send mouse move event because is too slow
+    // to send event in time to device, even we filter some
+    // out.
     if (poinInFB(pos)) {
         sendVirtualClick(pos, false, false);
         return;
     }
+#endif
 }
 
 void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
@@ -297,7 +303,7 @@ void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
     CubeCellItem *cell = 0;
     QPointF pos = event->scenePos();
 
-    DT_TRACE("SCREEN" << pos);
+    DT_TRACE("SCREEN" << pos.x() << pos.y());
     setPointerPos(pos, false);
 
     if (! reader.isConnected()) {
@@ -313,6 +319,7 @@ void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
     cell = dynamic_cast<CubeCellItem *>(itemAt(pos));
 
     if (cell) {
+        qDebug() << "Virtual key on screen" << cell->key();
         sendVirtualKey(cell->key());
         return;
     }
@@ -338,7 +345,7 @@ void CubeScene::sendVirtualClick(QPointF scene_pos,
     reader.setDelay(0);
 
     pos = scenePosToVirtual(scene_pos);
-    DT_TRACE("CLICK" << pos);
+    DT_TRACE("CLICK" << pos.x() << pos.y());
 
     switch(os_type) {
     case ANDROID_ICS:
@@ -383,13 +390,14 @@ void CubeScene::sendTap(QPoint pos, bool press, bool release)
     cmds << QString::number(pos.y());
     qDebug() << cmds;
 
-    emit execAdbCmd(&cmds);
+    emit execAdbCmd(cmds);
 }
 
 QStringList CubeScene::newEventCmd (int type, int code, int value)
 {
     QStringList event;
 
+    event.clear();
     //TODO: Use correct dev to send event
     event << "sendevent" << "/dev/input/event0";
     event << QString::number(type);
@@ -402,6 +410,26 @@ QStringList CubeScene::newEventCmd (int type, int code, int value)
 
 void CubeScene::sendEvent(QPoint pos, bool press, bool release)
 {
+#if 0
+    //Disabled mouse event filter.
+#define MMSIZE 10
+    bool ignored = false;
+    QRect rect;
+
+    if (press) {
+        posPrevious = pos;
+    };
+
+    rect = QRect(-(MMSIZE / 2), -(MMSIZE / 2), MMSIZE, MMSIZE);
+    ignored = rect.contains(pos - posPrevious);
+
+    if (! press && ! release && ignored) {
+        qDebug() << "Ignore pos" << pos;
+        return;
+    } else {
+        posPrevious = pos;
+    }
+#endif
     cmds.clear();
     cmds << "shell";
 
@@ -419,8 +447,9 @@ void CubeScene::sendEvent(QPoint pos, bool press, bool release)
         cmds << newEventCmd(1, 0x14a, 0);
         cmds << newEventCmd(0, 0, 0);
     }
+    //DT_TRACE("Send ICS mouse event" << pos << press << release);
 
-    emit execAdbCmd(&cmds);
+    emit execAdbCmd(cmds);
 }
 
 void CubeScene::sendVirtualKey(int key)
@@ -432,7 +461,7 @@ void CubeScene::sendVirtualKey(int key)
     DT_TRACE("KEY" << key);
     reader.setDelay(0);
 
-    emit execAdbCmd(&cmds);
+    emit execAdbCmd(cmds);
 }
 
 void CubeScene::keyReleaseEvent(QKeyEvent * event)
