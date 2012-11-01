@@ -20,6 +20,8 @@ int main(int argc, char *argv[])
 
     QObject::connect(&scene, SIGNAL(sceneSizeChanged(QSize)),
                      &view, SLOT(cubeSizeChanged(QSize)));
+    QObject::connect(&view, SIGNAL(viewSizeChanged(QSize)),
+                     &scene, SLOT(cubeResize(QSize)));
 
     size = (scene.itemsBoundingRect().size()
                     + QSize(WINDOW_BORDER, WINDOW_BORDER)).toSize();

@@ -32,6 +32,7 @@ public:
 
     void paintFB(QByteArray*);
 
+    void setCellSize(QSize size);
     void setPixmap(const QPixmap &p);
     void setFBSize(QSize size);
     int  setFBRaw(QByteArray *raw);

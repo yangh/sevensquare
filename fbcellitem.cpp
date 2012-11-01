@@ -48,6 +48,19 @@ QRectF FBCellItem::boundingRect() const
     return QRectF(QPoint(0, 0), cellSize);
 }
 
+void FBCellItem::setCellSize(QSize size)
+{
+    QMutexLocker locker(&mutex);
+    int w, h;
+
+    cellSize = size;
+    pixmap = fb.scaled(cellSize,
+                       Qt::KeepAspectRatio,
+                       Qt::SmoothTransformation);
+
+    update(boundingRect());
+}
+
 void FBCellItem::setFBSize(QSize size)
 {
     QMutexLocker locker(&mutex);

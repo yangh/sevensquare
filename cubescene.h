@@ -17,6 +17,7 @@
 #include <QKeyEvent>
 #include <QWidget>
 #include <QThread>
+#include <QTimer>
 
 #include <QGraphicsView>
 
@@ -41,6 +42,13 @@ protected:
 
 public slots:
     void cubeSizeChanged(QSize);
+
+signals:
+    void viewSizeChanged(QSize);
+
+private:
+    QTimer timer;
+    QSize delayedSize;
 };
 
 class AdbEx : public QObject
@@ -91,6 +99,7 @@ public slots:
     void newFBFound(int, int, int, int);
     void updateFBCell(QByteArray *bytes);
     void deviceDisconnected(void);
+    void cubeResize(QSize);
 
 signals:
     void sceneSizeChanged(QSize);

@@ -37,7 +37,7 @@ CubeView::CubeView(QWidget * parent) :
 void CubeView::cubeSizeChanged(QSize size)
 {
     size += QSize(WINDOW_BORDER, WINDOW_BORDER);
-    qDebug() << "Resize main window" << size;
+    //qDebug() << "Resize main window" << size;
     setMinimumSize(size);
     resize(size);
 }
@@ -47,10 +47,9 @@ void CubeView::resizeEvent(QResizeEvent * event)
     QSize size = event->size();
     QSize oldSize = event->oldSize();
 
+    //qDebug() << "New view size" << size << oldSize;
     QGraphicsView::resizeEvent(event);
-
-    //TODO: Resize scene as required.
-    qDebug() << "New view size" << size << oldSize;
+    emit viewSizeChanged(size);
 }
 
 CubeScene::CubeScene(QObject * parent) :
@@ -111,6 +110,19 @@ void CubeScene::deviceDisconnected(void)
     promptItem.setVisible(true);
 
     emit waitForDevice();
+}
+
+void CubeScene::cubeResize(QSize size)
+{
+    cube_height = size.height() - home->boundingRect().height();
+    cube_width = fb_width * ((float) cube_height / fb_height);
+
+    fb.setCellSize(QSize(cube_width, cube_height));
+    setMenuIconsPos();
+
+    int height = cube_height + home->boundingRect().height();
+    grayMask.setRect(QRect(0, 0, cube_width, height));
+    setSceneRect(QRect(0, 0, cube_width, height));
 }
 
 void CubeScene::newFBFound(int w, int h, int f, int os)
