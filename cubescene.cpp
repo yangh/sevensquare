@@ -64,13 +64,15 @@ CubeScene::CubeScene(QObject * parent) :
     setItemIndexMethod(QGraphicsScene::NoIndex);
     setBackgroundBrush(QBrush(Qt::gray));
 
-    QObject::connect(&reader, SIGNAL(newFrame(QByteArray*)),
-                     this, SLOT(updateFBCell(QByteArray*)));
+    QObject::connect(&reader, SIGNAL(newFrame(QByteArray *)),
+                          this, SLOT(updateFBCell(QByteArray *)));
     QObject::connect(&reader, SIGNAL(deviceDisconnected(void)),
-                     this, SLOT(deviceDisconnected(void)));
+                          this, SLOT(deviceDisconnected(void)));
+    QObject::connect(&reader, SIGNAL(deviceWaitTimeout(void)),
+                          this, SLOT(deviceDisconnected(void)));
 
     QObject::connect(&reader, SIGNAL(newFBFound(int, int, int, int)),
-                     this, SLOT(newFBFound(int, int, int, int)));
+                          this, SLOT(newFBFound(int, int, int, int)));
 
     reader.moveToThread(&fbThread);
     reader.connect(this, SIGNAL(readFrame(void)),
@@ -128,8 +130,7 @@ void CubeScene::cubeResize(QSize size)
 
 void CubeScene::newFBFound(int w, int h, int f, int os)
 {
-    DT_TRACE("New Remote screen FB:"
-             << fb_width << fb_height << pixel_format);
+    DT_TRACE("New Remote screen FB:" << w << h << f);
 
     if (w == fb_width && h == fb_height) {
         //qDebug() << "Remove screen size unchanged.";
@@ -141,11 +142,9 @@ void CubeScene::newFBFound(int w, int h, int f, int os)
     fb_width = w;
     fb_height = h;
     pixel_format = f;
-
     fb.setFBSize(QSize(fb_width, fb_height));
 
     cube_height = fb_height * ((float) cube_width / fb_width);
-    DT_TRACE("New scene size:" << cube_width << cube_height);
 
     setMenuIconsPos();
 
@@ -165,6 +164,7 @@ void CubeScene::updateFBCell(QByteArray *bytes)
 {
     int ret;
 
+    //DT_TRACE("New FB frame received");
     grayMask.setVisible(false);
     promptItem.setVisible(false);
 
@@ -319,7 +319,7 @@ void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
     cell = dynamic_cast<CubeCellItem *>(itemAt(pos));
 
     if (cell) {
-        qDebug() << "Virtual key on screen" << cell->key();
+        //qDebug() << "Virtual key on screen" << cell->key();
         sendVirtualKey(cell->key());
         return;
     }
@@ -345,7 +345,7 @@ void CubeScene::sendVirtualClick(QPointF scene_pos,
     reader.setDelay(0);
 
     pos = scenePosToVirtual(scene_pos);
-    DT_TRACE("CLICK" << pos.x() << pos.y());
+    DT_TRACE("CLICK" << pos.x() << pos.y() << press << release);
 
     switch(os_type) {
     case ANDROID_ICS:
@@ -388,7 +388,7 @@ void CubeScene::sendTap(QPoint pos, bool press, bool release)
 
     cmds << QString::number(pos.x());
     cmds << QString::number(pos.y());
-    qDebug() << cmds;
+    //qDebug() << cmds;
 
     emit execAdbCmd(cmds);
 }

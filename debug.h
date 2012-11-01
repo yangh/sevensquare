@@ -16,8 +16,11 @@
 #ifdef DEBUG_TIME
 #define DT_TRACE(msg) \
     qDebug() << QDateTime::currentMSecsSinceEpoch() << msg;
+#define DT_ERROR(msg) \
+    qDebug() << QDateTime::currentMSecsSinceEpoch() << "ERROR" << msg;
 #else
 #define DT_TRACE(z)
+#define DT_ERROR(z)
 #endif
 
 #endif /* DEBUG_H_ */

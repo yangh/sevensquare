@@ -30,8 +30,7 @@ enum {
 class AdbExecutor
 {
 public:
-    AdbExecutor() : ret(-1), cmd("adb") {}
-    AdbExecutor(const char *a)      { args << a; }
+    AdbExecutor();
 
     void addArg(const char *a)      { args << a; }
     void addArg(const QString &a)	{ args << a; }
@@ -50,12 +49,11 @@ public:
     }
 
     bool isRunning() {
-        return (p.state() == QProcess::Running);
+        return (p != NULL && p->state() == QProcess::Running);
     }
 
     void printErrorInfo() {
-        qDebug() << "Process error:" << ret;
-        qDebug() << error;
+        DT_ERROR("ADB" << ret << error.data());
     }
 
     bool outputEqual (const char *str) {
@@ -67,7 +65,7 @@ public:
     int ret;
 
 private:
-    QProcess p;
+    QProcess *p;
     QString cmd;
     QStringList args;
 };
@@ -101,7 +99,7 @@ public:
     }
 
     bool isConnected(void)      { return connected; }
-    void setConnected(bool c)   { connected = c; }
+    void setConnected(bool state) { connected = state; }
 
 private:
     QMutex mutex;
@@ -122,12 +120,16 @@ public:
 #define FB_DATA_OFFSET (12)
 #define FB_BPP_MAX	4
 #define GZ_FILE		"/dev/shm/android-fb.gz"
+#define RAW_FILE	"/dev/shm/android-fb"
 
     void setCompress(bool value);
 
     int length() {
         return fb_width * fb_height * bpp;
     }
+
+    void setConnected(bool state);
+    void sendNewFB(void);
 
 public slots:
     void waitForDevice();
@@ -136,9 +138,10 @@ public slots:
 
 signals:
     void deviceFound(void);
+    void deviceWaitTimeout(void);
     void deviceDisconnected(void);
     void newFBFound(int, int, int, int);
-    void newFrame(QByteArray *bytes);
+    void newFrame(QByteArray*);
     void error(QString *msg);
 
 private:
@@ -148,6 +151,8 @@ private:
     int getDeviceOSType(void);
     int convertRGBAtoRGB888(QByteArray &, int);
 
+    AdbExecutor adbWaiter;
+
     QByteArray bytes;
     QByteArray out;
     QFile gz;
@@ -155,6 +160,7 @@ private:
     int fb_width;
     int fb_height;
     int fb_format;
+    int os_type;
     int bpp;
 };
 

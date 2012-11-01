@@ -98,7 +98,7 @@ protected:
 
 public slots:
     void newFBFound(int, int, int, int);
-    void updateFBCell(QByteArray *bytes);
+    void updateFBCell(QByteArray *);
     void deviceDisconnected(void);
     void cubeResize(QSize);
 

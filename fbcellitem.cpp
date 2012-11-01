@@ -34,7 +34,7 @@ FBCellItem::FBCellItem()
 
 FBCellItem::FBCellItem(const QPixmap &p)
 {
-    setPixmap(pixmap);
+    setPixmap(p);
 }
 
 void FBCellItem::setPixmap(const QPixmap &p)
@@ -51,7 +51,6 @@ QRectF FBCellItem::boundingRect() const
 void FBCellItem::setCellSize(QSize size)
 {
     QMutexLocker locker(&mutex);
-    int w, h;
 
     cellSize = size;
     pixmap = fb.scaled(cellSize,
@@ -87,11 +86,6 @@ int FBCellItem::setFBRaw(QByteArray *raw)
     QMutexLocker locker(&mutex);
     quint16 sum;
 
-    if (! raw || raw->length() < getFBDataSize()) {
-        qDebug() << "Invalid data, ignored";
-        return UPDATE_INVALID;
-    }
-
     // TODO: There is a hotspot here, and if make
     // it threaded here, lock is another issue.
     // FBReader should run as fast as possible to
@@ -115,8 +109,7 @@ void FBCellItem::paintFB(QByteArray *bytes)
     QPainter fbPainter;
     QImage image;
 
-    DT_TRACE("FB PAINT RAW S");
-
+    //DT_TRACE("FB PAINT RAW S");
     fbPainter.begin(&fb);
     image = QImage((const uchar*)bytes->data(),
                    fbSize.width(), fbSize.height(),
@@ -128,7 +121,7 @@ void FBCellItem::paintFB(QByteArray *bytes)
                        Qt::KeepAspectRatio,
                        Qt::SmoothTransformation);
     update(boundingRect());
-    DT_TRACE("FB PAINT RAW E");
+    //DT_TRACE("FB PAINT RAW E");
 }
 
 void FBCellItem::paint(QPainter *painter,
@@ -139,11 +132,9 @@ void FBCellItem::paint(QPainter *painter,
     Q_UNUSED(option);
     Q_UNUSED(widget);
 
-    DT_TRACE("FB PAINT S");
-
+    //DT_TRACE("FB PAINT S");
     painter->drawPixmap(pixmap.rect(), pixmap);
-
-    DT_TRACE("FB PAINT E");
+    //DT_TRACE("FB PAINT E");
 }
 
 void FBCellItem::mousePressEvent(QGraphicsSceneMouseEvent *event)

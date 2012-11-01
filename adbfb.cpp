@@ -12,18 +12,31 @@
 
 #include "adbfb.h"
 
+AdbExecutor::AdbExecutor() :
+	ret(-1),
+	p(NULL),
+	cmd("adb")
+{ }
+
 void AdbExecutor::clear(void)
 {
     args.clear();
     error.clear();
     output.clear();
     ret = -1;
+    if (p != NULL) {
+       p->close();
+    }
 }
 
 int AdbExecutor::run(bool waitUntilFinished)
 {
+    if (p == NULL) {
+        p = new QProcess();
+    }
+
     //qDebug() << "Exec: " << cmd << " " << args;
-    p.start(cmd, args);
+    p->start(cmd, args);
 
     if (waitUntilFinished) {
         return wait();
@@ -34,14 +47,14 @@ int AdbExecutor::run(bool waitUntilFinished)
 
 int AdbExecutor::wait(int msecs)
 {
-    p.waitForFinished(msecs);
+    p->waitForFinished(msecs);
 
-    if (p.state() == QProcess::Running)
+    if (p->state() == QProcess::Running)
         return QProcess::Running;
 
-    output = p.readAllStandardOutput();
-    error = p.readAllStandardError();
-    ret = p.exitCode();
+    output = p->readAllStandardOutput();
+    error = p->readAllStandardError();
+    ret = p->exitCode();
 
     // FIXME: adb bug, converted '\n' (0x0A) to '\r\n' (0x0D0A)
     // while dump binary file from shell
@@ -65,7 +78,7 @@ void ADB::loopDelay()
 {
     mutex.lock();
     if (delay) {
-        DT_TRACE("DELAY" << delay);
+        //DT_TRACE("DELAY" << delay);
         delayCond.wait(&mutex, delay);
     }
     mutex.unlock();
@@ -104,6 +117,18 @@ void FBEx::setCompress(bool value)
     }
 }
 
+void FBEx::setConnected(bool state)
+{
+    ADB::setConnected(state);
+
+    if (state) {
+	    emit newFBFound(fb_width, fb_height, fb_format, os_type);
+    } else {
+	    DT_TRACE("Device disconnected");
+	    emit deviceDisconnected();
+    }
+}
+
 static int bigEndianToInt32(const QByteArray &bytes)
 {
     uint32_t v = 0;
@@ -120,26 +145,27 @@ int FBEx::AndrodDecompress(QByteArray &bytes)
 {
     int ret;
     QProcess p;
+    QStringList args;
 
     gz.seek(0);
     gz.write(bytes.data(), bytes.length());
     gz.flush();
     //DT_TRACE("DECOMP GZ TO FILE");
 
-    p.start("minigzip", QStringList() << "-d" << "-c" << GZ_FILE);
+    args << "-d" << "-c" << GZ_FILE;
+    p.start("minigzip", args);
     p.waitForFinished();
     ret = p.exitCode();
 
-    bytes = p.readAllStandardOutput();
-    //DT_TRACE("DECOMP FINISHED");
 #if 0
-    //TODO: Use zlib to uncompress data, instead external cmd
-    // The follow code ret = 3, something is wrong here.
-    uLongf len = dest.length();
-    ret = uncompress ((Bytef*) dest.data(), &len,
-                      (Bytef*) src.data(), src.length());
-    qDebug() << "Uncompress ret:" << ret << len;
+    QFile raw(RAW_FILE);
+    raw.open(QIODevice::ReadOnly);
+    raw.seek(0);
+    bytes = raw.readAll();
+    raw.close();
 #endif
+    bytes = p.readAllStandardOutput();
+
     return ret;
 }
 
@@ -207,7 +233,7 @@ int FBEx::getScreenInfo(const QByteArray &bytes)
     format = bigEndianToInt32(bytes.mid(8, 4));
 
     if (width <= 0 || height <= 0) {
-        qDebug() << "Failed to get screen info.";
+        DT_ERROR("Failed to get screen info.");
         return -1;
     }
 
@@ -237,14 +263,43 @@ int FBEx::getDeviceOSType(void)
 
 void FBEx::waitForDevice()
 {
-    AdbExecutor adb;
-    adb.addArg("wait-for-device");
-    adb.run();
-
-    if (adb.ret == 0) {
-        DT_TRACE("ADB found");
-        emit deviceFound();
+    if (! adbWaiter.isRunning()) {
+        DT_TRACE("ADB Wait for device");
+        adbWaiter.clear();
+        adbWaiter.addArg("wait-for-device");
+        adbWaiter.run(false);
     }
+
+    adbWaiter.wait(500);
+
+    if (adbWaiter.isRunning()) {
+	    emit deviceWaitTimeout();
+	    return;
+    }
+
+    if (adbWaiter.ret == 0) {
+        DT_TRACE("ADB Found");
+        emit deviceFound();
+    } else {
+        emit deviceWaitTimeout();
+    }
+}
+
+void FBEx::sendNewFB(void)
+{
+    int len;
+
+    if (bytes.length() < length()) {
+        DT_ERROR("Invalid FB data len:" << bytes.length()
+			<< "require" << length());
+        setConnected(false);
+	return;
+    }
+
+    //DT_TRACE("Send out FB");
+    len = convertRGBAtoRGB888(bytes, FB_DATA_OFFSET);
+    out = bytes.mid(FB_DATA_OFFSET, len);
+    emit newFrame(&out);
 }
 
 void FBEx::readFrame()
@@ -253,36 +308,39 @@ void FBEx::readFrame()
 
     loopDelay();
 
+    if (! isConnected())
+	    return;
+
     ret = screenCap(bytes, do_compress, false);
 
     if (ret == 0) {
-        len = convertRGBAtoRGB888(bytes, FB_DATA_OFFSET);
-        out = bytes.mid(FB_DATA_OFFSET, len);
-        emit newFrame(&out);
+	    sendNewFB();
     } else {
         setConnected(false);
-        emit deviceDisconnected();
     }
 }
 
 void FBEx::probeFBInfo()
 {
-    int ret, os;
+    int ret;
 
     ret = screenCap(bytes, do_compress, false);
     if (ret != 0) {
         setConnected(false);
-        emit deviceDisconnected();
         return;
     }
 
-    ret =  getScreenInfo(bytes);
+    ret = getScreenInfo(bytes);
     if (ret != 0) {
+        setConnected(false);
         return;
     }
 
-    setConnected(true);
-    os = getDeviceOSType();
+    os_type = getDeviceOSType();
 
-    emit newFBFound(fb_width, fb_height, fb_format, os);
+    // Only successfully probe means device connected;
+    setConnected(true);
+
+    // Also show this frame to user as soon as possible
+    sendNewFB();
 }

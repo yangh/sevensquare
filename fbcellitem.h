@@ -30,7 +30,7 @@ public:
                const QStyleOptionGraphicsItem *option,
                QWidget *widget = 0);
 
-    void paintFB(QByteArray*);
+    void paintFB(QByteArray *);
 
     void setCellSize(QSize size);
     void setPixmap(const QPixmap &p);
