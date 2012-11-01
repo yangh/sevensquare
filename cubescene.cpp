@@ -91,9 +91,6 @@ CubeScene::CubeScene(QObject * parent) :
                   SLOT(execCmd(const QStringList)));
     adbThread.start();
 
-    //TODO: Check and Enable compress here
-    reader.setCompress(true);
-
     initialize();
 
     emit waitForDevice();

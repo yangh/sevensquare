@@ -27,47 +27,66 @@ enum {
     ANDROID_UNKNOWN
 };
 
-class AdbExecutor
+class Commander
 {
 public:
-    AdbExecutor();
+    Commander(const char *command = "");
 
-    void addArg(const char *a)      { args << a; }
-    void addArg(const QString &a)	{ args << a; }
+    void addArg(const char *a)        { args << a; }
+    void addArg(const QString &a)     { args << a; }
     void addArg(const QStringList &a) { args << a; }
 
-    bool exitSuccess(void)          { return ret == 0; }
     void clear(void);
 
     int wait(int msecs = 30000);
 
     int run(bool waitUntilFinished = true);
 
-    int run(const QStringList &strs, bool w = true) {
+    int run(const QStringList &strs, bool w = true)
+    {
         args << strs;
         return run(w);
     }
+
+    bool exitSuccess(void)            { return ret == 0; }
 
     bool isRunning() {
         return (p != NULL && p->state() == QProcess::Running);
     }
 
     void printErrorInfo() {
-        DT_ERROR("ADB" << ret << error.data());
+        DT_ERROR("CMD" << cmd << ret << error.simplified());
     }
 
     bool outputEqual (const char *str) {
         return output.startsWith(str);
     }
 
+    bool outputHas (const char *str) {
+        return (output.length() > 0
+		&& output.indexOf(str) > 0);
+    }
+
     QByteArray error;
     QByteArray output;
     int ret;
 
-private:
-    QProcess *p;
+protected:
     QString cmd;
     QStringList args;
+
+private:
+    QProcess *p;
+};
+
+class AdbExecutor : public Commander
+{
+public:
+    AdbExecutor() : Commander("adb") {};
+
+    void printErrorInfo() {
+        DT_ERROR("ADB" << args.join(" ") << ret << error.simplified());
+    }
 };
 
 class ADB : public QObject
@@ -121,8 +140,10 @@ public:
 #define FB_BPP_MAX	4
 #define GZ_FILE		"/dev/shm/android-fb.gz"
 #define RAW_FILE	"/dev/shm/android-fb"
+#define MINIGZIP	"minigzip"
 
     void setCompress(bool value);
+    bool supportCompress (void) { return doCompress; };
 
     int length() {
         return fb_width * fb_height * bpp;
@@ -156,7 +177,7 @@ private:
     QByteArray bytes;
     QByteArray out;
     QFile gz;
-    bool do_compress;
+    bool doCompress;
     int fb_width;
     int fb_height;
     int fb_format;

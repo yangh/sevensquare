@@ -12,13 +12,14 @@
 
 #include "adbfb.h"
 
-AdbExecutor::AdbExecutor() :
-	ret(-1),
-	p(NULL),
-	cmd("adb")
-{ }
+Commander::Commander(const char *command)
+{
+	ret = -1;
+	p = NULL;
+	cmd = command;
+}
 
-void AdbExecutor::clear(void)
+void Commander::clear(void)
 {
     args.clear();
     error.clear();
@@ -29,7 +30,7 @@ void AdbExecutor::clear(void)
     }
 }
 
-int AdbExecutor::run(bool waitUntilFinished)
+int Commander::run(bool waitUntilFinished)
 {
     if (p == NULL) {
         p = new QProcess();
@@ -45,7 +46,7 @@ int AdbExecutor::run(bool waitUntilFinished)
     return 0;
 }
 
-int AdbExecutor::wait(int msecs)
+int Commander::wait(int msecs)
 {
     p->waitForFinished(msecs);
 
@@ -94,21 +95,28 @@ void ADB::setDelay(int d)
 
 FBEx::FBEx()
 {
-    do_compress = false;
+    doCompress = false;
     fb_width = DEFAULT_FB_WIDTH;
     fb_height = DEFAULT_FB_HEIGHT;
     fb_format = 1; //TODO:...
     bpp = FB_BPP_MAX;
+
+    Commander cmd("which");
+    cmd.addArg(MINIGZIP);
+    cmd.run();
+    setCompress(cmd.outputHas(MINIGZIP));
 }
 
 void FBEx::setCompress(bool value)
 {
-    if (do_compress != value) {
-        do_compress = value;
+    DT_TRACE("Compressed data transfer" << value);
+
+    if (doCompress != value) {
+        doCompress = value;
         // Notify compress status changed.
     }
 
-    if (do_compress) {
+    if (doCompress) {
         gz.setFileName(GZ_FILE);
         gz.open(QIODevice::WriteOnly|QIODevice::Unbuffered);
         gz.resize(fb_width * fb_height * FB_BPP_MAX);
@@ -153,7 +161,7 @@ int FBEx::AndrodDecompress(QByteArray &bytes)
     //DT_TRACE("DECOMP GZ TO FILE");
 
     args << "-d" << "-c" << GZ_FILE;
-    p.start("minigzip", args);
+    p.start(MINIGZIP, args);
     p.waitForFinished();
     ret = p.exitCode();
 
@@ -253,7 +261,7 @@ int FBEx::getDeviceOSType(void)
     adb.addArg("input");
     adb.run();
 
-    if (adb.output.indexOf("swipe") > 0) {
+    if (adb.outputHas("swipe")) {
         os = ANDROID_JB;
     }
     //qDebug() << "OS type:" << os << adb.output;
@@ -304,17 +312,17 @@ void FBEx::sendNewFB(void)
 
 void FBEx::readFrame()
 {
-    int ret, len;
+    int ret;
 
     loopDelay();
 
     if (! isConnected())
 	    return;
 
-    ret = screenCap(bytes, do_compress, false);
+    ret = screenCap(bytes, doCompress, false);
 
     if (ret == 0) {
-	    sendNewFB();
+        sendNewFB();
     } else {
         setConnected(false);
     }
@@ -324,7 +332,7 @@ void FBEx::probeFBInfo()
 {
     int ret;
 
-    ret = screenCap(bytes, do_compress, false);
+    ret = screenCap(bytes, doCompress, false);
     if (ret != 0) {
         setConnected(false);
         return;
