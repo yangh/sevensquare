@@ -1,48 +1,79 @@
-Seven Sqaure game
-=================
+Seven Sqaure
+============
 
-  'Seven' not means 7, but 'several'. In Chinese, it's a joy called "Qi1 qiao3 ban2", 
-which I've played at 7/8 age.
+Android screencast wroted in QT. There is one in java? forget it from now on.
 
- 1             4
-  +--+--+--+--+
-  |//|//|//|//|
-  +--+--+--+--+
-  |//|//|//|//|
-  +--+--+--+--+--+
-  |//|//|//|  |//|
-  +--+--+--+--+--+
- 3
+Features:
+
+ * Click and swipe on the screen (so you can unlock screen by swipe)
+ * Virtual menu/home/back key on the UI
+ * Auto connect when you plug in new android device
+ * Support both ICS and JB, Froyo not tested.
+
+Non-feature:
+
+ * Not support multi devices pluged in at the same time.
+
+Pre-requirements
+================
+
+ * Android device in engineer mode
+ * So that you can get root permission in adb shell
+ * minigzip installed on your PC (For compressed image transfer)
+  
+   There is an precompiled x86_64 minigzip in the top dir, just copy into
+   your system path:
+
+    $> sudo cp minigzip /usr/bin
+
+   If you want to compile one for your self, get it from android/external/zlib
+
+    $> cp -rf android/external/zlib zlib-pc
+    $> cd zlib-pc
+    $> ./configure
+    $> make
+    $> sudo cp minigzip /usr/bin
+
+   You'll be appreciated If you can help to add decompress code in to this
+   project to help to avoid run using external decompress program for data
+   transfer.
+
+ * USB cable connected to your android device
+ * Qt 4.6+ installed in your system
 
 Run
 ===
 
- ./seven-square gnu_tux-320x240.png
+From command line:
 
- Support load any type and any size image file supported by QT4.
+ ./seven-square 
 
- You can also specify image by:
+Or you can create a short cut on your desktop.
 
- export SQ_BG="/path/to/image.png"
- ./seven-squre
-
-Startup
+Compile
 =======
 
- 1. Split a image into 3x4 squares.
- 2. Move the [3][4] cell into bottom-right cell, leave it there.
- 3. Randomize the left 11 cells.
+ $> qmake -o Makefile sevensquare.pro
+ $> make
+ $> ./seven-square
 
-Play now
-========
+History
+=======
 
-  Try to reorder the 12 cells (only 1 is empty for move) to restore
-the original image.
+'Seven Square' was a game I played when I was a child, and I wrote a QT version
+for it. And now it's the base code of this android screen cast tool.
 
 Author
 ======
 
- Yang Hong
+ Yang Hong <yanghong@thundersoft.com>
 
  Copyright reserved.
+
+ Released ounder GPL2.
+
+References
+==========
+
+ * Android screencast (Java version): http://code.google.com/p/androidscreencast/
 
