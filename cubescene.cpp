@@ -14,6 +14,7 @@
 #include <zlib.h>
 
 #include "cubescene.h"
+#include "keymap.h"
 
 #define ANDROID_KEY_HOME	3
 #define ANDROID_KEY_BACK	4
@@ -258,6 +259,11 @@ void CubeScene::initialize (void)
     grayMask.setZValue(101);
     pointer->setVisible(false);
     addItem(pointer);
+
+    unsigned int i;
+    for (i = 0; i < KEY_NUM; i++) {
+	    keys[keymaps[i].q] = keymaps[i].a;
+    }
 }
 
 void CubeScene::setPointerPos(QPointF pos, bool visible)
@@ -466,41 +472,17 @@ void CubeScene::sendVirtualKey(int key)
 
 void CubeScene::keyReleaseEvent(QKeyEvent * event)
 {
-    int key, vkey;
+    int key, vkey = 0;
 
     if (! reader.isConnected()) {
         return;
     }
 
     key = event->key();
+    vkey = keys[key];
 
-    switch(key) {
-    case Qt::Key_B:
-        vkey = ANDROID_KEY_BACK;
-        break;
-    case Qt::Key_H:
-        vkey = ANDROID_KEY_HOME;
-        break;
-    case Qt::Key_M:
-        vkey = ANDROID_KEY_MENU;
-        break;
-
-    case Qt::Key_J:
-    case Qt::Key_Up:
-        vkey = ANDROID_KEY_DPAD_UP;
-        break;
-    case Qt::Key_K:
-    case Qt::Key_Down:
-        vkey = ANDROID_KEY_DPAD_DOWN;
-        break;
-    case Qt::Key_G:
-    case Qt::Key_Enter: // Why no action?
-    case Qt::Key_Space:
-        vkey = ANDROID_KEY_DPAD_CENTER;
-        break;
-    default:
-        qDebug() << "Unknown key pressed:" << key;
-        return;
+    if (vkey == 0) {
+        DT_ERROR("Unknown key pressed:" << key);
     }
 
     sendVirtualKey(vkey);

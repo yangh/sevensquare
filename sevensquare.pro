@@ -17,6 +17,10 @@ SOURCES += \
 HEADERS += \
     cubecellitem.h \
     adbfb.h \
+    keymap.h \
+    keymap-generated.h \
+    keycodes.h \
+    adbfb.h \
     debug.h \
     fbcellitem.h \
     cubescene.h

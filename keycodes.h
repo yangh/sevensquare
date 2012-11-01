@@ -43,89 +43,89 @@ extern "C" {
  * Key codes.
  */
 enum {
-    AKEYCODE_UNKNOWN         = 0,
+    AKEYCODE_UNKNOWN         = 0,  /* Qt:: */
     AKEYCODE_SOFT_LEFT       = 1,
     AKEYCODE_SOFT_RIGHT      = 2,
-    AKEYCODE_HOME            = 3,
-    AKEYCODE_BACK            = 4,
-    AKEYCODE_CALL            = 5,
-    AKEYCODE_ENDCALL         = 6,
-    AKEYCODE_0               = 7,
-    AKEYCODE_1               = 8,
-    AKEYCODE_2               = 9,
-    AKEYCODE_3               = 10,
-    AKEYCODE_4               = 11,
-    AKEYCODE_5               = 12,
-    AKEYCODE_6               = 13,
-    AKEYCODE_7               = 14,
-    AKEYCODE_8               = 15,
-    AKEYCODE_9               = 16,
-    AKEYCODE_STAR            = 17,
-    AKEYCODE_POUND           = 18,
-    AKEYCODE_DPAD_UP         = 19,
-    AKEYCODE_DPAD_DOWN       = 20,
-    AKEYCODE_DPAD_LEFT       = 21,
-    AKEYCODE_DPAD_RIGHT      = 22,
-    AKEYCODE_DPAD_CENTER     = 23,
-    AKEYCODE_VOLUME_UP       = 24,
-    AKEYCODE_VOLUME_DOWN     = 25,
-    AKEYCODE_POWER           = 26,
-    AKEYCODE_CAMERA          = 27,
-    AKEYCODE_CLEAR           = 28,
-    AKEYCODE_A               = 29,
-    AKEYCODE_B               = 30,
-    AKEYCODE_C               = 31,
-    AKEYCODE_D               = 32,
-    AKEYCODE_E               = 33,
-    AKEYCODE_F               = 34,
-    AKEYCODE_G               = 35,
-    AKEYCODE_H               = 36,
-    AKEYCODE_I               = 37,
-    AKEYCODE_J               = 38,
-    AKEYCODE_K               = 39,
-    AKEYCODE_L               = 40,
-    AKEYCODE_M               = 41,
-    AKEYCODE_N               = 42,
-    AKEYCODE_O               = 43,
-    AKEYCODE_P               = 44,
-    AKEYCODE_Q               = 45,
-    AKEYCODE_R               = 46,
-    AKEYCODE_S               = 47,
-    AKEYCODE_T               = 48,
-    AKEYCODE_U               = 49,
-    AKEYCODE_V               = 50,
-    AKEYCODE_W               = 51,
-    AKEYCODE_X               = 52,
-    AKEYCODE_Y               = 53,
-    AKEYCODE_Z               = 54,
-    AKEYCODE_COMMA           = 55,
-    AKEYCODE_PERIOD          = 56,
-    AKEYCODE_ALT_LEFT        = 57,
-    AKEYCODE_ALT_RIGHT       = 58,
-    AKEYCODE_SHIFT_LEFT      = 59,
-    AKEYCODE_SHIFT_RIGHT     = 60,
-    AKEYCODE_TAB             = 61,
-    AKEYCODE_SPACE           = 62,
-    AKEYCODE_SYM             = 63,
-    AKEYCODE_EXPLORER        = 64,
-    AKEYCODE_ENVELOPE        = 65,
-    AKEYCODE_ENTER           = 66,
-    AKEYCODE_DEL             = 67,
-    AKEYCODE_GRAVE           = 68,
-    AKEYCODE_MINUS           = 69,
-    AKEYCODE_EQUALS          = 70,
-    AKEYCODE_LEFT_BRACKET    = 71,
-    AKEYCODE_RIGHT_BRACKET   = 72,
-    AKEYCODE_BACKSLASH       = 73,
-    AKEYCODE_SEMICOLON       = 74,
-    AKEYCODE_APOSTROPHE      = 75,
-    AKEYCODE_SLASH           = 76,
-    AKEYCODE_AT              = 77,
-    AKEYCODE_NUM             = 78,
+    AKEYCODE_HOME            = 3,  /* Qt::Key_F1 = 0x01000030, */
+    AKEYCODE_BACK            = 4,  /* Qt::Key_F2 = 0x01000031, */
+    AKEYCODE_CALL            = 5,  /* Qt::Key_F3 = 0x01000032, */
+    AKEYCODE_ENDCALL         = 6,  /* Qt::Key_F4 = 0x01000033, */
+    AKEYCODE_0               = 7,  /* Qt::Key_0 = 0x30, */
+    AKEYCODE_1               = 8,  /* Qt::Key_1 = 0x31, */
+    AKEYCODE_2               = 9,  /* Qt::Key_2 = 0x32, */
+    AKEYCODE_3               = 10, /* Qt::Key_3 = 0x33, */
+    AKEYCODE_4               = 11, /* Qt::Key_4 = 0x34, */
+    AKEYCODE_5               = 12, /* Qt::Key_5 = 0x35, */
+    AKEYCODE_6               = 13, /* Qt::Key_6 = 0x36, */
+    AKEYCODE_7               = 14, /* Qt::Key_7 = 0x37, */
+    AKEYCODE_8               = 15, /* Qt::Key_8 = 0x38, */
+    AKEYCODE_9               = 16, /* Qt::Key_9 = 0x39, */
+    AKEYCODE_STAR            = 17, /* Qt:: */
+    AKEYCODE_POUND           = 18, /* Qt:: */
+    AKEYCODE_DPAD_UP         = 19, /* Qt::Key_Up = 0x01000013, */
+    AKEYCODE_DPAD_DOWN       = 20, /* Qt::Key_Down = 0x01000015, */
+    AKEYCODE_DPAD_LEFT       = 21, /* Qt::Key_Left = 0x01000012, */
+    AKEYCODE_DPAD_RIGHT      = 22, /* Qt::Key_Right = 0x01000014, */
+    AKEYCODE_DPAD_CENTER     = 23, /* Qt::Key_Return = 0x01000004, */
+    AKEYCODE_VOLUME_UP       = 24, /* Qt:: */
+    AKEYCODE_VOLUME_DOWN     = 25, /* Qt:: */
+    AKEYCODE_POWER           = 26, /* Qt:: */
+    AKEYCODE_CAMERA          = 27, /* Qt:: */
+    AKEYCODE_CLEAR           = 28, /* Qt:: */
+    AKEYCODE_A               = 29, /* Qt::Key_A = 0x41, */
+    AKEYCODE_B               = 30, /* Qt::Key_B = 0x42, */
+    AKEYCODE_C               = 31, /* Qt::Key_C = 0x43, */
+    AKEYCODE_D               = 32, /* Qt::Key_D = 0x44, */
+    AKEYCODE_E               = 33, /* Qt::Key_E = 0x45, */
+    AKEYCODE_F               = 34, /* Qt::Key_F = 0x46, */
+    AKEYCODE_G               = 35, /* Qt::Key_G = 0x47, */
+    AKEYCODE_H               = 36, /* Qt::Key_H = 0x48, */
+    AKEYCODE_I               = 37, /* Qt::Key_I = 0x49, */
+    AKEYCODE_J               = 38, /* Qt::Key_J = 0x4a, */
+    AKEYCODE_K               = 39, /* Qt::Key_K = 0x4b, */
+    AKEYCODE_L               = 40, /* Qt::Key_L = 0x4c, */
+    AKEYCODE_M               = 41, /* Qt::Key_M = 0x4d, */
+    AKEYCODE_N               = 42, /* Qt::Key_N = 0x4e, */
+    AKEYCODE_O               = 43, /* Qt::Key_O = 0x4f, */
+    AKEYCODE_P               = 44, /* Qt::Key_P = 0x50, */
+    AKEYCODE_Q               = 45, /* Qt::Key_Q = 0x51, */
+    AKEYCODE_R               = 46, /* Qt::Key_R = 0x52, */
+    AKEYCODE_S               = 47, /* Qt::Key_S = 0x53, */
+    AKEYCODE_T               = 48, /* Qt::Key_T = 0x54, */
+    AKEYCODE_U               = 49, /* Qt::Key_U = 0x55, */
+    AKEYCODE_V               = 50, /* Qt::Key_V = 0x56, */
+    AKEYCODE_W               = 51, /* Qt::Key_W = 0x57, */
+    AKEYCODE_X               = 52, /* Qt::Key_X = 0x58, */
+    AKEYCODE_Y               = 53, /* Qt::Key_Y = 0x59, */
+    AKEYCODE_Z               = 54, /* Qt::Key_Z = 0x5a, */
+    AKEYCODE_COMMA           = 55, /* Qt::Key_Comma = 0x2c, */
+    AKEYCODE_PERIOD          = 56, /* Qt:: */
+    AKEYCODE_ALT_LEFT        = 57, /* Qt:: */
+    AKEYCODE_ALT_RIGHT       = 58, /* Qt:: */
+    AKEYCODE_SHIFT_LEFT      = 59, /* Qt:: */
+    AKEYCODE_SHIFT_RIGHT     = 60, /* Qt:: */
+    AKEYCODE_TAB             = 61, /* Qt::Key_Tab = 0x01000001, */
+    AKEYCODE_SPACE           = 62, /* Qt::Key_Space = 0x20, */
+    AKEYCODE_SYM             = 63, /* Qt:: */
+    AKEYCODE_EXPLORER        = 64, /* Qt:: */
+    AKEYCODE_ENVELOPE        = 65, /* Qt:: */
+    AKEYCODE_ENTER           = 66, /* Qt:: */
+    AKEYCODE_DEL             = 67, /* Qt:: */
+    AKEYCODE_GRAVE           = 68, /* Qt:: */
+    AKEYCODE_MINUS           = 69, /* Qt::Key_Minus = 0x2d, */
+    AKEYCODE_EQUALS          = 70, /* Qt::Key_Equal = 0x3d, */
+    AKEYCODE_LEFT_BRACKET    = 71, /* Qt:: */
+    AKEYCODE_RIGHT_BRACKET   = 72, /* Qt:: */
+    AKEYCODE_BACKSLASH       = 73, /* Qt:: */
+    AKEYCODE_SEMICOLON       = 74, /* Qt:: */
+    AKEYCODE_APOSTROPHE      = 75, /* Qt:: */
+    AKEYCODE_SLASH           = 76, /* Qt::Key_Slash = 0x2f, */
+    AKEYCODE_AT              = 77, /* Qt:: */
+    AKEYCODE_NUM             = 78, /* Qt:: */
     AKEYCODE_HEADSETHOOK     = 79,
     AKEYCODE_FOCUS           = 80,   // *Camera* focus
-    AKEYCODE_PLUS            = 81,
-    AKEYCODE_MENU            = 82,
+    AKEYCODE_PLUS            = 81, /* Qt::Key_Plus = 0x2b, */
+    AKEYCODE_MENU            = 82, /* Qt::Key_Menu = 0x01000055, */
     AKEYCODE_NOTIFICATION    = 83,
     AKEYCODE_SEARCH          = 84,
     AKEYCODE_MEDIA_PLAY_PAUSE= 85,
@@ -135,8 +135,8 @@ enum {
     AKEYCODE_MEDIA_REWIND    = 89,
     AKEYCODE_MEDIA_FAST_FORWARD = 90,
     AKEYCODE_MUTE            = 91,
-    AKEYCODE_PAGE_UP         = 92,
-    AKEYCODE_PAGE_DOWN       = 93,
+    AKEYCODE_PAGE_UP         = 92, /* Qt::Key_Up = 0x01000013,    */
+    AKEYCODE_PAGE_DOWN       = 93, /* Qt::Key_Right = 0x01000014, */
     AKEYCODE_PICTSYMBOLS     = 94,
     AKEYCODE_SWITCH_CHARSET  = 95,
     AKEYCODE_BUTTON_A        = 96,
@@ -158,15 +158,15 @@ enum {
     AKEYCODE_FORWARD_DEL     = 112,
     AKEYCODE_CTRL_LEFT       = 113,
     AKEYCODE_CTRL_RIGHT      = 114,
-    AKEYCODE_CAPS_LOCK       = 115,
+    AKEYCODE_CAPS_LOCK       = 115, /* Qt::Key_CapsLock = 0x01000024, */
     AKEYCODE_SCROLL_LOCK     = 116,
     AKEYCODE_META_LEFT       = 117,
     AKEYCODE_META_RIGHT      = 118,
     AKEYCODE_FUNCTION        = 119,
     AKEYCODE_SYSRQ           = 120,
     AKEYCODE_BREAK           = 121,
-    AKEYCODE_MOVE_HOME       = 122,
-    AKEYCODE_MOVE_END        = 123,
+    AKEYCODE_MOVE_HOME       = 122,  /* Qt::Key_Home = 0x01000010, */
+    AKEYCODE_MOVE_END        = 123,  /* Qt::Key_End = 0x01000011, */
     AKEYCODE_INSERT          = 124,
     AKEYCODE_FORWARD         = 125,
     AKEYCODE_MEDIA_PLAY      = 126,

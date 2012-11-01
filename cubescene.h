@@ -18,6 +18,7 @@
 #include <QWidget>
 #include <QThread>
 #include <QTimer>
+#include <QMap>
 
 #include <QGraphicsView>
 
@@ -138,6 +139,9 @@ private:
     // Previous mouse event pos, used to filter
     // out too mouch event.
     QPoint posPrevious;
+
+    // Qt key, Android key map
+    QMap<int, int> keys;
 };
 
 #endif // CUBESCENE_H
