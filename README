@@ -19,14 +19,19 @@ Pre-requirements
 
  * Android device in engineer mode
  * So that you can get root permission in adb shell
+ * adb command is availible in you search path, check it:
+
+   $> which adb
+   /usr/bin/adb
+
  * minigzip installed on your PC (For compressed image transfer)
   
-   There is an precompiled x86_64 minigzip in the top dir, just copy into
+   There is a precompiled x86_64 minigzip binary in the top dir, just copy into
    your system path:
 
     $> sudo cp minigzip /usr/bin
 
-   If you want to compile one for your self, get it from android/external/zlib
+   If you want to compile one for yourself, get it from android/external/zlib
 
     $> cp -rf android/external/zlib zlib-pc
     $> cd zlib-pc
@@ -35,8 +40,7 @@ Pre-requirements
     $> sudo cp minigzip /usr/bin
 
    You'll be appreciated If you can help to add decompress code in to this
-   project to help to avoid run using external decompress program for data
-   transfer.
+   project to help to avoid runing external program to decompress frame buffer data.
 
  * USB cable connected to your android device
  * Qt 4.6+ installed in your system
