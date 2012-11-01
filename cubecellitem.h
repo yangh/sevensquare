@@ -24,8 +24,8 @@ public:
                QWidget *widget = 0);
 
 
-    const QPoint cubePos(void) { return curr_pos; };
-    const QPoint originalCubePos(void) { return orig_pos; };
+    const QPoint cubePos(void) { return curr_pos; }
+    const QPoint originalCubePos(void) { return orig_pos; }
 
     void setCubePos(int row, int col) {
         curr_pos.setX(row);
@@ -36,8 +36,8 @@ public:
         orig_pos.setX(row);
         orig_pos.setY(col);
     }
-    void setKey(int k)	{ virtual_key = k; };
-    int  key(void)	{ return virtual_key; };
+    void setKey(int k)	{ virtual_key = k; }
+    int  key(void)	{ return virtual_key; }
 
 protected:
     virtual void mousePressEvent(QGraphicsSceneMouseEvent *event);

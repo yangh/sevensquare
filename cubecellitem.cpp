@@ -11,8 +11,8 @@
 #include "cubecellitem.h"
 
 CubeCellItem::CubeCellItem(const QPixmap &pixmap) :
-        pixmap(pixmap),
-	virtual_key(0)
+    pixmap(pixmap),
+    virtual_key(0)
 {
 }
 

@@ -7,9 +7,6 @@
 
 #include <QThread>
 
-#include <stdlib.h>
-#include <time.h>
-#include <strings.h>
 #include <stdint.h>
 #include <zlib.h>
 
@@ -17,270 +14,275 @@
 
 void AdbExecutor::clear(void)
 {
-	args.clear();
-	error.clear();
-	output.clear();
-	ret = -1;
+    args.clear();
+    error.clear();
+    output.clear();
+    ret = -1;
 }
 
 int AdbExecutor::run(bool waitUntilFinished)
 {
-	//qDebug() << "Exec: " << cmd << " " << args;
-	p.start(cmd, args);
+    //qDebug() << "Exec: " << cmd << " " << args;
+    p.start(cmd, args);
 
-	if (waitUntilFinished) {
-		return wait();
-	}
+    if (waitUntilFinished) {
+        return wait();
+    }
 
-	return 0;
+    return 0;
 }
 
 int AdbExecutor::wait(int msecs)
 {
-	p.waitForFinished(msecs);
+    p.waitForFinished(msecs);
 
-	if (p.state() == QProcess::Running)
-		return QProcess::Running;
+    if (p.state() == QProcess::Running)
+        return QProcess::Running;
 
-	output = p.readAllStandardOutput();
-	error = p.readAllStandardError();
-	ret = p.exitCode();
+    output = p.readAllStandardOutput();
+    error = p.readAllStandardError();
+    ret = p.exitCode();
 
-	// FIXME: adb bug, converted '\n' (0x0A) to '\r\n' (0x0D0A)
-	// while dump binary file from shell
-	output.replace("\r\n", "\n");
+    // FIXME: adb bug, converted '\n' (0x0A) to '\r\n' (0x0D0A)
+    // while dump binary file from shell
+    output.replace("\r\n", "\n");
 
-	return QProcess::NotRunning;
+    return QProcess::NotRunning;
 }
 
 ADB::ADB()
 {
-	delay = DELAY_FAST;
-	connected = false;
+    delay = DELAY_FAST;
+    connected = false;
 }
 
 ADB::~ADB()
 {
-	setDelay(0);
+    setDelay(0);
 }
 
 void ADB::loopDelay()
 {
-	mutex.lock();
-	if (delay) {
-		DT_TRACE("DELAY" << delay);
-		delayCond.wait(&mutex, delay);
-	}
-	mutex.unlock();
+    mutex.lock();
+    if (delay) {
+        DT_TRACE("DELAY" << delay);
+        delayCond.wait(&mutex, delay);
+    }
+    mutex.unlock();
 }
 
 void ADB::setDelay(int d)
 {
-	mutex.lock();
-	delay = d;
-	delayCond.wakeAll();
-	mutex.unlock();
+    mutex.lock();
+    delay = d;
+    delayCond.wakeAll();
+    mutex.unlock();
 }
 
 FBEx::FBEx()
 {
-	do_compress = false;
-	fb_width = DEFAULT_FB_WIDTH;
-	fb_height = DEFAULT_FB_HEIGHT;
-	fb_format = 1; //TODO:...
-	bpp = FB_BPP_MAX;
+    do_compress = false;
+    fb_width = DEFAULT_FB_WIDTH;
+    fb_height = DEFAULT_FB_HEIGHT;
+    fb_format = 1; //TODO:...
+    bpp = FB_BPP_MAX;
 }
 
 void FBEx::setCompress(bool value)
 {
-	if (do_compress != value) {
-		do_compress = value;
-		// Notify compress status changed.
-	}
+    if (do_compress != value) {
+        do_compress = value;
+        // Notify compress status changed.
+    }
 
-	if (do_compress) {
-		gz.setFileName(GZ_FILE);
-		gz.open(QIODevice::WriteOnly|QIODevice::Unbuffered);
-		gz.resize(fb_width * fb_height * FB_BPP_MAX);
-	} else {
-		gz.close();
-	}
+    if (do_compress) {
+        gz.setFileName(GZ_FILE);
+        gz.open(QIODevice::WriteOnly|QIODevice::Unbuffered);
+        gz.resize(fb_width * fb_height * FB_BPP_MAX);
+    } else {
+        gz.close();
+    }
 }
 
-int bigEndianToInt32(const QByteArray &bytes)
+static int bigEndianToInt32(const QByteArray &bytes)
 {
-	uint32_t v = 0;
-	const char *buf = bytes.data();
+    uint32_t v = 0;
+    const char *buf = bytes.data();
 
-	bcopy(buf, &v, sizeof(uint32_t));
+    //FIXME: Assume that device and host
+    // has same endianess
+    bcopy(buf, &v, sizeof(uint32_t));
 
-	return v;
+    return v;
 }
 
 int FBEx::AndrodDecompress(QByteArray &bytes)
 {
-	int ret;
-	QProcess p;
+    int ret;
+    QProcess p;
 
-	gz.seek(0);
-	gz.write(bytes.data(), bytes.length());
-	gz.flush();
-	//DT_TRACE("DECOMP GZ TO FILE");
+    gz.seek(0);
+    gz.write(bytes.data(), bytes.length());
+    gz.flush();
+    //DT_TRACE("DECOMP GZ TO FILE");
 
-	p.start("minigzip", QStringList() << "-d" << "-c" << GZ_FILE);
-	p.waitForFinished();
-	ret = p.exitCode();
+    p.start("minigzip", QStringList() << "-d" << "-c" << GZ_FILE);
+    p.waitForFinished();
+    ret = p.exitCode();
 
-	bytes = p.readAllStandardOutput();
-	//DT_TRACE("DECOMP FINISHED");
+    bytes = p.readAllStandardOutput();
+    //DT_TRACE("DECOMP FINISHED");
 #if 0
-	//TODO: Use zlib to uncompress data, instead external cmd
-	// The follow code ret = 3, something is wrong here.
-	uLongf len = dest.length();
-	ret = uncompress ((Bytef*) dest.data(), &len,
-			(Bytef*) src.data(), src.length());
-	qDebug() << "Uncompress ret:" << ret << len;
+    //TODO: Use zlib to uncompress data, instead external cmd
+    // The follow code ret = 3, something is wrong here.
+    uLongf len = dest.length();
+    ret = uncompress ((Bytef*) dest.data(), &len,
+                      (Bytef*) src.data(), src.length());
+    qDebug() << "Uncompress ret:" << ret << len;
 #endif
-	return ret;
+    return ret;
 }
 
 int FBEx::screenCap(QByteArray &bytes,
-			bool compress = false,
-			bool removeHeader = false)
+                    bool compress = false,
+                    bool removeHeader = false)
 {
-	AdbExecutor adb;
-	QStringList args;
+    AdbExecutor adb;
+    QStringList args;
 
-	args << "shell" << "screencap";
-	if (compress) {
-		args << "|" << "gzip";
-	}
+    args << "shell" << "screencap";
+    if (compress) {
+        args << "|" << "gzip";
+    }
 
-	DT_TRACE("CAP");
-	adb.run(args);
-	DT_TRACE("CAP NEW FB");
+    DT_TRACE("CAP");
+    adb.run(args);
+    DT_TRACE("CAP NEW FB");
 
-	if (! adb.exitSuccess()) {
-		adb.printErrorInfo();
-		return adb.ret;
-	}
+    if (! adb.exitSuccess()) {
+        adb.printErrorInfo();
+        return adb.ret;
+    }
 
-	bytes = adb.output;
+    bytes = adb.output;
 
-	if (compress) {
-		AndrodDecompress(bytes);
-	}
+    if (compress) {
+        AndrodDecompress(bytes);
+    }
 
-	if (removeHeader) {
-		bytes = bytes.mid(FB_DATA_OFFSET);
-	}
+    if (removeHeader) {
+        bytes = bytes.mid(FB_DATA_OFFSET);
+    }
 
-	return adb.ret;
+    return adb.ret;
 }
 
 int FBEx::convertRGBAtoRGB888(QByteArray &bytes, int offset)
 {
-	int x, y;
-	char *p, *n;
+    int x, y;
+    char *p, *n;
 
-	p = n = bytes.data() + offset;
+    p = n = bytes.data() + offset;
 
-	// RGBX32 -> RGB888
-	for (y = 0; y < fb_height; y++) {
-		for (x = 0; x < fb_width; x++) {
-			*p++ = *n++;
-			*p++ = *n++;
-			*p++ = *n++;
-			n++;
-		}
-	}
+    // RGBX32 -> RGB888
+    for (y = 0; y < fb_height; y++) {
+        for (x = 0; x < fb_width; x++) {
+            *p++ = *n++;
+            *p++ = *n++;
+            *p++ = *n++;
+            n++;
+        }
+    }
 
-	return fb_width * fb_height * 3;
+    return fb_width * fb_height * 3;
 }
 
 int FBEx::getScreenInfo(const QByteArray &bytes)
 {
-	int width, height, format;
+    int width, height, format;
 
-	// FB header
-	width = bigEndianToInt32(bytes.mid(0, 4));
-	height = bigEndianToInt32(bytes.mid(4, 4));
-	format = bigEndianToInt32(bytes.mid(8, 4));
+    // FB header
+    width = bigEndianToInt32(bytes.mid(0, 4));
+    height = bigEndianToInt32(bytes.mid(4, 4));
+    format = bigEndianToInt32(bytes.mid(8, 4));
 
-	if (width <= 0 || height <= 0) {
-		qDebug() << "Failed to get screen info.";
-		return -1;
-	}
+    if (width <= 0 || height <= 0) {
+        qDebug() << "Failed to get screen info.";
+        return -1;
+    }
 
-	fb_width = width;
-	fb_height = height;
-	fb_format = format;
+    fb_width = width;
+    fb_height = height;
+    fb_format = format;
 
-	return 0;
+    return 0;
 }
 
 int FBEx::getDeviceOSType(void)
 {
-	AdbExecutor adb;
-	int os = ANDROID_ICS;
+    AdbExecutor adb;
+    int os = ANDROID_ICS;
 
-	adb.addArg("shell");
-	adb.addArg("input");
-	adb.run();
+    adb.addArg("shell");
+    adb.addArg("input");
+    adb.run();
 
-	if (adb.output.indexOf("swipe") > 0) {
-		os = ANDROID_JB;
-	}
-	//qDebug() << "OS type:" << os << adb.output;
+    if (adb.output.indexOf("swipe") > 0) {
+        os = ANDROID_JB;
+    }
+    //qDebug() << "OS type:" << os << adb.output;
 
-	return os;
+    return os;
 }
 
 void FBEx::waitForDevice()
 {
-	AdbExecutor adb;
-	adb.addArg("wait-for-device");
-	adb.run();
+    AdbExecutor adb;
+    adb.addArg("wait-for-device");
+    adb.run();
 
-	if (adb.ret == 0) {
-		DT_TRACE("ADB found");
-		emit deviceFound();
-	}
+    if (adb.ret == 0) {
+        DT_TRACE("ADB found");
+        emit deviceFound();
+    }
 }
 
 void FBEx::readFrame()
 {
-	int ret, len;
+    int ret, len;
 
-	loopDelay();
+    loopDelay();
 
-	ret = screenCap(bytes, do_compress, false);
+    ret = screenCap(bytes, do_compress, false);
 
-	if (ret == 0) {
-		len = convertRGBAtoRGB888(bytes, FB_DATA_OFFSET);
-		out = bytes.mid(FB_DATA_OFFSET, len);
-		emit newFrame(&out);
-	} else {
-		setConnected(false);
-		emit deviceDisconnected();
-	}
+    if (ret == 0) {
+        len = convertRGBAtoRGB888(bytes, FB_DATA_OFFSET);
+        out = bytes.mid(FB_DATA_OFFSET, len);
+        emit newFrame(&out);
+    } else {
+        setConnected(false);
+        emit deviceDisconnected();
+    }
 }
 
 void FBEx::probeFBInfo()
 {
-	int ret, os;
+    int ret, os;
 
-	ret = screenCap(bytes, do_compress, false);
-	if (ret != 0) {
-		return;
-	}
+    ret = screenCap(bytes, do_compress, false);
+    if (ret != 0) {
+        setConnected(false);
+        emit deviceDisconnected();
+        return;
+    }
 
-	ret =  getScreenInfo(bytes);
-	if (ret != 0) {
-		return;
-	}
+    ret =  getScreenInfo(bytes);
+    if (ret != 0) {
+        return;
+    }
 
-	setConnected(true);
-	os = getDeviceOSType();
-	emit newFBFound(fb_width, fb_height, fb_format, os);
+    setConnected(true);
+    os = getDeviceOSType();
+
+    emit newFBFound(fb_width, fb_height, fb_format, os);
 }

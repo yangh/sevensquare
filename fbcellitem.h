@@ -16,46 +16,46 @@
 class FBCellItem : public QGraphicsItem
 {
 public:
-	enum {
-		UPDATE_INVALID = -1,
-		UPDATE_DONE,
-		UPDATE_IGNORED,
-	};
+    enum {
+        UPDATE_INVALID = -1,
+        UPDATE_DONE,
+        UPDATE_IGNORED
+    };
 
-	FBCellItem();
-	FBCellItem(const QPixmap &p);
+    FBCellItem();
+    FBCellItem(const QPixmap &p);
 
-	QRectF boundingRect() const;
-	void paint(QPainter *painter,
-			const QStyleOptionGraphicsItem *option,
-			QWidget *widget = 0);
+    QRectF boundingRect() const;
+    void paint(QPainter *painter,
+               const QStyleOptionGraphicsItem *option,
+               QWidget *widget = 0);
 
-	void paintFB(QByteArray*);
+    void paintFB(QByteArray*);
 
-	void setPixmap(const QPixmap &p);
-	void setFBSize(QSize size);
-	int  setFBRaw(QByteArray *raw);
-	void setBPP(int n) { bpp = n; };
+    void setPixmap(const QPixmap &p);
+    void setFBSize(QSize size);
+    int  setFBRaw(QByteArray *raw);
+    void setBPP(int n) { bpp = n; }
 
-	int  getFBDataSize(void) {
-		return fbSize.width() * fbSize.height() * bpp;
-	}
+    int  getFBDataSize(void) {
+        return fbSize.width() * fbSize.height() * bpp;
+    }
 
 protected:
-	void mousePressEvent(QGraphicsSceneMouseEvent *event);
-	void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
-	void mouseReleaseEvent(QGraphicsSceneMouseEvent *event);
+    void mousePressEvent(QGraphicsSceneMouseEvent *event);
+    void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
+    void mouseReleaseEvent(QGraphicsSceneMouseEvent *event);
 
 private:
-	QPixmap pixmap;
-	QSize cellSize;
+    QPixmap pixmap;
+    QSize cellSize;
 
-	QPixmap fb;
-	QSize fbSize;
-	int bpp;
+    QPixmap fb;
+    QSize fbSize;
+    int bpp;
 
-	QMutex mutex;
-	quint16 lastSum;
+    QMutex mutex;
+    quint16 lastSum;
 };
 
 #endif // FBCELLITEM_H
