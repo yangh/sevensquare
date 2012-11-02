@@ -1,7 +1,15 @@
+/*
+ * keymap.h
+ *
+ * Copyright 2012-2012 Yang Hong
+ *
+ */
+
 #ifndef KEYMAP_H_
 #define KEYMAP_H_
 
 // Android key list
+// From: android/frameworks/native/include/android/keycodes.h
 #include "keycodes.h"
 
 #ifdef __cplusplus
@@ -9,9 +17,7 @@ extern "C" {
 #endif
 
 // Qt to Android key map
-// /usr/include/qt4/Qt/qnamespace.h 
-// android/frameworks/native/include/android/keycodes.h
-//
+// Refer: /usr/include/qt4/Qt/qnamespace.h
 struct keymap {
 	int a;
 	int q;

@@ -61,6 +61,12 @@ Compile
  $> make
  $> ./seven-square
 
+Keypad support
+==============
+
+ If you want support more key define in the UI, please read
+ the generate-keymap.sh for more info.
+
 History
 =======
 
