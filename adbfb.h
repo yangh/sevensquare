@@ -82,7 +82,7 @@ private:
 class AdbExecutor : public Commander
 {
 public:
-    AdbExecutor() : Commander("adb") {};
+    AdbExecutor() : Commander("adb") {}
 
     void printErrorInfo() {
         DT_ERROR("ADB" << args.join(" ") << ret << error.simplified());
@@ -98,7 +98,8 @@ public:
     ~ADB();
 
     enum {
-        DELAY_STEP      = 200,
+        DELAY_STEP      = 150,
+        DELAY_MINI      = 100,
         DELAY_FAST      = 200,
         DELAY_NORMAL    = 400,
         DELAY_SLOW      = 800,
@@ -109,7 +110,7 @@ public:
     void loopDelay();
     void setDelay(int d);
 
-    void setMiniDelay() { delay = DELAY_FAST; }
+    void setMiniDelay() { delay = DELAY_MINI; }
     void setMaxiDelay() { delay = DELAY_MAX; }
 
     void increaseDelay() {
@@ -142,8 +143,15 @@ public:
 #define RAW_FILE	"/dev/shm/android-fb"
 #define MINIGZIP	"minigzip"
 
+    enum {
+        PIXEL_FORMAT_RGBX_8888 = 1,
+        PIXEL_FORMAT_RGB_888   = 3,
+        PIXEL_FORMAT_RGBX_565  = 4
+    };
+
     void setCompress(bool value);
-    bool supportCompress (void) { return doCompress; };
+    bool supportCompress (void)    { return doCompress; }
+    int  getBPP(void)              { return bpp; }
 
     int length() {
         return fb_width * fb_height * bpp;

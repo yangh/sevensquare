@@ -184,7 +184,7 @@ int FBEx::screenCap(QByteArray &bytes,
     AdbExecutor adb;
     QStringList args;
 
-    args << "shell" << "screencap";
+    args << "shell" << "screencap -s";
     if (compress) {
         args << "|" << "gzip";
     }
@@ -249,6 +249,20 @@ int FBEx::getScreenInfo(const QByteArray &bytes)
     fb_height = height;
     fb_format = format;
 
+    switch(format) {
+    case PIXEL_FORMAT_RGBX_565:
+        bpp = 2; // RGB565
+	break;
+    case PIXEL_FORMAT_RGB_888:
+        bpp = 3; // RGB888
+	break;
+    case PIXEL_FORMAT_RGBX_8888:
+        bpp = 4; // RGBA32
+        break;
+    default:
+        DT_ERROR("Unknown fb format " << format);
+    }
+
     return 0;
 }
 
@@ -305,7 +319,12 @@ void FBEx::sendNewFB(void)
     }
 
     //DT_TRACE("Send out FB");
-    len = convertRGBAtoRGB888(bytes, FB_DATA_OFFSET);
+    if (fb_format == PIXEL_FORMAT_RGBX_8888) {
+	    len = convertRGBAtoRGB888(bytes, FB_DATA_OFFSET);
+    } else {
+	    len = length();
+    }
+
     out = bytes.mid(FB_DATA_OFFSET, len);
     emit newFrame(&out);
 }

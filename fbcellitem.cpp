@@ -18,7 +18,9 @@
 FBCellItem::FBCellItem()
 {
     lastSum = -1;
-    bpp = 4;
+
+    // default converted in adbfb
+    rawFBDataFormat = QImage::Format_RGB888;
 
     cellSize = QSize(DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT);
     pixmap = QPixmap(cellSize);
@@ -81,6 +83,23 @@ void FBCellItem::setFBSize(QSize size)
     update(boundingRect());
 }
 
+void FBCellItem::setFBDataFormat(int format)
+{
+    switch(format) {
+    case FBEx::PIXEL_FORMAT_RGBX_8888:
+	rawFBDataFormat = QImage::Format_RGB888; // converted in adbfb
+        break;
+    case FBEx::PIXEL_FORMAT_RGBX_565:
+	rawFBDataFormat = QImage::Format_RGB16; // converted from device
+	break;
+    case FBEx::PIXEL_FORMAT_RGB_888:
+	rawFBDataFormat = QImage::Format_RGB888; // converted from device
+	break;
+    default:
+        DT_ERROR("Unknown fb data format " << format);
+    }
+}
+
 int FBCellItem::setFBRaw(QByteArray *raw)
 {
     QMutexLocker locker(&mutex);
@@ -109,11 +128,11 @@ void FBCellItem::paintFB(QByteArray *bytes)
     QPainter fbPainter;
     QImage image;
 
-    //DT_TRACE("FB PAINT RAW S");
+    DT_TRACE("FB PAINT RAW S"<< rawFBDataFormat);
     fbPainter.begin(&fb);
     image = QImage((const uchar*)bytes->data(),
                    fbSize.width(), fbSize.height(),
-                   QImage::Format_RGB888);
+                   rawFBDataFormat);
     fbPainter.drawImage(fb.rect(), image);
     fbPainter.end();
 
@@ -121,7 +140,7 @@ void FBCellItem::paintFB(QByteArray *bytes)
                        Qt::KeepAspectRatio,
                        Qt::SmoothTransformation);
     update(boundingRect());
-    //DT_TRACE("FB PAINT RAW E");
+    DT_TRACE("FB PAINT RAW E");
 }
 
 void FBCellItem::paint(QPainter *painter,

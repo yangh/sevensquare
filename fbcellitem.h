@@ -36,11 +36,7 @@ public:
     void setPixmap(const QPixmap &p);
     void setFBSize(QSize size);
     int  setFBRaw(QByteArray *raw);
-    void setBPP(int n) { bpp = n; }
-
-    int  getFBDataSize(void) {
-        return fbSize.width() * fbSize.height() * bpp;
-    }
+    void setFBDataFormat(int format);
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event);
@@ -48,12 +44,12 @@ protected:
     void mouseReleaseEvent(QGraphicsSceneMouseEvent *event);
 
 private:
+    QImage::Format rawFBDataFormat;
     QPixmap pixmap;
     QSize cellSize;
 
     QPixmap fb;
     QSize fbSize;
-    int bpp;
 
     QMutex mutex;
     quint16 lastSum;

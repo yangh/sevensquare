@@ -141,6 +141,7 @@ void CubeScene::newFBFound(int w, int h, int f, int os)
     fb_height = h;
     pixel_format = f;
     fb.setFBSize(QSize(fb_width, fb_height));
+    fb.setFBDataFormat(f);
 
     cube_height = fb_height * ((float) cube_width / fb_width);
 
@@ -162,6 +163,8 @@ void CubeScene::updateFBCell(QByteArray *bytes)
 {
     int ret;
 
+    emit readFrame();
+
     //DT_TRACE("New FB frame received");
     grayMask.setVisible(false);
     promptItem.setVisible(false);
@@ -173,8 +176,6 @@ void CubeScene::updateFBCell(QByteArray *bytes)
     } else {
         reader.increaseDelay();
     }
-
-    emit readFrame();
 }
 
 void CubeScene::setMenuIconsPos(void)
@@ -222,7 +223,6 @@ void CubeScene::initialize (void)
     fb.setPos(QPoint(0, 0));
     fb.setZValue(0); /* lay in the bottom*/
     fb.setFBSize(QSize(fb_width, fb_height));
-    fb.setBPP(3); // We converted data in the reader.
     fb.setVisible(true);
     addItem(&fb);
 
