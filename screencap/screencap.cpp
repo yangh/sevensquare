@@ -83,15 +83,60 @@ static status_t vinfoToPixelFormat(const fb_var_screeninfo& vinfo,
     return NO_ERROR;
 }
 
+int convert_rgba32_rgb565(const void *src, off_t offset, off_t cnt, void *dst)
+{
+	int n = cnt;
+	volatile uint8_t *s = (uint8_t *) src + offset;
+	volatile uint16_t *d = (uint16_t *) dst;
+	volatile uint16_t r, g, b;
+
+	while (cnt-- > 0) {
+		r = s[0];
+		g = s[1];
+		b = s[2];
+
+		*d = (((r >> 3 << 11)  & 0xFB00) | ((g >> 2 << 5) & 0x07E0) | (b >> 3));
+		d++;
+		s += 4;
+	}
+
+	return cnt - n;
+}
+
+int convert_rgba32_rgb888(const void *src, off_t offset, off_t cnt, void *dst)
+{
+	int n = cnt;
+	volatile uint8_t *s = (uint8_t *) src + offset;
+	volatile uint8_t *d = (uint8_t *) dst;
+
+	while (cnt-- > 0) {
+		*d++ = *s++;
+		*d++ = *s++;
+		*d++ = *s++;
+		s++;
+	}
+
+	return cnt - n;
+}
+
 int main(int argc, char** argv)
 {
     const char* pname = argv[0];
     bool png = false;
+    bool rgb565 = false;
+    bool rgb888 = false;
     int c;
-    while ((c = getopt(argc, argv, "ph")) != -1) {
+
+    while ((c = getopt(argc, argv, "phqs")) != -1) {
         switch (c) {
             case 'p':
                 png = true;
+                break;
+            case 'q': /* Quality prefered, convert to rgb888 */
+                rgb888 = true;
+                break;
+            case 's': /* Speed prefered, convert to rgb565 */
+                rgb565 = true;
                 break;
             case '?':
             case 'h':
@@ -172,8 +217,28 @@ int main(int argc, char** argv)
         } else {
             write(fd, &w, 4);
             write(fd, &h, 4);
-            write(fd, &f, 4);
-            write(fd, base, size);
+	    if (rgb565) {
+	        void *buf;
+		size = w * h * 2;
+		buf = malloc(size);
+		convert_rgba32_rgb565(base, 0, w*h, buf);
+		f = PIXEL_FORMAT_RGB_565;
+		write(fd, &f, 4);
+		write(fd, buf, size);
+		free(buf);
+	    } else if (rgb888) {
+	        void *buf;
+		size = w * h * 3;
+		buf = malloc(size);
+		convert_rgba32_rgb888(base, 0, w*h, buf);
+		f = PIXEL_FORMAT_RGB_888;
+		write(fd, &f, 4);
+		write(fd, buf, size);
+		free(buf);
+	    }  else {
+                write(fd, &f, 4);
+		write(fd, base, size);
+	    }
         }
     }
     close(fd);
