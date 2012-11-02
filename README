@@ -57,7 +57,7 @@ Or you can create a short cut on your desktop.
 Compile
 =======
 
- $> qmake -o Makefile sevensquare.pro
+ $> apt-get install qt4-qmake libqt4-dev libqtcore4 libqtgui4
  $> make
  $> ./seven-square
 

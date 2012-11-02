@@ -6,4 +6,13 @@
 #    AKEYCODE_1               = 8,  /* Qt::Key_1 = 0x31, */
 #    AKEYCODE_2               = 9,  /* Qt::Key_2 = 0x32, */
 
-grep Qt::K keycodes.h | awk '{print "{ "$1 ",\t "$5" },"}' > keymap-generated.h
+SRC="keycodes.h"
+DST="keymap-generated.h"
+
+echo -n "Generate keymap header from $SRC..."
+
+grep Qt::K $SRC | awk '{print "{ "$1 ",\t "$5" },"}' > $DST
+
+N=`cat $DST | wc -l`
+
+echo "$N key map generated in $DST."
