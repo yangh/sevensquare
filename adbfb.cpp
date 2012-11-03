@@ -266,6 +266,7 @@ void AdbExecObject::wakeUpDevice()
 
     ret = getDeviceLCDBrightness();
     if (ret > 0) {
+        emit screenTurnedOn();
         return;
     }
 

@@ -71,7 +71,7 @@ void FBCellItem::setFBSize(QSize size)
     if (fbSize == size)
         return;
 
-    qDebug() << "New FB size:" << size << fbSize;
+    //qDebug() << "New FB size:" << size << fbSize;
     fbSize = size;
 
     fb = fb.scaled(size);
@@ -79,7 +79,7 @@ void FBCellItem::setFBSize(QSize size)
     w = cellSize.width();
     h = fbSize.height() * ((float) w / fbSize.width());
     cellSize = QSize(w, h);
-    qDebug() << "New fb cell size" << cellSize;
+    //qDebug() << "New fb cell size" << cellSize;
 
     update(boundingRect());
 }
