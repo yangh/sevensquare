@@ -68,6 +68,10 @@ public:
 		&& output.indexOf(str) > 0);
     }
 
+    QList<QByteArray> outputLines() {
+        return output.split('\n');
+    }
+
     QList<QByteArray> outputLineHas(const char *key,
                                     bool ignoreComment = true);
 
@@ -91,6 +95,12 @@ public:
     void printErrorInfo() {
         DT_ERROR("ADB" << args.join(" ") << ret << error.simplified());
     }
+
+    QByteArray& outputFixNewLine(void) {
+        // FIXME: adb bug, converted '\n' (0x0A) to '\r\n' (0x0D0A)
+        // while transfer binary file from shell stdout
+        return output.replace("\r\n", "\n");
+    }
 };
 
 class DeviceKeyInfo
@@ -99,15 +109,13 @@ public:
     DeviceKeyInfo(const QString &name, int i, int code):
         keyLayout(name),
         eventDeviceIdx(i),
-        powerKeycode(code) {}
-
-    enum {
-        DEVICE_IDX_MAX = 0xFFFF
-    };
+        powerKeycode(code),
+        wakeSucessed(true) {}
 
     QString keyLayout;
     int eventDeviceIdx;
     int powerKeycode;
+    bool wakeSucessed;
 };
 
 class AdbExecObject : public QObject
@@ -123,9 +131,11 @@ public:
     int screenIsOn()           { return lcdBrightness > 0; }
 
 #define KEYLAYOUT_DIR       "/system/usr/keylayout/"
+#define KEYLAYOUT_EXT       ".kl"
 #define PROC_INPUT_DEVICES  "/proc/bus/input/devices"
-#define INPUT_DEV_PREFIX "/dev/input/event"
-#define SYS_LCD_BACKLIGHT "/sys/class/leds/lcd-backlight/brightness"
+#define INPUT_DEV_PREFIX    "/dev/input/event"
+#define SYS_LCD_BACKLIGHT   "/sys/class/leds/lcd-backlight/brightness"
+#define SYS_INPUT_NAME_LIST "/sys/class/input/input*/name"
 
     int getDeviceLCDBrightness();
 
