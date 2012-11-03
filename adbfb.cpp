@@ -39,7 +39,7 @@ int Commander::run(bool waitUntilFinished)
         p = new QProcess();
     }
 
-    qDebug() << "Exec: " << cmd << " " << args;
+    //qDebug() << "Exec: " << cmd << " " << args;
     p->start(cmd, args);
 
     if (waitUntilFinished) {
@@ -59,10 +59,6 @@ int Commander::wait(int msecs)
     output = p->readAllStandardOutput();
     error = p->readAllStandardError();
     ret = p->exitCode();
-
-    // FIXME: adb bug, converted '\n' (0x0A) to '\r\n' (0x0D0A)
-    // while dump binary file from shell
-    output.replace("\r\n", "\n");
 
     return QProcess::NotRunning;
 }
@@ -380,10 +376,9 @@ static int bigEndianToInt32(const QByteArray &bytes)
     return v;
 }
 
-int FBEx::AndrodDecompress(QByteArray &bytes)
+int FBEx::minigzipDecompress(QByteArray &bytes)
 {
-    int ret;
-    QProcess p;
+    Commander cmd(MINIGZIP);
     QStringList args;
 
     gz.seek(0);
@@ -392,13 +387,11 @@ int FBEx::AndrodDecompress(QByteArray &bytes)
     //DT_TRACE("DECOMP GZ TO FILE");
 
     args << "-d" << "-c" << GZ_FILE;
-    p.start(MINIGZIP, args);
-    p.waitForFinished();
-    ret = p.exitCode();
+    cmd.run(args);
 
-    bytes = p.readAllStandardOutput();
+    bytes = cmd.output;
 
-    return ret;
+    return cmd.ret;
 }
 
 int FBEx::screenCap(QByteArray &bytes, int offset = 0)
@@ -420,10 +413,12 @@ int FBEx::screenCap(QByteArray &bytes, int offset = 0)
         return adb.ret;
     }
 
-    bytes = adb.output;
+    // FIXME: adb bug, converted '\n' (0x0A) to '\r\n' (0x0D0A)
+    // while dump binary file from shell
+    bytes = adb.output.replace("\r\n", "\n");
 
     if (doCompress) {
-        AndrodDecompress(bytes);
+        minigzipDecompress(bytes);
     }
 
     if (offset) {

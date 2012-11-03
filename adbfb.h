@@ -239,7 +239,7 @@ signals:
     void error(QString *msg);
 
 private:
-    int AndrodDecompress(QByteArray &);
+    int minigzipDecompress(QByteArray &);
     int screenCap(QByteArray &bytes, int offset);
     int getScreenInfo(const QByteArray &);
     int getDeviceOSType(void);
