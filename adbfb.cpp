@@ -326,11 +326,20 @@ FBEx::FBEx()
     fb_height = DEFAULT_FB_HEIGHT;
     fb_format = PIXEL_FORMAT_RGBX_8888;
     bpp = FB_BPP_MAX;
+}
 
+bool FBEx::checkCompressSupport()
+{
+    bool ret;
     Commander cmd("which");
+
     cmd.addArg(MINIGZIP);
     cmd.run();
-    setCompress(cmd.outputHas(MINIGZIP));
+    ret = cmd.outputHas(MINIGZIP);
+
+    setCompress(ret);
+
+    return ret;
 }
 
 void FBEx::setCompress(bool value)
@@ -343,6 +352,7 @@ void FBEx::setCompress(bool value)
     }
 
     if (doCompress) {
+        gz.close();
         gz.setFileName(GZ_FILE);
         gz.open(QIODevice::WriteOnly|QIODevice::Unbuffered);
         gz.resize(fb_width * fb_height * FB_BPP_MAX);
@@ -393,7 +403,7 @@ int FBEx::minigzipDecompress(QByteArray &bytes)
     return cmd.ret;
 }
 
-int FBEx::screenCap(QByteArray &bytes, int offset = 0)
+int FBEx::screenCap(QByteArray &bytes, int offset)
 {
     AdbExecutor adb;
     QStringList args;
@@ -565,6 +575,8 @@ void FBEx::readFrame()
 void FBEx::probeFBInfo()
 {
     int ret;
+
+    checkCompressSupport();
 
     ret = screenCap(bytes);
     if (ret != 0) {

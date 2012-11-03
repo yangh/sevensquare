@@ -250,7 +250,7 @@ signals:
 
 private:
     int minigzipDecompress(QByteArray &);
-    int screenCap(QByteArray &bytes, int offset);
+    int screenCap(QByteArray &bytes, int offset = 0);
     int getScreenInfo(const QByteArray &);
     int getDeviceOSType(void);
     int convertRGBAtoRGB888(QByteArray &, int);
