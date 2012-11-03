@@ -70,7 +70,6 @@ protected:
     CubeCellItem *createCellItem(const char* name, int size, int key = 0);
 
     QStringList newEventCmd (int type, int code, int value);
-    QPoint scenePosToVirtual(QPointF pos);
     void sendTap(QPoint pos, bool, bool);
     void sendEvent(QPoint pos, bool, bool);
     void sendVirtualClick(QPointF, bool, bool);

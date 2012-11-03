@@ -9,12 +9,14 @@
 #define FBCELLITEM_H
 
 #include <QGraphicsItem>
+#include <QGraphicsSceneMouseEvent>
 #include <QMutex>
 
 #include "adbfb.h"
 
 class FBCellItem : public QGraphicsItem
 {
+
 public:
     enum {
         UPDATE_INVALID = -1,
@@ -38,6 +40,8 @@ public:
     int  setFBRaw(QByteArray *raw);
     void setFBDataFormat(int format);
 
+    QPoint cellPosToVirtual(QPointF pos);
+
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event);
     void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
@@ -50,6 +54,7 @@ private:
 
     QPixmap fb;
     QSize fbSize;
+    QSizeF ratio;
 
     QMutex mutex;
     quint16 lastSum;

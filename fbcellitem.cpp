@@ -29,9 +29,12 @@ FBCellItem::FBCellItem()
     fbSize = cellSize;
     fb = QPixmap(fbSize);
     fb.fill(QColor(Qt::black));
+    ratio = QSizeF(1.0, 1.0);
 
     // Clickable
     setFlags(QGraphicsItem::ItemIsSelectable);
+    qDebug() << "Accepted mouse buttons" << acceptedMouseButtons();
+    setFlag(ItemIsMovable);
 }
 
 FBCellItem::FBCellItem(const QPixmap &p)
@@ -60,6 +63,8 @@ void FBCellItem::setCellSize(QSize size)
                        Qt::KeepAspectRatio,
                        Qt::SmoothTransformation);
 
+    ratio = QSizeF((qreal) fbSize.width() / cellSize.width(),
+                   (qreal) fbSize.height() / cellSize.height());
     update(boundingRect());
 }
 
@@ -81,6 +86,8 @@ void FBCellItem::setFBSize(QSize size)
     cellSize = QSize(w, h);
     //qDebug() << "New fb cell size" << cellSize;
 
+    ratio = QSizeF((qreal) fbSize.width() / cellSize.width(),
+                   (qreal) fbSize.height() / cellSize.height());
     update(boundingRect());
 }
 
@@ -159,15 +166,19 @@ void FBCellItem::paint(QPainter *painter,
 
 void FBCellItem::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
-    //qDebug() << "Item pressed: " << curr_pos;
 }
 
 void FBCellItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
-    //qDebug() << "Item moveded: " << curr_pos;
 }
 
 void FBCellItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 {
-    qDebug() << "Item clicked";
 }
+
+QPoint FBCellItem::cellPosToVirtual(QPointF pos)
+{
+    return QPoint(pos.x() * ratio.width(),
+                  pos.y() * ratio.height());
+}
+

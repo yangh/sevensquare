@@ -342,6 +342,8 @@ void CubeScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
         sendVirtualClick(pos, true, false);
         return;
     }
+
+    QGraphicsScene::mousePressEvent(event);
 }
 
 void CubeScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
@@ -359,6 +361,8 @@ void CubeScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
         return;
     }
 #endif
+
+    QGraphicsScene::mouseMoveEvent(event);
 }
 
 void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
@@ -386,12 +390,8 @@ void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
         sendVirtualKey(cell->key());
         return;
     }
-}
 
-QPoint CubeScene::scenePosToVirtual(QPointF pos)
-{
-    return QPoint((pos.x() * fb_width / cube_width),
-                  (pos.y() * fb_height / cube_height));
+    QGraphicsScene::mouseReleaseEvent(event);
 }
 
 bool CubeScene::poinInFB(QPointF pos)
@@ -407,7 +407,7 @@ void CubeScene::sendVirtualClick(QPointF scene_pos,
 
     reader.setDelay(0);
 
-    pos = scenePosToVirtual(scene_pos);
+    pos = fb.cellPosToVirtual(scene_pos);
     DT_TRACE("CLICK" << pos.x() << pos.y() << press << release);
 
     switch(os_type) {
@@ -538,9 +538,10 @@ void CubeScene::keyReleaseEvent(QKeyEvent * event)
     key = event->key();
     vkey = keys[key];
 
-    if (vkey == 0) {
-        DT_ERROR("Unknown key pressed:" << key);
+    if (vkey > 0) {
+        sendVirtualKey(vkey);
     }
 
-    sendVirtualKey(vkey);
+    DT_ERROR("Unknown key pressed:" << key);
+    QGraphicsScene::keyReleaseEvent(event);
 }
