@@ -93,7 +93,7 @@ CubeScene::CubeScene(QObject * parent) :
 
     adbex.moveToThread(&adbThread);
     adbex.connect(this, SIGNAL(execAdbCmd(const QStringList)),
-                  SLOT(execCmd(const QStringList)));
+                  SLOT(execCommand(const QStringList)));
     adbex.connect(&reader, SIGNAL(deviceFound()),
                   SLOT(probeDevicePowerKey(void)));
     adbex.connect(this, SIGNAL(wakeUpDevice()),
@@ -147,7 +147,6 @@ void CubeScene::deviceScreenTurnedOn(void)
     emit readFrame();
 
     grayMask.setVisible(false);
-    //promptItem.setText("Screen off, click to wakeup...");
     promptItem.setVisible(false);
 }
 
@@ -218,7 +217,8 @@ void CubeScene::updateFBCell(QByteArray *bytes)
     if (ret == FBCellItem::UPDATE_DONE) {
         reader.setMiniDelay();
     } else {
-        if(reader.increaseDelay() >= FBEx::DELAY_NORMAL) {
+        ret = reader.increaseDelay();
+        if (ret >= FBEx::DELAY_NORMAL) {
             emit updateDeviceBrightness();
         }
     }
@@ -369,8 +369,7 @@ void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
     DT_TRACE("SCREEN Click" << pos.x() << pos.y());
     setPointerPos(pos, false);
 
-    if (! reader.isConnected()
-            || ! adbex.screenIsOn()) {
+    if (! reader.isConnected() || ! adbex.screenIsOn()) {
         return;
     }
 

@@ -68,7 +68,8 @@ public:
 		&& output.indexOf(str) > 0);
     }
 
-    QList<QByteArray> outputLineHas(const char *, bool ignoreComment = true);
+    QList<QByteArray> outputLineHas(const char *key,
+                                    bool ignoreComment = true);
 
     QByteArray error;
     QByteArray output;
@@ -119,30 +120,32 @@ public:
     }
 
     int screenBrightness(void) { return lcdBrightness; }
-    int screenIsOn() { return lcdBrightness > 0; }
+    int screenIsOn()           { return lcdBrightness > 0; }
 
-#define KEYLAYOUT_DIR  "/system/usr/keylayout/"
-#define PROC_INPUT_DEVICES "/proc/bus/input/devices"
+#define KEYLAYOUT_DIR       "/system/usr/keylayout/"
+#define PROC_INPUT_DEVICES  "/proc/bus/input/devices"
+#define INPUT_DEV_PREFIX "/dev/input/event"
+#define SYS_LCD_BACKLIGHT "/sys/class/leds/lcd-backlight/brightness"
+
     int getDeviceLCDBrightness();
 
+    bool getKeyCodeFromKeyLayout(const QString &keylayout,
+                                 const char *key,
+                                 int &code);
+    QStringList newKeyEventCommand(int deviceIdx,
+                                   int type, int code, int value);
+    QStringList newKeyEventCommandSequence(int deviceIdx, int code);
+    void sendPowerKey(int deviceIdx, int code);
+
 public slots:
-    void execCmd(const QStringList cmds) {
+    void execCommand(const QStringList cmds) {
         AdbExecutor adb;
-        //qDebug() << "AdbExecObject" << cmds;
         adb.run(cmds);
     }
 
     void probeDevicePowerKey(void);
     void wakeUpDevice(void);
-
-    void updateDeviceBrightness(void) {
-        getDeviceLCDBrightness();
-
-        if (lcdBrightness == 0) {
-            DT_TRACE("Screen is turned off");
-            emit screenTurnedOff();
-        }
-    }
+    void updateDeviceBrightness(void);
 
 signals:
     void screenTurnedOff(void);
@@ -178,14 +181,9 @@ public:
     void setMiniDelay() { delay = DELAY_MINI; }
     void setMaxiDelay() { delay = DELAY_MAX; }
 
-    int increaseDelay() {
-        if (delay < DELAY_MAX)
-            delay += DELAY_STEP;
+    int increaseDelay();
 
-        return delay;
-    }
-
-    bool isConnected(void)      { return connected; }
+    bool isConnected(void)        { return connected; }
     void setConnected(bool state) { connected = state; }
 
 private:
@@ -208,7 +206,6 @@ public:
 #define FB_BPP_MAX	4
 #define GZ_FILE		"/dev/shm/android-fb.gz"
 #define MINIGZIP	"minigzip"
-#define SYS_LCD_BACKLIGHT "/sys/class/leds/lcd-backlight/brightness"
 
     enum {
         PIXEL_FORMAT_RGBX_8888 = 1,
@@ -217,6 +214,7 @@ public:
     };
 
     void setCompress(bool value);
+    bool checkCompressSupport(void);
     bool supportCompress (void)    { return doCompress; }
     int  getBPP(void)              { return bpp; }
 
@@ -242,7 +240,7 @@ signals:
 
 private:
     int AndrodDecompress(QByteArray &);
-    int screenCap(QByteArray &bytes, bool, bool);
+    int screenCap(QByteArray &bytes, int offset);
     int getScreenInfo(const QByteArray &);
     int getDeviceOSType(void);
     int convertRGBAtoRGB888(QByteArray &, int);

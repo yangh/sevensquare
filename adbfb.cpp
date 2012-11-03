@@ -6,6 +6,7 @@
  */
 
 #include <QThread>
+#include <QMutexLocker>
 
 #include <stdint.h>
 #include <unistd.h>
@@ -26,6 +27,7 @@ void Commander::clear(void)
     error.clear();
     output.clear();
     ret = -1;
+
     if (p != NULL) {
        p->close();
     }
@@ -37,7 +39,7 @@ int Commander::run(bool waitUntilFinished)
         p = new QProcess();
     }
 
-    //qDebug() << "Exec: " << cmd << " " << args;
+    qDebug() << "Exec: " << cmd << " " << args;
     p->start(cmd, args);
 
     if (waitUntilFinished) {
@@ -102,7 +104,8 @@ ADB::~ADB()
 
 void ADB::loopDelay()
 {
-    mutex.lock();
+    QMutexLocker locker(&mutex);
+
     if (delay) {
         //DT_TRACE("DELAY" << delay);
         delayCond.wait(&mutex, delay);
@@ -112,32 +115,21 @@ void ADB::loopDelay()
 
 void ADB::setDelay(int d)
 {
-    mutex.lock();
+    QMutexLocker locker(&mutex);
+
     delay = d;
     delayCond.wakeAll();
     mutex.unlock();
 }
 
-bool getKeyCodeFromKeyLayout(const QString &kl, const char *key, int &code)
+int ADB::increaseDelay()
 {
-    AdbExecutor adb;
-    QList<QByteArray> lines;
+    QMutexLocker locker(&mutex);
 
-    adb.run(QStringList() << "shell" << "cat" << (QString(KEYLAYOUT_DIR) + kl));
+    if (delay < DELAY_MAX)
+        delay += DELAY_STEP;
 
-    lines = adb.outputLineHas(key);
-    for (int i = 0; i < lines.size(); ++i) {
-        QByteArray &line = lines[i];
-
-        // make sure it's key line
-        if (line.indexOf("key") == 0) {
-            QList<QByteArray> words = line.split(' ');
-            code = words[1].toInt();
-            return true;
-        }
-    }
-
-    return false;
+    return delay;
 }
 
 int AdbExecObject::getDeviceLCDBrightness()
@@ -149,14 +141,15 @@ int AdbExecObject::getDeviceLCDBrightness()
         return -1;
 
     lcdBrightness = adb.output.simplified().toInt();
-    DT_TRACE("Screen brightness" << lcdBrightness);
+    //DT_TRACE("Screen brightness" << lcdBrightness);
 
     return lcdBrightness;
 }
 
-#define INPUT_DEV_PREFIX "/dev/input/event"
-
-QStringList newKeyEventCommand(int deviceIdx, int type, int code, int value)
+QStringList AdbExecObject::newKeyEventCommand(int deviceIdx,
+                                              int type,
+                                              int code,
+                                              int value)
 {
     QStringList event;
 
@@ -170,7 +163,7 @@ QStringList newKeyEventCommand(int deviceIdx, int type, int code, int value)
     return event;
 }
 
-QStringList newKeyEventCommandSequence(int deviceIdx, int code)
+QStringList AdbExecObject::newKeyEventCommandSequence(int deviceIdx, int code)
 {
     QStringList cmds;
 
@@ -181,7 +174,7 @@ QStringList newKeyEventCommandSequence(int deviceIdx, int code)
     return cmds;
 }
 
-void sendPowerKey(int deviceIdx, int code)
+void AdbExecObject::sendPowerKey(int deviceIdx, int code)
 {
     AdbExecutor adb;
     QStringList args;
@@ -189,6 +182,42 @@ void sendPowerKey(int deviceIdx, int code)
     args << "shell";
     args << newKeyEventCommandSequence(deviceIdx, code);
     adb.run(args);
+}
+
+
+void AdbExecObject::updateDeviceBrightness(void)
+{
+    getDeviceLCDBrightness();
+
+    if (lcdBrightness == 0) {
+        DT_TRACE("Screen is turned off");
+        emit screenTurnedOff();
+    }
+}
+
+bool AdbExecObject::getKeyCodeFromKeyLayout(const QString &keylayout,
+                                            const char *key,
+                                            int &code)
+{
+    AdbExecutor adb;
+    QList<QByteArray> lines;
+
+    adb.run(QStringList() << "shell"
+            << "cat" << (QString(KEYLAYOUT_DIR) + keylayout));
+
+    lines = adb.outputLineHas(key);
+    for (int i = 0; i < lines.size(); ++i) {
+        QByteArray &line = lines[i];
+
+        // make sure it's a key line
+        if (line.indexOf("key") == 0) {
+            QList<QByteArray> words = line.split(' ');
+            code = words[1].toInt();
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void AdbExecObject::probeDevicePowerKey(void)
@@ -211,9 +240,12 @@ void AdbExecObject::probeDevicePowerKey(void)
         QByteArray &line = lines[i];
 
         if (getKeyCodeFromKeyLayout(line, "POWER", code)) {
+            QString layout = line.mid(0, line.length() - 3).data();
+
             DT_TRACE("Found POWER key define in" << line << code);
-            keyInfos.append(DeviceKeyInfo(line.mid(0, line.length() - 3).data(),
-                                          DeviceKeyInfo::DEVICE_IDX_MAX, code));
+            keyInfos.append(DeviceKeyInfo(layout,
+                                          DeviceKeyInfo::DEVICE_IDX_MAX,
+                                          code));
         }
     }
 
@@ -240,6 +272,7 @@ void AdbExecObject::probeDevicePowerKey(void)
         }
     }
 
+    // Delete power key code without device found
     for (int idx = 0; idx < keyInfos.size(); idx++) {
         DeviceKeyInfo &info = keyInfos[idx];
 
@@ -248,6 +281,7 @@ void AdbExecObject::probeDevicePowerKey(void)
         }
     }
 
+    // Wake up on probe
     if (keyInfos.size() > 0){
         wakeUpDevice();
     }
@@ -265,7 +299,11 @@ void AdbExecObject::wakeUpDevice()
     }
 
     ret = getDeviceLCDBrightness();
+
     if (ret > 0) {
+        // Alway notify screen state to avoid
+        // can't un-freeze the screen when user pressed
+        // physcle key to waked up the screen
         emit screenTurnedOn();
         return;
     }
@@ -277,6 +315,7 @@ void AdbExecObject::wakeUpDevice()
         DT_TRACE("Wake up screen via" << info.keyLayout
                  << info.powerKeycode << info.eventDeviceIdx);
         sendPowerKey(info.eventDeviceIdx, info.powerKeycode);
+
         usleep(300 * 1000);
         if (getDeviceLCDBrightness() > 0) {
             emit screenTurnedOn();
@@ -290,7 +329,7 @@ FBEx::FBEx()
     doCompress = false;
     fb_width = DEFAULT_FB_WIDTH;
     fb_height = DEFAULT_FB_HEIGHT;
-    fb_format = 1; //TODO:...
+    fb_format = PIXEL_FORMAT_RGBX_8888;
     bpp = FB_BPP_MAX;
 
     Commander cmd("which");
@@ -357,27 +396,18 @@ int FBEx::AndrodDecompress(QByteArray &bytes)
     p.waitForFinished();
     ret = p.exitCode();
 
-#if 0
-    QFile raw(RAW_FILE);
-    raw.open(QIODevice::ReadOnly);
-    raw.seek(0);
-    bytes = raw.readAll();
-    raw.close();
-#endif
     bytes = p.readAllStandardOutput();
 
     return ret;
 }
 
-int FBEx::screenCap(QByteArray &bytes,
-                    bool compress = false,
-                    bool removeHeader = false)
+int FBEx::screenCap(QByteArray &bytes, int offset = 0)
 {
     AdbExecutor adb;
     QStringList args;
 
     args << "shell" << "screencap -s";
-    if (compress) {
+    if (doCompress) {
         args << "|" << "gzip";
     }
 
@@ -392,12 +422,12 @@ int FBEx::screenCap(QByteArray &bytes,
 
     bytes = adb.output;
 
-    if (compress) {
+    if (doCompress) {
         AndrodDecompress(bytes);
     }
 
-    if (removeHeader) {
-        bytes = bytes.mid(FB_DATA_OFFSET);
+    if (offset) {
+        bytes = bytes.mid(offset);
     }
 
     return adb.ret;
@@ -453,6 +483,7 @@ int FBEx::getScreenInfo(const QByteArray &bytes)
         break;
     default:
         DT_ERROR("Unknown fb format " << format);
+        return -1;
     }
 
     return 0;
@@ -505,9 +536,9 @@ void FBEx::sendNewFB(void)
 
     if (bytes.length() < length()) {
         DT_ERROR("Invalid FB data len:" << bytes.length()
-			<< "require" << length());
+                 << "require" << length());
         setConnected(false);
-	return;
+        return;
     }
 
     //DT_TRACE("Send out FB");
@@ -530,7 +561,7 @@ void FBEx::readFrame()
     if (! isConnected())
 	    return;
 
-    ret = screenCap(bytes, doCompress, false);
+    ret = screenCap(bytes);
 
     if (ret == 0) {
         sendNewFB();
@@ -543,7 +574,7 @@ void FBEx::probeFBInfo()
 {
     int ret;
 
-    ret = screenCap(bytes, doCompress, false);
+    ret = screenCap(bytes);
     if (ret != 0) {
         setConnected(false);
         return;
