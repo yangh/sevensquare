@@ -59,7 +59,6 @@ CubeScene::CubeScene(QObject * parent) :
     fb_width = DEFAULT_FB_WIDTH;
     fb_height = DEFAULT_FB_HEIGHT;
     pixel_format = 1;
-    os_type =  ANDROID_JB;
     waitCount = 1;
 
     setItemIndexMethod(QGraphicsScene::NoIndex);
@@ -71,8 +70,8 @@ CubeScene::CubeScene(QObject * parent) :
                           this, SLOT(deviceDisconnected(void)));
     QObject::connect(&reader, SIGNAL(deviceWaitTimeout(void)),
                           this, SLOT(deviceDisconnected(void)));
-    QObject::connect(&reader, SIGNAL(newFBFound(int, int, int, int)),
-                          this, SLOT(newFBFound(int, int, int, int)));
+    QObject::connect(&reader, SIGNAL(newFBFound(int, int, int)),
+                          this, SLOT(newFBFound(int, int, int)));
     this->connect(&reader, SIGNAL(deviceFound()),
                   SLOT(deviceConnected()));
     this->connect(&adbex, SIGNAL(screenTurnedOff()),
@@ -100,6 +99,10 @@ CubeScene::CubeScene(QObject * parent) :
                   SLOT(wakeUpDevice()));
     adbex.connect(this, SIGNAL(updateDeviceBrightness()),
                   SLOT(updateDeviceBrightness()));
+    adbex.connect(this, SIGNAL(newVirtualClick(QPoint,bool,bool)),
+                  SLOT(sendVirtualClick(QPoint,bool,bool)));
+    adbex.connect(this, SIGNAL(newVirtualKey(int)),
+                  SLOT(sendVirtualKey(int)));
     adbThread.start();
 
     initialize();
@@ -165,7 +168,7 @@ void CubeScene::cubeResize(QSize size)
     setSceneRect(QRect(0, 0, cube_width, height));
 }
 
-void CubeScene::newFBFound(int w, int h, int f, int os)
+void CubeScene::newFBFound(int w, int h, int f)
 {
     DT_TRACE("New Remote screen FB:" << w << h << f);
 
@@ -191,8 +194,6 @@ void CubeScene::newFBFound(int w, int h, int f, int os)
     setSceneRect(QRect(0, 0, cube_width, height));
 
     emit sceneSizeChanged(QSize(cube_width, height));
-
-    os_type = os;
 
     // Start read frame
     emit readFrame();
@@ -329,17 +330,7 @@ void CubeScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 
     setPointerPos(pos, true);
 
-    if (! reader.isConnected()) {
-        return;
-    }
-
-    if (! adbex.screenIsOn()) {
-        emit wakeUpDevice();
-        return;
-    }
-
-    if (poinInFB(pos)) {
-        sendVirtualClick(pos, true, false);
+    if (sendVirtualClick(pos, true, false)) {
         return;
     }
 
@@ -356,8 +347,7 @@ void CubeScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
     // Disable send mouse move event because is too slow
     // to send event in time to device, even we filter some
     // out.
-    if (poinInFB(pos)) {
-        sendVirtualClick(pos, false, false);
+    if (sendVirtualClick(pos, false, false)) {
         return;
     }
 #endif
@@ -373,12 +363,7 @@ void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
     DT_TRACE("SCREEN Click" << pos.x() << pos.y());
     setPointerPos(pos, false);
 
-    if (! reader.isConnected() || ! adbex.screenIsOn()) {
-        return;
-    }
-
-    if (poinInFB(pos)) {
-        sendVirtualClick(pos, false, true);
+    if (sendVirtualClick(pos, false, true)) {
         return;
     }
 
@@ -387,8 +372,9 @@ void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 
     if (cell) {
         //qDebug() << "Virtual key on screen" << cell->key();
-        sendVirtualKey(cell->key());
-        return;
+        if (sendVirtualKey(cell->key())) {
+            return;
+        }
     }
 
     QGraphicsScene::mouseReleaseEvent(event);
@@ -400,148 +386,67 @@ bool CubeScene::poinInFB(QPointF pos)
     return QRectF(0, 0, cube_width, cube_height).contains(pos);
 }
 
-void CubeScene::sendVirtualClick(QPointF scene_pos,
-                                 bool press, bool release)
-{
-    QPoint pos;
-
-    reader.setDelay(0);
-
-    pos = fb.cellPosToVirtual(scene_pos);
-    DT_TRACE("CLICK" << pos.x() << pos.y() << press << release);
-
-    switch(os_type) {
-    case ANDROID_ICS:
-        sendEvent(pos, press, release);
-        break;
-    case ANDROID_JB:
-        // Mouse move, ignored.
-        // Both true is impossible
-        if (press || release) {
-            sendTap(pos, press, release);
-        }
-        break;
-    default:
-        qDebug() << "Unknown OS type, click dropped.";
-    }
-}
-
-void CubeScene::sendTap(QPoint pos, bool press, bool release)
-{
-    bool isTap = false;
-
-    if (press) {
-        posPress = pos;
-        return;
-    }
-
-    isTap = QRect(-1, -1, 2, 2).contains(pos - posPress);
-    //qDebug() << "Tap as swipe" << isTap;
-
-    cmds.clear();
-    cmds << "shell";
-
-    if (isTap) {
-        cmds << "input tap";
-    } else {
-        cmds << "input swipe";
-        cmds << QString::number(posPress.x());
-        cmds << QString::number(posPress.y());
-    }
-
-    cmds << QString::number(pos.x());
-    cmds << QString::number(pos.y());
-    //qDebug() << cmds;
-
-    emit execAdbCmd(cmds);
-}
-
-QStringList CubeScene::newEventCmd (int type, int code, int value)
-{
-    QStringList event;
-
-    event.clear();
-    //TODO: Use correct dev to send event
-    event << "sendevent" << "/dev/input/event0";
-    event << QString::number(type);
-    event << QString::number(code);
-    event << QString::number(value);
-    event << ";";
-
-    return event;
-}
-
-void CubeScene::sendEvent(QPoint pos, bool press, bool release)
-{
-#if 0
-    //Disabled mouse event filter.
-#define MMSIZE 10
-    bool ignored = false;
-    QRect rect;
-
-    if (press) {
-        posPrevious = pos;
-    };
-
-    rect = QRect(-(MMSIZE / 2), -(MMSIZE / 2), MMSIZE, MMSIZE);
-    ignored = rect.contains(pos - posPrevious);
-
-    if (! press && ! release && ignored) {
-        qDebug() << "Ignore pos" << pos;
-        return;
-    } else {
-        posPrevious = pos;
-    }
-#endif
-    cmds.clear();
-    cmds << "shell";
-
-    cmds << newEventCmd(3, 0x35, pos.x());
-    cmds << newEventCmd(3, 0x36, pos.y());
-    if (press) {
-        cmds << newEventCmd(1, 0x14a, 1);
-    }
-
-    cmds << newEventCmd(3, 0, pos.x());
-    cmds << newEventCmd(3, 1, pos.y());
-    cmds << newEventCmd(0, 0, 0);
-
-    if (release) {
-        cmds << newEventCmd(1, 0x14a, 0);
-        cmds << newEventCmd(0, 0, 0);
-    }
-    //DT_TRACE("Send ICS mouse event" << pos << press << release);
-
-    emit execAdbCmd(cmds);
-}
-
-void CubeScene::sendVirtualKey(int key)
-{
-    cmds.clear();
-    cmds << "shell" << "input keyevent";
-    cmds << QString::number(key);
-
-    DT_TRACE("KEY" << key);
-    reader.setDelay(0);
-
-    emit execAdbCmd(cmds);
-}
-
 void CubeScene::keyReleaseEvent(QKeyEvent * event)
 {
-    int key, vkey = 0;
-
-    if (! reader.isConnected()) {
-        return;
-    }
+    int key;
 
     key = event->key();
-    vkey = keys[key];
-
-    if (vkey > 0) {
-        sendVirtualKey(vkey);
+    if (sendVirtualKey(keys[key])) {
+        return;
     }
 
     DT_ERROR("Unknown key pressed:" << key);
     QGraphicsScene::keyReleaseEvent(event);
+}
+
+bool CubeScene::isConnectedAndWakeup()
+{
+    if (! reader.isConnected()) {
+        return false;
+    }
+
+    if (! adbex.screenIsOn()) {
+        emit wakeUpDevice();
+        return false;
+    }
+
+    return true;
+}
+
+bool CubeScene::sendVirtualClick(QPointF posScene,
+                                 bool press, bool release)
+{
+    QPoint pos;
+
+    if (! isConnectedAndWakeup()) {
+        return true;
+    }
+
+    if (! poinInFB(posScene))
+        return false;
+
+    // Read frame asap
+    reader.setDelay(0);
+
+    pos = fb.cellPosToVirtual(posScene);
+    emit newVirtualClick(pos, press, release);
+
+    return true;
+}
+
+bool CubeScene::sendVirtualKey(int key)
+{
+
+    if (! isConnectedAndWakeup()) {
+        return true;
+    }
+
+    if (key > 0) {
+        // Read frame asap
+        reader.setDelay(0);
+        emit newVirtualKey(key);
+        return true;
+    }
+
+    return false;
 }

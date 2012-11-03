@@ -15,6 +15,7 @@
 #include <QMutex>
 #include <QWaitCondition>
 #include <QFile>
+#include <QPoint>
 
 #include "debug.h"
 
@@ -72,7 +73,7 @@ public:
         return output.split('\n');
     }
 
-    QList<QByteArray> outputLineHas(const char *key,
+    QList<QByteArray> outputLinesHas(const char *key,
                                     bool ignoreComment = true);
 
     QByteArray error;
@@ -115,20 +116,11 @@ public:
     QString keyLayout;
     int eventDeviceIdx;
     int powerKeycode;
+
+    // If this key has sucessfully wakeup device
+    // If yes, we always use it
     bool wakeSucessed;
 };
-
-class AdbExecObject : public QObject
-{
-    Q_OBJECT
-
-public:
-    AdbExecObject() {
-        lcdBrightness = 0;
-    }
-
-    int screenBrightness(void) { return lcdBrightness; }
-    int screenIsOn()           { return lcdBrightness > 0; }
 
 #define KEYLAYOUT_DIR       "/system/usr/keylayout/"
 #define KEYLAYOUT_EXT       ".kl"
@@ -137,7 +129,19 @@ public:
 #define SYS_LCD_BACKLIGHT   "/sys/class/leds/lcd-backlight/brightness"
 #define SYS_INPUT_NAME_LIST "/sys/class/input/input*/name"
 
+class AdbExecObject : public QObject
+{
+    Q_OBJECT
+
+public:
+    AdbExecObject();
+
+    int screenBrightness(void) { return lcdBrightness; }
+    int screenIsOn()           { return lcdBrightness > 0; }
+
     int getDeviceLCDBrightness();
+    int getDeviceOSType(void);
+    int deviceOSType(void)      { return osType; }
 
     bool getKeyCodeFromKeyLayout(const QString &keylayout,
                                  const char *key,
@@ -146,6 +150,10 @@ public:
                                    int type, int code, int value);
     QStringList newKeyEventCommandSequence(int deviceIdx, int code);
     void sendPowerKey(int deviceIdx, int code);
+
+    QStringList newEventCmd (int type, int code, int value);
+    void sendTap(QPoint pos, bool, bool);
+    void sendEvent(QPoint pos, bool, bool);
 
 public slots:
     void execCommand(const QStringList cmds) {
@@ -157,14 +165,22 @@ public slots:
     void wakeUpDevice(void);
     void updateDeviceBrightness(void);
 
+    void sendVirtualClick(QPoint pos, bool, bool);
+    void sendVirtualKey(int key);
+
 signals:
     void screenTurnedOff(void);
     void screenTurnedOn(void);
     void error(QString *msg);
+    void newCommand(const QStringList cmds);
 
 private:
     QList<DeviceKeyInfo> keyInfos;
     int lcdBrightness;
+    int osType;
+
+    // Use in jb tap/swipe event
+    QPoint posPress;
 };
 
 class ADB : public QObject
@@ -244,7 +260,7 @@ signals:
     void deviceFound(void);
     void deviceWaitTimeout(void);
     void deviceDisconnected(void);
-    void newFBFound(int, int, int, int);
+    void newFBFound(int, int, int);
     void newFrame(QByteArray*);
     void error(QString *msg);
 
@@ -252,7 +268,6 @@ private:
     int minigzipDecompress(QByteArray &);
     int screenCap(QByteArray &bytes, int offset = 0);
     int getScreenInfo(const QByteArray &);
-    int getDeviceOSType(void);
     int convertRGBAtoRGB888(QByteArray &, int);
 
     AdbExecutor adbWaiter;
@@ -264,7 +279,6 @@ private:
     int fb_width;
     int fb_height;
     int fb_format;
-    int os_type;
     int bpp;
 };
 

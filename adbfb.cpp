@@ -7,6 +7,7 @@
 
 #include <QThread>
 #include <QMutexLocker>
+#include <QRect>
 
 #include <stdint.h>
 #include <unistd.h>
@@ -35,11 +36,13 @@ void Commander::clear(void)
 
 int Commander::run(bool waitUntilFinished)
 {
+    // Create process when run enable commander
+    // can run in any thread
     if (p == NULL) {
         p = new QProcess();
     }
 
-    //qDebug() << "Exec: " << cmd << " " << args;
+    //DT_TRACE("CMD" << cmd << args.join(" "));
     p->start(cmd, args);
 
     if (waitUntilFinished) {
@@ -63,7 +66,7 @@ int Commander::wait(int msecs)
     return QProcess::NotRunning;
 }
 
-QList<QByteArray> Commander::outputLineHas(const char * key,
+QList<QByteArray> Commander::outputLinesHas(const char * key,
                                            bool ignoreComment)
 {
     QList<QByteArray> lines;
@@ -128,6 +131,15 @@ int ADB::increaseDelay()
     return delay;
 }
 
+AdbExecObject::AdbExecObject()
+{
+    lcdBrightness = 0;
+    osType = ANDROID_JB;
+
+    connect(this, SIGNAL(newCommand(QStringList)),
+            SLOT(execCommand(QStringList)));
+}
+
 int AdbExecObject::getDeviceLCDBrightness()
 {
     int ret;
@@ -144,6 +156,23 @@ int AdbExecObject::getDeviceLCDBrightness()
     }
 
     return lcdBrightness;
+}
+
+int AdbExecObject::getDeviceOSType(void)
+{
+    AdbExecutor adb;
+    int os = ANDROID_ICS;
+
+    adb.addArg("shell");
+    adb.addArg("input");
+    adb.run();
+
+    if (adb.outputHas("swipe")) {
+        os = ANDROID_JB;
+    }
+    //qDebug() << "OS type:" << os << adb.output;
+
+    return os;
 }
 
 QStringList AdbExecObject::newKeyEventCommand(int deviceIdx,
@@ -207,7 +236,7 @@ bool AdbExecObject::getKeyCodeFromKeyLayout(const QString &keylayout,
     args << (QString(KEYLAYOUT_DIR) + keylayout + KEYLAYOUT_EXT);
     adb.run(args);
 
-    lines = adb.outputLineHas(key);
+    lines = adb.outputLinesHas(key);
     for (int i = 0; i < lines.size(); ++i) {
         QByteArray &line = lines[i];
 
@@ -230,6 +259,8 @@ void AdbExecObject::probeDevicePowerKey(void)
     QList<QByteArray> lines;
     AdbExecutor adb;
     QStringList args;
+
+    osType = getDeviceOSType();
 
     // Force brigntess to 100 so that first fb will
     // not be ignored because brightness is unknown,
@@ -319,6 +350,111 @@ void AdbExecObject::wakeUpDevice()
     }
 }
 
+void AdbExecObject::sendVirtualClick(QPoint pos,
+                                     bool press, bool release)
+{
+    DT_TRACE("CLICK" << pos.x() << pos.y() << press << release);
+
+    switch(osType) {
+    case ANDROID_ICS:
+        sendEvent(pos, press, release);
+        break;
+    case ANDROID_JB:
+        // Mouse move, ignored.
+        // Both true is impossible
+        if (press || release) {
+            sendTap(pos, press, release);
+        }
+        break;
+    default:
+        qDebug() << "Unknown OS type, click dropped.";
+    }
+}
+
+void AdbExecObject::sendTap(QPoint pos, bool press, bool release)
+{
+    QStringList cmds;
+    bool isTap = false;
+
+    if (press) {
+        posPress = pos;
+        return;
+    }
+
+    isTap = QRect(-1, -1, 2, 2).contains(pos - posPress);
+    //qDebug() << "Tap as swipe" << isTap;
+
+    cmds.clear();
+    cmds << "shell";
+
+    if (isTap) {
+        cmds << "input tap";
+    } else {
+        cmds << "input swipe";
+        cmds << QString::number(posPress.x());
+        cmds << QString::number(posPress.y());
+    }
+
+    cmds << QString::number(pos.x());
+    cmds << QString::number(pos.y());
+    //qDebug() << cmds;
+
+    emit newCommand(cmds);
+}
+
+QStringList AdbExecObject::newEventCmd (int type, int code, int value)
+{
+    QStringList event;
+
+    event.clear();
+    //TODO: Use correct dev to send event
+    event << "sendevent" << "/dev/input/event0";
+    event << QString::number(type);
+    event << QString::number(code);
+    event << QString::number(value);
+    event << ";";
+
+    return event;
+}
+
+void AdbExecObject::sendEvent(QPoint pos, bool press, bool release)
+{
+    QStringList cmds;
+
+    cmds.clear();
+    cmds << "shell";
+
+    cmds << newEventCmd(3, 0x35, pos.x());
+    cmds << newEventCmd(3, 0x36, pos.y());
+    if (press) {
+        cmds << newEventCmd(1, 0x14a, 1);
+    }
+
+    cmds << newEventCmd(3, 0, pos.x());
+    cmds << newEventCmd(3, 1, pos.y());
+    cmds << newEventCmd(0, 0, 0);
+
+    if (release) {
+        cmds << newEventCmd(1, 0x14a, 0);
+        cmds << newEventCmd(0, 0, 0);
+    }
+    //DT_TRACE("Send ICS mouse event" << pos << press << release);
+
+    emit newCommand(cmds);
+}
+
+void AdbExecObject::sendVirtualKey(int key)
+{
+    QStringList cmds;
+
+    cmds.clear();
+    cmds << "shell" << "input keyevent";
+    cmds << QString::number(key);
+
+    DT_TRACE("KEY" << key);
+    emit newCommand(cmds);
+}
+
 FBEx::FBEx()
 {
     doCompress = false;
@@ -366,7 +502,7 @@ void FBEx::setConnected(bool state)
     ADB::setConnected(state);
 
     if (state) {
-	    emit newFBFound(fb_width, fb_height, fb_format, os_type);
+        emit newFBFound(fb_width, fb_height, fb_format);
     } else {
 	    DT_TRACE("Device disconnected");
 	    emit deviceDisconnected();
@@ -491,23 +627,6 @@ int FBEx::getScreenInfo(const QByteArray &bytes)
     return 0;
 }
 
-int FBEx::getDeviceOSType(void)
-{
-    AdbExecutor adb;
-    int os = ANDROID_ICS;
-
-    adb.addArg("shell");
-    adb.addArg("input");
-    adb.run();
-
-    if (adb.outputHas("swipe")) {
-        os = ANDROID_JB;
-    }
-    //qDebug() << "OS type:" << os << adb.output;
-
-    return os;
-}
-
 void FBEx::waitForDevice()
 {
     if (! adbWaiter.isRunning()) {
@@ -589,8 +708,6 @@ void FBEx::probeFBInfo()
         setConnected(false);
         return;
     }
-
-    os_type = getDeviceOSType();
 
     // Only successfully probe means device connected;
     setConnected(true);

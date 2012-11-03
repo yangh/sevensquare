@@ -30,11 +30,6 @@ FBCellItem::FBCellItem()
     fb = QPixmap(fbSize);
     fb.fill(QColor(Qt::black));
     ratio = QSizeF(1.0, 1.0);
-
-    // Clickable
-    setFlags(QGraphicsItem::ItemIsSelectable);
-    qDebug() << "Accepted mouse buttons" << acceptedMouseButtons();
-    setFlag(ItemIsMovable);
 }
 
 FBCellItem::FBCellItem(const QPixmap &p)

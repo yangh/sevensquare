@@ -67,19 +67,17 @@ protected:
     void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
     void mouseReleaseEvent(QGraphicsSceneMouseEvent *event);
     void keyReleaseEvent(QKeyEvent * event);
-    CubeCellItem *createCellItem(const char* name, int size, int key = 0);
 
-    QStringList newEventCmd (int type, int code, int value);
-    void sendTap(QPoint pos, bool, bool);
-    void sendEvent(QPoint pos, bool, bool);
-    void sendVirtualClick(QPointF, bool, bool);
-    void sendVirtualKey(int key);
+    CubeCellItem *createCellItem(const char* name, int size, int key = 0);
     void setMenuIconsPos(void);
     void setPointerPos(QPointF, bool);
     bool poinInFB(QPointF);
+    bool sendVirtualClick(QPointF posScene, bool, bool);
+    bool sendVirtualKey(int key);
+    bool isConnectedAndWakeup(void);
 
 public slots:
-    void newFBFound(int, int, int, int);
+    void newFBFound(int, int, int);
     void updateFBCell(QByteArray *);
     void deviceConnected(void);
     void deviceDisconnected(void);
@@ -95,6 +93,9 @@ signals:
     void updateDeviceBrightness(void);
     void readFrame(void);
 
+    void newVirtualClick(QPoint, bool, bool);
+    void newVirtualKey(int key);
+
 private:
     FBCellItem fb;
     QGraphicsRectItem grayMask;
@@ -104,7 +105,6 @@ private:
     CubeCellItem *menu;
     CubeCellItem *pointer;
 
-    int os_type;
     int fb_width;
     int fb_height;
     int pixel_format;
@@ -120,12 +120,6 @@ private:
 
     AdbExecObject adbex;
     QThread adbThread;
-    QStringList cmds;
-    QPoint posPress;
-
-    // Previous mouse event pos, used to filter
-    // out too mouch event.
-    QPoint posPrevious;
 
     // Qt key, Android key map
     QMap<int, int> keys;
