@@ -8,6 +8,7 @@
 #include <QThread>
 
 #include <stdint.h>
+#include <unistd.h>
 #include <zlib.h>
 
 #include "adbfb.h"
@@ -64,6 +65,30 @@ int Commander::wait(int msecs)
     return QProcess::NotRunning;
 }
 
+QList<QByteArray> Commander::outputLineHas(const char * key,
+                                           bool ignoreComment)
+{
+    QList<QByteArray> lines;
+    QList<QByteArray> matches;
+
+    if (output.length() == 0)
+            return matches;
+
+    lines = output.split('\n');
+    for (int i = 0; i < lines.size(); ++i) {
+        QByteArray line = lines[i];
+
+        if (ignoreComment && line[0] == '#')
+            continue;
+
+        if (line.indexOf(key) > 0) {
+                matches.append(line);
+        }
+    }
+
+    return matches;
+}
+
 ADB::ADB()
 {
     delay = DELAY_FAST;
@@ -91,6 +116,172 @@ void ADB::setDelay(int d)
     delay = d;
     delayCond.wakeAll();
     mutex.unlock();
+}
+
+bool getKeyCodeFromKeyLayout(const QString &kl, const char *key, int &code)
+{
+    AdbExecutor adb;
+    QList<QByteArray> lines;
+
+    adb.run(QStringList() << "shell" << "cat" << (QString(KEYLAYOUT_DIR) + kl));
+
+    lines = adb.outputLineHas(key);
+    for (int i = 0; i < lines.size(); ++i) {
+        QByteArray &line = lines[i];
+
+        // make sure it's key line
+        if (line.indexOf("key") == 0) {
+            QList<QByteArray> words = line.split(' ');
+            code = words[1].toInt();
+            return true;
+        }
+    }
+
+    return false;
+}
+
+int AdbExecObject::getDeviceLCDBrightness()
+{
+    AdbExecutor adb;
+
+    adb.run(QStringList() << "shell" << "cat" << SYS_LCD_BACKLIGHT);
+    if (! adb.exitSuccess())
+        return -1;
+
+    lcdBrightness = adb.output.simplified().toInt();
+    DT_TRACE("Screen brightness" << lcdBrightness);
+
+    return lcdBrightness;
+}
+
+#define INPUT_DEV_PREFIX "/dev/input/event"
+
+QStringList newKeyEventCommand(int deviceIdx, int type, int code, int value)
+{
+    QStringList event;
+
+    event << "sendevent";
+    event << (QString(INPUT_DEV_PREFIX) + QString::number(deviceIdx));
+    event << QString::number(type);
+    event << QString::number(code);
+    event << QString::number(value);
+    event << ";";
+
+    return event;
+}
+
+QStringList newKeyEventCommandSequence(int deviceIdx, int code)
+{
+    QStringList cmds;
+
+    cmds << newKeyEventCommand(deviceIdx, 1, code, 1);
+    cmds << newKeyEventCommand(deviceIdx, 1, code, 0);
+    cmds << newKeyEventCommand(deviceIdx, 0, 0, 0);
+
+    return cmds;
+}
+
+void sendPowerKey(int deviceIdx, int code)
+{
+    AdbExecutor adb;
+    QStringList args;
+
+    args << "shell";
+    args << newKeyEventCommandSequence(deviceIdx, code);
+    adb.run(args);
+}
+
+void AdbExecObject::probeDevicePowerKey(void)
+{
+    int code;
+    QList<QByteArray> lines;
+    AdbExecutor adb;
+
+    // Get it as soon as possible
+    getDeviceLCDBrightness();
+
+    // Find POWER key in the key layout files
+    adb.run(QStringList() << "shell" << "ls" << KEYLAYOUT_DIR);
+    if (! adb.exitSuccess())
+        return;
+
+    lines = adb.output.split('\n');
+
+    for (int i = 0; i < lines.size(); ++i) {
+        QByteArray &line = lines[i];
+
+        if (getKeyCodeFromKeyLayout(line, "POWER", code)) {
+            DT_TRACE("Found POWER key define in" << line << code);
+            keyInfos.append(DeviceKeyInfo(line.mid(0, line.length() - 3).data(),
+                                          DeviceKeyInfo::DEVICE_IDX_MAX, code));
+        }
+    }
+
+    // Find input device index from /proc
+    adb.run(QStringList() << "shell" << "cat" << PROC_INPUT_DEVICES);
+    if (! adb.exitSuccess())
+        return;
+
+    lines = adb.outputLineHas("Name=");
+
+    for (int idx = 0; idx < keyInfos.size(); idx++) {
+        DeviceKeyInfo &info = keyInfos[idx];
+
+        for (int i = 0; i < lines.size(); ++i) {
+            QByteArray &line = lines[i];
+
+            if (line.indexOf(info.keyLayout) > 0) {
+
+                info.eventDeviceIdx = i;
+                DT_TRACE("Power key from" << info.keyLayout <<
+                         info.powerKeycode << info.eventDeviceIdx);
+                continue;
+            }
+        }
+    }
+
+    for (int idx = 0; idx < keyInfos.size(); idx++) {
+        DeviceKeyInfo &info = keyInfos[idx];
+
+        if (info.eventDeviceIdx == DeviceKeyInfo::DEVICE_IDX_MAX) {
+            keyInfos.removeAt(idx);
+        }
+    }
+
+    if (keyInfos.size() > 0){
+        wakeUpDevice();
+    }
+
+    return;
+}
+
+void AdbExecObject::wakeUpDevice()
+{
+    int ret;
+
+    if (keyInfos.size() == 0) {
+        DT_TRACE("Power key info not found");
+        return;
+    }
+
+    ret = getDeviceLCDBrightness();
+    if (ret > 0) {
+        return;
+    }
+
+    // Send power key to wake up screen
+    for (int i = 0; i < keyInfos.size(); ++i) {
+        DeviceKeyInfo &info = keyInfos[i];
+
+        DT_TRACE("Wake up screen via" << info.keyLayout
+                 << info.powerKeycode << info.eventDeviceIdx);
+        sendPowerKey(info.eventDeviceIdx, info.powerKeycode);
+        usleep(300 * 1000);
+        if (getDeviceLCDBrightness() > 0) {
+            emit screenTurnedOn();
+            break;
+        }
+    }
 }
 
 FBEx::FBEx()

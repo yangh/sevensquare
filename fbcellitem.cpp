@@ -42,6 +42,7 @@ FBCellItem::FBCellItem(const QPixmap &p)
 void FBCellItem::setPixmap(const QPixmap &p)
 {
     pixmap = p;
+    fb = p;
     cellSize = pixmap.size();
 }
 
@@ -70,15 +71,15 @@ void FBCellItem::setFBSize(QSize size)
     if (fbSize == size)
         return;
 
-    //qDebug() << "New FB size:" << size << fbSize;
+    qDebug() << "New FB size:" << size << fbSize;
     fbSize = size;
 
-    fb = QPixmap(fbSize);
-    fb.fill(QColor(Qt::black));
+    fb = fb.scaled(size);
 
     w = cellSize.width();
     h = fbSize.height() * ((float) w / fbSize.width());
     cellSize = QSize(w, h);
+    qDebug() << "New fb cell size" << cellSize;
 
     update(boundingRect());
 }
@@ -128,7 +129,7 @@ void FBCellItem::paintFB(QByteArray *bytes)
     QPainter fbPainter;
     QImage image;
 
-    DT_TRACE("FB PAINT RAW S"<< rawFBDataFormat);
+    DT_TRACE("FB PAINT RAW S");
     fbPainter.begin(&fb);
     image = QImage((const uchar*)bytes->data(),
                    fbSize.width(), fbSize.height(),

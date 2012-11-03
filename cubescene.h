@@ -27,7 +27,7 @@
 #include "adbfb.h"
 #include "debug.h"
 
-#define WINDOW_BORDER 0
+#define WINDOW_BORDER 2
 #define KEY_BTN_SIZE  32
 #define POINTER_ANCHOR_SIZE 24
 
@@ -50,24 +50,6 @@ signals:
 private:
     QTimer timer;
     QSize delayedSize;
-};
-
-class AdbEx : public QObject
-{
-    Q_OBJECT
-
-public:
-    AdbEx() {}
-
-public slots:
-    void execCmd(const QStringList cmds) {
-        AdbExecutor adb;
-        //qDebug() << "AdbEx" << cmds;
-        adb.run(cmds);
-    }
-
-signals:
-    void error(QString *msg);
 };
 
 class CubeScene : public QGraphicsScene
@@ -100,13 +82,18 @@ protected:
 public slots:
     void newFBFound(int, int, int, int);
     void updateFBCell(QByteArray *);
+    void deviceConnected(void);
     void deviceDisconnected(void);
+    void deviceScreenTurnedOff(void);
+    void deviceScreenTurnedOn(void);
     void cubeResize(QSize);
 
 signals:
     void sceneSizeChanged(QSize);
     void execAdbCmd(const QStringList);
     void waitForDevice(void);
+    void wakeUpDevice(void);
+    void updateDeviceBrightness(void);
     void readFrame(void);
 
 private:
@@ -124,6 +111,7 @@ private:
     int pixel_format;
     int cube_width;
     int cube_height;
+    unsigned long waitCount;
 
     QMutex update_mutex;
     QPixmap pixmap;
@@ -131,7 +119,7 @@ private:
     FBEx reader;
     QThread fbThread;
 
-    AdbEx adbex;
+    AdbExecObject adbex;
     QThread adbThread;
     QStringList cmds;
     QPoint posPress;

@@ -19,7 +19,7 @@
 #include "debug.h"
 
 #define DEFAULT_FB_WIDTH	320
-#define DEFAULT_FB_HEIGHT	533
+#define DEFAULT_FB_HEIGHT	530
 
 enum {
     ANDROID_ICS,
@@ -44,6 +44,7 @@ public:
 
     int run(const QStringList &strs, bool w = true)
     {
+        args.clear();
         args << strs;
         return run(w);
     }
@@ -67,6 +68,8 @@ public:
 		&& output.indexOf(str) > 0);
     }
 
+    QList<QByteArray> outputLineHas(const char *, bool ignoreComment = true);
+
     QByteArray error;
     QByteArray output;
     int ret;
@@ -87,6 +90,68 @@ public:
     void printErrorInfo() {
         DT_ERROR("ADB" << args.join(" ") << ret << error.simplified());
     }
+};
+
+class DeviceKeyInfo
+{
+public:
+    DeviceKeyInfo(const QString &name, int i, int code):
+        keyLayout(name),
+        eventDeviceIdx(i),
+        powerKeycode(code) {}
+
+    enum {
+        DEVICE_IDX_MAX = 0xFFFF
+    };
+
+    QString keyLayout;
+    int eventDeviceIdx;
+    int powerKeycode;
+};
+
+class AdbExecObject : public QObject
+{
+    Q_OBJECT
+
+public:
+    AdbExecObject() {
+        lcdBrightness = 0;
+    }
+
+    int screenBrightness(void) { return lcdBrightness; }
+    int screenIsOn() { return lcdBrightness > 0; }
+
+#define KEYLAYOUT_DIR  "/system/usr/keylayout/"
+#define PROC_INPUT_DEVICES "/proc/bus/input/devices"
+    int getDeviceLCDBrightness();
+
+public slots:
+    void execCmd(const QStringList cmds) {
+        AdbExecutor adb;
+        //qDebug() << "AdbExecObject" << cmds;
+        adb.run(cmds);
+    }
+
+    void probeDevicePowerKey(void);
+    void wakeUpDevice(void);
+
+    void updateDeviceBrightness(void) {
+        getDeviceLCDBrightness();
+
+        if (lcdBrightness == 0) {
+            DT_TRACE("Screen is turned off");
+            emit screenTurnedOff();
+        }
+    }
+
+signals:
+    void screenTurnedOff(void);
+    void screenTurnedOn(void);
+    void error(QString *msg);
+
+private:
+    QList<DeviceKeyInfo> keyInfos;
+    int lcdBrightness;
 };
 
 class ADB : public QObject
@@ -113,9 +178,11 @@ public:
     void setMiniDelay() { delay = DELAY_MINI; }
     void setMaxiDelay() { delay = DELAY_MAX; }
 
-    void increaseDelay() {
+    int increaseDelay() {
         if (delay < DELAY_MAX)
             delay += DELAY_STEP;
+
+        return delay;
     }
 
     bool isConnected(void)      { return connected; }
@@ -140,8 +207,8 @@ public:
 #define FB_DATA_OFFSET (12)
 #define FB_BPP_MAX	4
 #define GZ_FILE		"/dev/shm/android-fb.gz"
-#define RAW_FILE	"/dev/shm/android-fb"
 #define MINIGZIP	"minigzip"
+#define SYS_LCD_BACKLIGHT "/sys/class/leds/lcd-backlight/brightness"
 
     enum {
         PIXEL_FORMAT_RGBX_8888 = 1,

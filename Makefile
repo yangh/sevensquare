@@ -11,5 +11,5 @@ app:
 
 clean:
 	make -f Makefile.qmake clean
-	rm -f Makefile.qmake
+	#rm -f Makefile.qmake
 	rm -f keymap-generated.h

@@ -60,8 +60,8 @@ CubeScene::CubeScene(QObject * parent) :
     fb_height = DEFAULT_FB_HEIGHT;
     pixel_format = 1;
     os_type =  ANDROID_JB;
+    waitCount = 1;
 
-    pixmap = QPixmap(":/images/sandbox.jpg");
     setItemIndexMethod(QGraphicsScene::NoIndex);
     setBackgroundBrush(QBrush(Qt::gray));
 
@@ -71,9 +71,14 @@ CubeScene::CubeScene(QObject * parent) :
                           this, SLOT(deviceDisconnected(void)));
     QObject::connect(&reader, SIGNAL(deviceWaitTimeout(void)),
                           this, SLOT(deviceDisconnected(void)));
-
     QObject::connect(&reader, SIGNAL(newFBFound(int, int, int, int)),
                           this, SLOT(newFBFound(int, int, int, int)));
+    this->connect(&reader, SIGNAL(deviceFound()),
+                  SLOT(deviceConnected()));
+    this->connect(&adbex, SIGNAL(screenTurnedOff()),
+                  SLOT(deviceScreenTurnedOff()));
+    this->connect(&adbex, SIGNAL(screenTurnedOn()),
+                  SLOT(deviceScreenTurnedOn()));
 
     reader.moveToThread(&fbThread);
     reader.connect(this, SIGNAL(readFrame(void)),
@@ -89,6 +94,12 @@ CubeScene::CubeScene(QObject * parent) :
     adbex.moveToThread(&adbThread);
     adbex.connect(this, SIGNAL(execAdbCmd(const QStringList)),
                   SLOT(execCmd(const QStringList)));
+    adbex.connect(&reader, SIGNAL(deviceFound()),
+                  SLOT(probeDevicePowerKey(void)));
+    adbex.connect(this, SIGNAL(wakeUpDevice()),
+                  SLOT(wakeUpDevice()));
+    adbex.connect(this, SIGNAL(updateDeviceBrightness()),
+                  SLOT(updateDeviceBrightness()));
     adbThread.start();
 
     initialize();
@@ -104,12 +115,40 @@ CubeScene::~CubeScene()
     fbThread.wait();
 }
 
+void CubeScene::deviceConnected(void)
+{
+    promptItem.setText("Connected...");
+}
+
 void CubeScene::deviceDisconnected(void)
 {
+    QString bubble("Waiting");
+
+    for (unsigned long i = 0; i < waitCount % 5; i++)
+        bubble.append(".");
+    waitCount++;
+
     grayMask.setVisible(true);
+    promptItem.setText(bubble);
     promptItem.setVisible(true);
 
     emit waitForDevice();
+}
+
+void CubeScene::deviceScreenTurnedOff(void)
+{
+    grayMask.setVisible(true);
+    promptItem.setText("Click to wakeup...");
+    promptItem.setVisible(true);
+}
+
+void CubeScene::deviceScreenTurnedOn(void)
+{
+    emit readFrame();
+
+    grayMask.setVisible(false);
+    //promptItem.setText("Screen off, click to wakeup...");
+    promptItem.setVisible(false);
 }
 
 void CubeScene::cubeResize(QSize size)
@@ -123,6 +162,7 @@ void CubeScene::cubeResize(QSize size)
 
     int height = cube_height + home->boundingRect().height();
     grayMask.setRect(QRect(0, 0, cube_width, height));
+    promptItem.setPos(20, cube_height/2);
     setSceneRect(QRect(0, 0, cube_width, height));
 }
 
@@ -163,7 +203,11 @@ void CubeScene::updateFBCell(QByteArray *bytes)
 {
     int ret;
 
-    emit readFrame();
+    if (adbex.screenIsOn()) {
+        emit readFrame();
+    } else {
+        return;
+    }
 
     //DT_TRACE("New FB frame received");
     grayMask.setVisible(false);
@@ -174,7 +218,9 @@ void CubeScene::updateFBCell(QByteArray *bytes)
     if (ret == FBCellItem::UPDATE_DONE) {
         reader.setMiniDelay();
     } else {
-        reader.increaseDelay();
+        if(reader.increaseDelay() >= FBEx::DELAY_NORMAL) {
+            emit updateDeviceBrightness();
+        }
     }
 }
 
@@ -210,27 +256,32 @@ CubeCellItem *CubeScene::createCellItem(const char* name, int size, int key)
 
 void CubeScene::initialize (void)
 {
+    pixmap = QPixmap(":/images/sandbox.jpg");
+
     if (! pixmap.width()) {
         pixmap = QPixmap(DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT);
         pixmap.fill(Qt::black);
+    } else {
+        pixmap = pixmap.scaled(QSize(DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT),
+                               Qt::IgnoreAspectRatio,
+                               Qt::SmoothTransformation);
     }
 
-    cube_width = pixmap.width();
-    cube_height = fb_height * ((float) cube_width / fb_width);
-    //qDebug() << "Cube size:" << cube_width << cube_height;
+    cube_width = fb_width;
+    cube_height = fb_height;
 
-    fb.setPixmap(pixmap.scaled(QSize(cube_width, cube_height)));
+    fb.setPixmap(pixmap);
     fb.setPos(QPoint(0, 0));
     fb.setZValue(0); /* lay in the bottom*/
     fb.setFBSize(QSize(fb_width, fb_height));
     fb.setVisible(true);
     addItem(&fb);
 
-    promptItem.setText("ADB wait...");
-    promptItem.setBrush(QBrush(QColor(250, 250, 10, 255)));
+    promptItem.setText("Waiting...");
+    promptItem.setBrush(QBrush(QColor(QColor(0, 153,204))));
     promptItem.setPen(QPen(QColor(20, 20, 20)));
     promptItem.setFont(QFont("Arail", 16, QFont::Bold));
-    promptItem.setPos(20, 20);
+    promptItem.setPos(20, cube_height / 2);
     promptItem.setZValue(100); /* lay in the top*/
     promptItem.setVisible(true);
     addItem(&promptItem);
@@ -245,7 +296,7 @@ void CubeScene::initialize (void)
 
     grayMask.setRect(QRectF(0, 0, cube_width,
                             cube_height + home->boundingRect().height()));
-    grayMask.setBrush(QBrush(QColor(128, 128, 128, 135)));
+    grayMask.setBrush(QBrush(QColor(128, 128, 128, 140)));
     grayMask.setPen(Qt::NoPen);
     grayMask.setZValue(99);
     grayMask.setVisible(true);
@@ -253,7 +304,7 @@ void CubeScene::initialize (void)
 
     pointer = createCellItem(":/images/pointer_spot_anchor.png",
                              POINTER_ANCHOR_SIZE);
-    grayMask.setZValue(101);
+    pointer->setZValue(101);
     pointer->setVisible(false);
     addItem(pointer);
 
@@ -277,6 +328,15 @@ void CubeScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
     QPointF pos = event->scenePos();
 
     setPointerPos(pos, true);
+
+    if (! reader.isConnected()) {
+        return;
+    }
+
+    if (! adbex.screenIsOn()) {
+        emit wakeUpDevice();
+        return;
+    }
 
     if (poinInFB(pos)) {
         sendVirtualClick(pos, true, false);
@@ -306,10 +366,11 @@ void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
     CubeCellItem *cell = 0;
     QPointF pos = event->scenePos();
 
-    DT_TRACE("SCREEN" << pos.x() << pos.y());
+    DT_TRACE("SCREEN Click" << pos.x() << pos.y());
     setPointerPos(pos, false);
 
-    if (! reader.isConnected()) {
+    if (! reader.isConnected()
+            || ! adbex.screenIsOn()) {
         return;
     }
 
