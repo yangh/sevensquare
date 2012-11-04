@@ -16,6 +16,7 @@
 #include <QWaitCondition>
 #include <QFile>
 #include <QPoint>
+#include <QTimer>
 
 #include "debug.h"
 
@@ -104,6 +105,47 @@ public:
     }
 };
 
+class ADB : public QObject
+{
+    Q_OBJECT
+
+public:
+    ADB();
+    ~ADB();
+
+    enum {
+        DELAY_STEP      = 150,
+        DELAY_MINI      = 100,
+        DELAY_FAST      = 200,
+        DELAY_NORMAL    = 400,
+        DELAY_SLOW      = 800,
+        DELAY_MAX       = 2000,
+        DELAY_INFINITE  = ULONG_MAX
+    };
+
+    void loopDelay();
+    void setDelay(int d);
+
+    void setMiniDelay() { delay = DELAY_MINI; }
+    void setMaxiDelay() { delay = DELAY_MAX; }
+
+    int increaseDelay();
+
+    bool isConnected(void)        { return connected; }
+    void setConnected(bool state) { connected = state; }
+
+signals:
+    void deviceFound(void);
+    void deviceWaitTimeout(void);
+    void deviceDisconnected(void);
+
+private:
+    QMutex mutex;
+    QWaitCondition delayCond;
+    unsigned long delay;
+    bool connected;
+};
+
 class DeviceKeyInfo
 {
 public:
@@ -129,7 +171,7 @@ public:
 #define SYS_LCD_BACKLIGHT   "/sys/class/leds/lcd-backlight/brightness"
 #define SYS_INPUT_NAME_LIST "/sys/class/input/input*/name"
 
-class AdbExecObject : public QObject
+class AdbExecObject : public ADB
 {
     Q_OBJECT
 
@@ -176,47 +218,12 @@ signals:
 
 private:
     QList<DeviceKeyInfo> keyInfos;
+    QTimer screenOnWaiteTimer;
     int lcdBrightness;
     int osType;
 
     // Use in jb tap/swipe event
     QPoint posPress;
-};
-
-class ADB : public QObject
-{
-    Q_OBJECT
-
-public:
-    ADB();
-    ~ADB();
-
-    enum {
-        DELAY_STEP      = 150,
-        DELAY_MINI      = 100,
-        DELAY_FAST      = 200,
-        DELAY_NORMAL    = 400,
-        DELAY_SLOW      = 800,
-        DELAY_MAX       = 2000,
-        DELAY_INFINITE  = ULONG_MAX
-    };
-
-    void loopDelay();
-    void setDelay(int d);
-
-    void setMiniDelay() { delay = DELAY_MINI; }
-    void setMaxiDelay() { delay = DELAY_MAX; }
-
-    int increaseDelay();
-
-    bool isConnected(void)        { return connected; }
-    void setConnected(bool state) { connected = state; }
-
-private:
-    QMutex mutex;
-    QWaitCondition delayCond;
-    unsigned long delay;
-    bool connected;
 };
 
 class FBEx: public ADB
@@ -260,9 +267,6 @@ public slots:
     void readFrame();
 
 signals:
-    void deviceFound(void);
-    void deviceWaitTimeout(void);
-    void deviceDisconnected(void);
     void newFBFound(int, int, int);
     void newFrame(QByteArray*);
     void error(QString *msg);

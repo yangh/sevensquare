@@ -133,6 +133,9 @@ int ADB::increaseDelay()
 
 AdbExecObject::AdbExecObject()
 {
+    screenOnWaiteTimer.setInterval(1000);
+    QObject::connect(&screenOnWaiteTimer, SIGNAL(timeout()),
+                     this, SLOT(updateDeviceBrightness()));
     lcdBrightness = 0;
     osType = ANDROID_JB;
 
@@ -146,16 +149,15 @@ int AdbExecObject::getDeviceLCDBrightness()
     AdbExecutor adb;
 
     adb.run(QStringList() << "shell" << "cat" << SYS_LCD_BACKLIGHT);
-    if (! adb.exitSuccess())
+    if (! adb.exitSuccess()) {
+        emit deviceDisconnected();
         return -1;
-
-    ret = adb.output.simplified().toInt();
-    if (ret != lcdBrightness) {
-        DT_TRACE("Screen brightness" << ret);
-        lcdBrightness = ret;
     }
 
-    return lcdBrightness;
+    ret = adb.output.simplified().toInt();
+    //DT_TRACE("Screen brightness" << ret);
+
+    return ret;
 }
 
 int AdbExecObject::getDeviceOSType(void)
@@ -213,14 +215,25 @@ void AdbExecObject::sendPowerKey(int deviceIdx, int code)
     adb.run(args);
 }
 
-
 void AdbExecObject::updateDeviceBrightness(void)
 {
-    getDeviceLCDBrightness();
+    int ret;
 
-    if (lcdBrightness == 0) {
+    ret = getDeviceLCDBrightness();
+
+    if (ret == lcdBrightness)
+        return;
+
+    lcdBrightness = ret;
+
+    if (ret == 0) {
         DT_TRACE("Screen is turned off");
+        screenOnWaiteTimer.start();
         emit screenTurnedOff();
+    } else {
+        DT_TRACE("Screen is turned on");
+        screenOnWaiteTimer.stop();
+        emit screenTurnedOn();
     }
 }
 
@@ -324,6 +337,7 @@ void AdbExecObject::wakeUpDevice()
         // Alway notify screen state to avoid
         // can't un-freeze the screen when user pressed
         // physcle key to waked up the screen
+        lcdBrightness = ret;
         emit screenTurnedOn();
         return;
     }
@@ -342,6 +356,7 @@ void AdbExecObject::wakeUpDevice()
 
         usleep(300 * 1000);
         if (getDeviceLCDBrightness() > 0) {
+            lcdBrightness = ret;
             emit screenTurnedOn();
             break;
         } else {
