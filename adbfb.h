@@ -241,8 +241,11 @@ public:
 
     void setCompress(bool value);
     bool checkCompressSupport(void);
-    bool supportCompress (void)    { return doCompress; }
-    int  getBPP(void)              { return bpp; }
+    bool supportCompress (void)     { return doCompress; }
+    int  getBPP(void)               { return bpp; }
+
+    int width()                     { return fb_width; }
+    int height()                    { return fb_height; }
 
     int length() {
         return fb_width * fb_height * bpp;

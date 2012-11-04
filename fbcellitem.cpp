@@ -12,6 +12,7 @@
 
 #include <stdint.h>
 
+#include "cubescene.h"
 #include "fbcellitem.h"
 #include "debug.h"
 
@@ -30,6 +31,9 @@ FBCellItem::FBCellItem()
     fb = QPixmap(fbSize);
     fb.fill(QColor(Qt::black));
     ratio = QSizeF(1.0, 1.0);
+
+    //setFlag(QGraphicsItem::ItemIsSelectable);
+    //setFlag(QGraphicsItem::ItemIsMovable);
 }
 
 FBCellItem::FBCellItem(const QPixmap &p)
@@ -42,11 +46,6 @@ void FBCellItem::setPixmap(const QPixmap &p)
     pixmap = p;
     fb = p;
     cellSize = pixmap.size();
-}
-
-QRectF FBCellItem::boundingRect() const
-{
-    return QRectF(QPoint(0, 0), cellSize);
 }
 
 void FBCellItem::setCellSize(QSize size)
@@ -65,39 +64,37 @@ void FBCellItem::setCellSize(QSize size)
 
 void FBCellItem::setFBSize(QSize size)
 {
-    QMutexLocker locker(&mutex);
     int w, h;
 
     if (fbSize == size)
         return;
+    {
+        QMutexLocker locker(&mutex);
 
-    //qDebug() << "New FB size:" << size << fbSize;
-    fbSize = size;
+        //qDebug() << "New FB size:" << size << fbSize;
+        fbSize = size;
+        fb = fb.scaled(size);
 
-    fb = fb.scaled(size);
+        w = cellSize.width();
+        h = fbSize.height() * ((float) w / fbSize.width());
+    }
 
-    w = cellSize.width();
-    h = fbSize.height() * ((float) w / fbSize.width());
-    cellSize = QSize(w, h);
+    setCellSize(QSize(w, h));
     //qDebug() << "New fb cell size" << cellSize;
-
-    ratio = QSizeF((qreal) fbSize.width() / cellSize.width(),
-                   (qreal) fbSize.height() / cellSize.height());
-    update(boundingRect());
 }
 
 void FBCellItem::setFBDataFormat(int format)
 {
     switch(format) {
     case FBEx::PIXEL_FORMAT_RGBX_8888:
-	rawFBDataFormat = QImage::Format_RGB888; // converted in adbfb
+        rawFBDataFormat = QImage::Format_RGB888; // converted in adbfb
         break;
     case FBEx::PIXEL_FORMAT_RGBX_565:
-	rawFBDataFormat = QImage::Format_RGB16; // converted from device
-	break;
+        rawFBDataFormat = QImage::Format_RGB16; // converted from device
+        break;
     case FBEx::PIXEL_FORMAT_RGB_888:
-	rawFBDataFormat = QImage::Format_RGB888; // converted from device
-	break;
+        rawFBDataFormat = QImage::Format_RGB888; // converted from device
+        break;
     default:
         DT_ERROR("Unknown fb data format " << format);
     }
@@ -161,14 +158,30 @@ void FBCellItem::paint(QPainter *painter,
 
 void FBCellItem::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
+    sendVirtualClick(event->scenePos(), true, false);
 }
 
 void FBCellItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
+#if 0
+    QPointF pos = event->scenePos();
+
+    // Disable send mouse move event because is too slow
+    // to send event in time to device, even we filter some
+    // out.
+    if (sendVirtualClick(pos, false, false)) {
+        return;
+    }
+#endif
+    QGraphicsItem::mouseMoveEvent(event);
 }
 
 void FBCellItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 {
+    QPointF pos = event->scenePos();
+
+    //DT_TRACE("SCREEN Click" << pos.x() << pos.y());
+    sendVirtualClick(pos, false, true);
 }
 
 QPoint FBCellItem::cellPosToVirtual(QPointF pos)
@@ -177,3 +190,14 @@ QPoint FBCellItem::cellPosToVirtual(QPointF pos)
                   pos.y() * ratio.height());
 }
 
+bool FBCellItem::sendVirtualClick(QPointF scenePos, bool press, bool release)
+{
+    QPoint pos;
+
+    if (cube) {
+        pos = cellPosToVirtual(scenePos);
+        return cube->sendVirtualClick(pos, press, release);
+    }
+
+    return false;
+}

@@ -62,6 +62,9 @@ public:
 
     void initialize (void);
 
+    bool sendVirtualClick(QPoint pos, bool, bool);
+    bool sendVirtualKey(int key);
+
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event);
     void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
@@ -72,9 +75,7 @@ protected:
     void setMenuIconsPos(void);
     void setPointerPos(QPointF, bool);
     bool poinInFB(QPointF);
-    bool sendVirtualClick(QPointF posScene, bool, bool);
-    bool sendVirtualKey(int key);
-    bool isConnectedAndWakeup(void);
+    bool isConnectedAndWakedup(void);
 
 public slots:
     void newFBFound(int, int, int);
@@ -84,6 +85,8 @@ public slots:
     void deviceScreenTurnedOff(void);
     void deviceScreenTurnedOn(void);
     void cubeResize(QSize);
+    void showPromptMessage(QString);
+    void hidePrompt(void);
 
 signals:
     void sceneSizeChanged(QSize);

@@ -118,9 +118,22 @@ CubeScene::~CubeScene()
     fbThread.wait();
 }
 
+void CubeScene::showPromptMessage(QString msg)
+{
+    grayMask.setVisible(true);
+    promptItem.setText(msg);
+    promptItem.setVisible(true);
+}
+
+void CubeScene::hidePrompt(void)
+{
+    promptItem.setVisible(false);
+    grayMask.setVisible(false);
+}
+
 void CubeScene::deviceConnected(void)
 {
-    promptItem.setText("Connected...");
+    showPromptMessage("Connected...");
 }
 
 void CubeScene::deviceDisconnected(void)
@@ -129,28 +142,22 @@ void CubeScene::deviceDisconnected(void)
 
     for (unsigned long i = 0; i < waitCount % 5; i++)
         bubble.append(".");
-    waitCount++;
 
-    grayMask.setVisible(true);
-    promptItem.setText(bubble);
-    promptItem.setVisible(true);
+    showPromptMessage(bubble);
+    waitCount++;
 
     emit waitForDevice();
 }
 
 void CubeScene::deviceScreenTurnedOff(void)
 {
-    grayMask.setVisible(true);
-    promptItem.setText("Click to wakeup...");
-    promptItem.setVisible(true);
+    showPromptMessage("Click to wakeup...");
 }
 
 void CubeScene::deviceScreenTurnedOn(void)
 {
     emit readFrame();
-
-    grayMask.setVisible(false);
-    promptItem.setVisible(false);
+    hidePrompt();
 }
 
 void CubeScene::cubeResize(QSize size)
@@ -210,8 +217,7 @@ void CubeScene::updateFBCell(QByteArray *bytes)
     }
 
     //DT_TRACE("New FB frame received");
-    grayMask.setVisible(false);
-    promptItem.setVisible(false);
+    hidePrompt();
 
     ret = fb.setFBRaw(bytes);
 
@@ -235,9 +241,9 @@ void CubeScene::setMenuIconsPos(void)
     // Assume that icons has same width
     width = home->boundingRect().width();
     padding = (cube_width - width * num - margin * 2) / (num - 1);
-    menu ->setPos(fb.boundingRect().bottomLeft() + QPoint(margin, 0));
-    home ->setPos(menu->pos() + QPoint(width + padding, 0));
-    back->setPos(home->pos() + QPoint(width + padding, 0));
+    menu ->setCubePos(fb.boundingRect().bottomLeft() + QPoint(margin, 0));
+    home ->setCubePos(menu->pos() + QPoint(width + padding, 0));
+    back->setCubePos(home->pos() + QPoint(width + padding, 0));
 }
 
 CubeCellItem *CubeScene::createCellItem(const char* name, int size, int key)
@@ -251,6 +257,7 @@ CubeCellItem *CubeScene::createCellItem(const char* name, int size, int key)
                 Qt::SmoothTransformation);
     item = new CubeCellItem(p);
     item->setKey(key);
+    item->setCube(this);
 
     return item;
 }
@@ -276,6 +283,7 @@ void CubeScene::initialize (void)
     fb.setZValue(0); /* lay in the bottom*/
     fb.setFBSize(QSize(fb_width, fb_height));
     fb.setVisible(true);
+    fb.setCube(this);
     addItem(&fb);
 
     promptItem.setText("Waiting...");
@@ -319,8 +327,8 @@ void CubeScene::setPointerPos(QPointF pos, bool visible)
 {
     QRectF s = pointer->boundingRect();
 
-    pointer->setPos(pos - QPoint(s.width() / 2, s.height() / 2));
     pointer->setVisible(visible);
+    pointer->setPos(pos.toPoint() - QPoint(s.width() / 2, s.height() / 2));
     pointer->update(s);
 }
 
@@ -328,56 +336,24 @@ void CubeScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
     QPointF pos = event->scenePos();
 
-    setPointerPos(pos, true);
-
-    if (sendVirtualClick(pos, true, false)) {
-        return;
-    }
-
     QGraphicsScene::mousePressEvent(event);
+    setPointerPos(pos, true);
 }
 
 void CubeScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
     QPointF pos = event->scenePos();
 
-    setPointerPos(pos, true);
-
-#if 0
-    // Disable send mouse move event because is too slow
-    // to send event in time to device, even we filter some
-    // out.
-    if (sendVirtualClick(pos, false, false)) {
-        return;
-    }
-#endif
-
     QGraphicsScene::mouseMoveEvent(event);
+    setPointerPos(pos, true);
 }
 
 void CubeScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 {
-    CubeCellItem *cell = 0;
     QPointF pos = event->scenePos();
 
-    DT_TRACE("SCREEN Click" << pos.x() << pos.y());
-    setPointerPos(pos, false);
-
-    if (sendVirtualClick(pos, false, true)) {
-        return;
-    }
-
-    // Virtual key on the scene bottom
-    cell = dynamic_cast<CubeCellItem *>(itemAt(pos));
-
-    if (cell) {
-        //qDebug() << "Virtual key on screen" << cell->key();
-        if (sendVirtualKey(cell->key())) {
-            return;
-        }
-    }
-
     QGraphicsScene::mouseReleaseEvent(event);
+    setPointerPos(pos, false);
 }
 
 bool CubeScene::poinInFB(QPointF pos)
@@ -399,36 +375,30 @@ void CubeScene::keyReleaseEvent(QKeyEvent * event)
     QGraphicsScene::keyReleaseEvent(event);
 }
 
-bool CubeScene::isConnectedAndWakeup()
+bool CubeScene::isConnectedAndWakedup()
 {
     if (! reader.isConnected()) {
         return false;
     }
 
     if (! adbex.screenIsOn()) {
-        emit wakeUpDevice();
         return false;
     }
 
     return true;
 }
 
-bool CubeScene::sendVirtualClick(QPointF posScene,
+bool CubeScene::sendVirtualClick(QPoint pos,
                                  bool press, bool release)
 {
-    QPoint pos;
-
-    if (! isConnectedAndWakeup()) {
+    if (! isConnectedAndWakedup()) {
+        emit wakeUpDevice();
         return true;
     }
-
-    if (! poinInFB(posScene))
-        return false;
 
     // Read frame asap
     reader.setDelay(0);
 
-    pos = fb.cellPosToVirtual(posScene);
     emit newVirtualClick(pos, press, release);
 
     return true;
@@ -437,7 +407,8 @@ bool CubeScene::sendVirtualClick(QPointF posScene,
 bool CubeScene::sendVirtualKey(int key)
 {
 
-    if (! isConnectedAndWakeup()) {
+    if (! isConnectedAndWakedup()) {
+        emit wakeUpDevice();
         return true;
     }
 

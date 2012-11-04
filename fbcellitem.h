@@ -12,9 +12,10 @@
 #include <QGraphicsSceneMouseEvent>
 #include <QMutex>
 
+#include "cubecellitem.h"
 #include "adbfb.h"
 
-class FBCellItem : public QGraphicsItem
+class FBCellItem : public CubeCellItem
 {
 
 public:
@@ -35,12 +36,12 @@ public:
     void paintFB(QByteArray *);
 
     QPoint cellPosToVirtual(QPointF pos);
-    QRectF boundingRect() const;
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event);
     void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
     void mouseReleaseEvent(QGraphicsSceneMouseEvent *event);
+    bool sendVirtualClick(QPointF posScene, bool, bool);
 
     void paint(QPainter *painter,
                const QStyleOptionGraphicsItem *option,
@@ -48,14 +49,13 @@ protected:
 
 private:
     QImage::Format rawFBDataFormat;
-    QPixmap pixmap;
-    QSize cellSize;
+    QSize   cellSize;
 
     QPixmap fb;
-    QSize fbSize;
-    QSizeF ratio;
+    QSize   fbSize;
+    QSizeF  ratio;
 
-    QMutex mutex;
+    QMutex  mutex;
     quint16 lastSum;
 };
 

@@ -8,12 +8,22 @@
 #include <QDebug>
 #include <QPainter>
 
+#include "cubescene.h"
 #include "cubecellitem.h"
+
+CubeCellItem::CubeCellItem()
+{
+    cube = 0;
+    virtual_key = 0;
+}
 
 CubeCellItem::CubeCellItem(const QPixmap &pixmap) :
     pixmap(pixmap),
+    cube(0),
     virtual_key(0)
 {
+    //setFlag(QGraphicsItem::ItemIsSelectable);
+    //setFlag(QGraphicsItem::ItemIsMovable);
 }
 
 QRectF CubeCellItem::boundingRect() const
@@ -37,16 +47,30 @@ void CubeCellItem::paint(QPainter *painter,
 
 void CubeCellItem::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
+    //QGraphicsItem::mousePressEvent(event);
+
     //qDebug() << "Item pressed: " << curr_pos;
+    setCubePos(QPoint(1.5, 1) + curr_pos);
+    //update(boundingRect());
 }
 
 void CubeCellItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
     //qDebug() << "Item moveded: " << curr_pos;
+    //QGraphicsItem::mouseMoveEvent(event);
+    //setCubePos(event->scenePos() - QPoint(pixmap.width() / 2,
+     //                                     pixmap.height() / 2));
 }
 
 void CubeCellItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 {
-    //qDebug() << "Item clicked, curr pos: " << curr_pos
-    //        << ", orig pos: " << orig_pos;
+    //QGraphicsItem::mouseReleaseEvent(event);
+
+    setCubePos(curr_pos - QPoint(1.5, 1));
+    //update(boundingRect());
+    qDebug() << "Item released: " << virtual_key;
+
+    if (cube) {
+        cube->sendVirtualKey(virtual_key);
+    }
 }
