@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
                      &scene, SLOT(cubeResize(QSize)));
 
     size = (scene.itemsBoundingRect().size()
-                    + QSize(WINDOW_BORDER, WINDOW_BORDER)).toSize();
+            + QSize(WINDOW_BORDER, WINDOW_BORDER)).toSize();
 
     view.setScene(&scene);
     view.setMinimumSize(size);

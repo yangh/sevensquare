@@ -19,8 +19,8 @@ extern "C" {
 // Qt to Android key map
 // Refer: /usr/include/qt4/Qt/qnamespace.h
 struct keymap {
-	int a;
-	int q;
+    int a;
+    int q;
 } keymaps[] = {
 
 #include "keymap-generated.h"

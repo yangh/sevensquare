@@ -67,7 +67,7 @@ public:
 
     bool outputHas (const char *str) {
         return (output.length() > 0
-		&& output.indexOf(str) > 0);
+                && output.indexOf(str) > 0);
     }
 
     QList<QByteArray> outputLines() {
@@ -75,7 +75,7 @@ public:
     }
 
     QList<QByteArray> outputLinesHas(const char *key,
-                                    bool ignoreComment = true);
+                                     bool ignoreComment = true);
 
     QByteArray error;
     QByteArray output;

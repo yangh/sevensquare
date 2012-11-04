@@ -60,7 +60,7 @@ void CubeView::keyReleaseEvent(QKeyEvent * event)
     if ( ctrlPressed && event->key() == Qt::Key_W) {
         DT_TRACE("Good Luck, Be Happy!");
         QCoreApplication::quit();
-	return;
+        return;
     }
 
     QGraphicsView::keyReleaseEvent(event);
@@ -78,13 +78,13 @@ CubeScene::CubeScene(QObject * parent) :
     setBackgroundBrush(QBrush(Qt::gray));
 
     QObject::connect(&reader, SIGNAL(newFrame(QByteArray *)),
-                          this, SLOT(updateFBCell(QByteArray *)));
+                     this, SLOT(updateFBCell(QByteArray *)));
     QObject::connect(&reader, SIGNAL(deviceDisconnected(void)),
-                          this, SLOT(deviceDisconnected(void)));
+                     this, SLOT(deviceDisconnected(void)));
     QObject::connect(&reader, SIGNAL(deviceWaitTimeout(void)),
-                          this, SLOT(deviceDisconnected(void)));
+                     this, SLOT(deviceDisconnected(void)));
     QObject::connect(&reader, SIGNAL(newFBFound(int, int, int)),
-                          this, SLOT(newFBFound(int, int, int)));
+                     this, SLOT(newFBFound(int, int, int)));
     this->connect(&reader, SIGNAL(deviceFound()),
                   SLOT(deviceConnected()));
     this->connect(&adbex, SIGNAL(screenTurnedOff()),
@@ -371,7 +371,7 @@ void CubeScene::initialize (void)
 
     unsigned int i;
     for (i = 0; i < KEY_NUM; i++) {
-	    keys[keymaps[i].q] = keymaps[i].a;
+        keys[keymaps[i].q] = keymaps[i].a;
     }
 }
 
@@ -457,7 +457,7 @@ bool CubeScene::isConnectedAndWakedup(bool doWakeup)
     if (! adbex.screenIsOn()) {
         if (doWakeup) {
             emit wakeUpDevice();
-	}
+        }
         return false;
     }
 
