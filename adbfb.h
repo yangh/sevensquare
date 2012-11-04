@@ -215,6 +215,7 @@ signals:
     void screenTurnedOn(void);
     void error(QString *msg);
     void newCommand(const QStringList cmds);
+    void newPropmtMessae(QString);
 
 private:
     QList<DeviceKeyInfo> keyInfos;

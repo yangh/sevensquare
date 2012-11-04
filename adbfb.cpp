@@ -273,6 +273,7 @@ void AdbExecObject::probeDevicePowerKey(void)
     AdbExecutor adb;
     QStringList args;
 
+    emit newPropmtMessae("Probing device...");
     osType = getDeviceOSType();
 
     // Force brigntess to 100 so that first fb will
@@ -342,6 +343,7 @@ void AdbExecObject::wakeUpDevice()
         return;
     }
 
+    emit newPropmtMessae("Waking up device...");
     // Send power key to wake up screen
     for (int i = 0; i < keyInfos.size(); ++i) {
         DeviceKeyInfo &info = keyInfos[i];

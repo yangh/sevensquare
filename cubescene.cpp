@@ -78,6 +78,8 @@ CubeScene::CubeScene(QObject * parent) :
                   SLOT(deviceScreenTurnedOff()));
     this->connect(&adbex, SIGNAL(screenTurnedOn()),
                   SLOT(deviceScreenTurnedOn()));
+    this->connect(&adbex, SIGNAL(newPropmtMessae(QString)),
+                  SLOT(showPromptMessage(QString)));
 
     reader.moveToThread(&fbThread);
     reader.connect(this, SIGNAL(readFrame(void)),
@@ -210,11 +212,11 @@ void CubeScene::updateFBCell(QByteArray *bytes)
 {
     int ret;
 
-    if (adbex.screenIsOn()) {
-        emit readFrame();
-    } else {
+    if (! adbex.screenIsOn()) {
         return;
     }
+
+    emit readFrame();
 
     //DT_TRACE("New FB frame received");
     hidePrompt();
@@ -225,6 +227,7 @@ void CubeScene::updateFBCell(QByteArray *bytes)
         reader.setMiniDelay();
     } else {
         ret = reader.increaseDelay();
+
         if (ret >= FBEx::DELAY_NORMAL) {
             emit updateDeviceBrightness();
         }
