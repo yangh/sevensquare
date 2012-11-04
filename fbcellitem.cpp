@@ -143,19 +143,6 @@ void FBCellItem::paintFB(QByteArray *bytes)
     DT_TRACE("FB PAINT RAW E");
 }
 
-void FBCellItem::paint(QPainter *painter,
-                       const QStyleOptionGraphicsItem *option,
-                       QWidget *widget)
-{
-    QMutexLocker locker(&mutex);
-    Q_UNUSED(option);
-    Q_UNUSED(widget);
-
-    //DT_TRACE("FB PAINT S");
-    painter->drawPixmap(pixmap.rect(), pixmap);
-    //DT_TRACE("FB PAINT E");
-}
-
 void FBCellItem::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
     sendVirtualClick(event->scenePos(), true, false);

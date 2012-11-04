@@ -234,6 +234,7 @@ void CubeScene::newFBFound(int w, int h, int f)
 void CubeScene::updateFBCell(QByteArray *bytes)
 {
     int ret;
+    unsigned long delay;
 
     if (! adbex.screenIsOn()) {
         return;
@@ -249,7 +250,7 @@ void CubeScene::updateFBCell(QByteArray *bytes)
     if (ret == FBCellItem::UPDATE_DONE) {
         reader.setMiniDelay();
     } else {
-        unsigned long delay = reader.increaseDelay();
+        delay = reader.increaseDelay();
 
         if (delay >= FBEx::DELAY_NORMAL) {
             emit updateDeviceBrightness();

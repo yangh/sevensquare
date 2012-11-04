@@ -194,7 +194,7 @@ public:
     void sendPowerKey(int deviceIdx, int code);
 
     QStringList newEventCmd (int type, int code, int value);
-    void sendTap(QPoint pos, bool, bool);
+    void sendTap(QPoint pos, bool);
     void sendEvent(QPoint pos, bool, bool);
 
 public slots:

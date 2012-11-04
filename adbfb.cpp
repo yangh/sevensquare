@@ -380,7 +380,7 @@ void AdbExecObject::sendVirtualClick(QPoint pos,
         // Mouse move, ignored.
         // Both true is impossible
         if (press || release) {
-            sendTap(pos, press, release);
+            sendTap(pos, press);
         }
         break;
     default:
@@ -388,7 +388,7 @@ void AdbExecObject::sendVirtualClick(QPoint pos,
     }
 }
 
-void AdbExecObject::sendTap(QPoint pos, bool press, bool release)
+void AdbExecObject::sendTap(QPoint pos, bool press)
 {
     QStringList cmds;
     bool isTap = false;

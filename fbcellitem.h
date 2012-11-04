@@ -43,10 +43,6 @@ protected:
     void mouseReleaseEvent(QGraphicsSceneMouseEvent *event);
     bool sendVirtualClick(QPointF posScene, bool, bool);
 
-    void paint(QPainter *painter,
-               const QStyleOptionGraphicsItem *option,
-               QWidget *widget = 0);
-
 private:
     QImage::Format rawFBDataFormat;
     QSize   cellSize;
@@ -55,7 +51,6 @@ private:
     QSize   fbSize;
     QSizeF  ratio;
 
-    QMutex  mutex;
     quint16 lastSum;
 };
 

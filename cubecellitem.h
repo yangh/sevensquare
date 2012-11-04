@@ -8,6 +8,7 @@
 #ifndef CUBECELLITEM_H
 #define CUBECELLITEM_H
 
+#include <QMutex>
 #include <QPoint>
 #include <QPixmap>
 #include <QGraphicsItem>
@@ -57,6 +58,7 @@ protected:
                const QStyleOptionGraphicsItem *option,
                QWidget *widget = 0);
 
+    QMutex mutex;
     QPixmap pixmap;
     CubeScene *cube;
 
