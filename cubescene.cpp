@@ -368,7 +368,7 @@ void CubeScene::setPointerPos(QPointF pos, bool visible)
     pointer->setPos(pos.toPoint() - QPoint(s.width() / 2, s.height() / 2));
     //pointer->update(s);
 
-    if(! adbex.screenIsOn()) {
+    if(! reader.isConnected()) {
         QRectF rect = pointer->boundingRect();
         QRectF grect = ghost->boundingRect();
 #if 0
