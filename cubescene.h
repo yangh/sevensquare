@@ -13,6 +13,7 @@
 #include <QPixmap>
 #include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
+#include <QGraphicsItemGroup>
 #include <QMutex>
 #include <QKeyEvent>
 #include <QWidget>
@@ -103,6 +104,7 @@ private:
     FBCellItem fb;
     QGraphicsRectItem grayMask;
     QGraphicsSimpleTextItem promptItem;
+    CubeCellItem *ghost;
     CubeCellItem *home;
     CubeCellItem *back;
     CubeCellItem *menu;

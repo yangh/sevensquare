@@ -47,28 +47,18 @@ void CubeCellItem::paint(QPainter *painter,
 
 void CubeCellItem::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
-    //QGraphicsItem::mousePressEvent(event);
-
-    //qDebug() << "Item pressed: " << curr_pos;
+    //qDebug() << "Cell Item pressed: " << virtual_key;
     setCubePos(QPoint(1.5, 1) + curr_pos);
-    //update(boundingRect());
 }
 
 void CubeCellItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
-    //qDebug() << "Item moveded: " << curr_pos;
-    //QGraphicsItem::mouseMoveEvent(event);
-    //setCubePos(event->scenePos() - QPoint(pixmap.width() / 2,
-     //                                     pixmap.height() / 2));
 }
 
 void CubeCellItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 {
-    //QGraphicsItem::mouseReleaseEvent(event);
-
     setCubePos(curr_pos - QPoint(1.5, 1));
-    //update(boundingRect());
-    qDebug() << "Item released: " << virtual_key;
+    //qDebug() << "Cell Item released: " << virtual_key;
 
     if (cube) {
         cube->sendVirtualKey(virtual_key);

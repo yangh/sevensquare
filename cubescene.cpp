@@ -136,6 +136,7 @@ void CubeScene::hidePrompt(void)
 void CubeScene::deviceConnected(void)
 {
     showPromptMessage("Connected...");
+    ghost->setVisible(false);
 }
 
 void CubeScene::deviceDisconnected(void)
@@ -147,6 +148,16 @@ void CubeScene::deviceDisconnected(void)
 
     showPromptMessage(bubble);
     waitCount++;
+
+    if ((waitCount % 6) == 0) {
+        QRectF rect = ghost->boundingRect();
+        QPointF pos;
+
+        pos.setX(qrand() % (cube_width - (int)rect.width()));
+        pos.setY(qrand() % (cube_height - (int)rect.height()));
+        ghost->setPos(pos);
+        ghost->setVisible(true);
+    }
 
     emit waitForDevice();
 }
@@ -182,7 +193,7 @@ void CubeScene::newFBFound(int w, int h, int f)
     DT_TRACE("New Remote screen FB:" << w << h << f);
 
     if (w == fb_width && h == fb_height) {
-        //qDebug() << "Remove screen size unchanged.";
+        //qDebug() << "Remote screen size unchanged.";
         // Start read frame
         emit readFrame();
         return;
@@ -254,10 +265,15 @@ CubeCellItem *CubeScene::createCellItem(const char* name, int size, int key)
     CubeCellItem *item;
     QPixmap p;
 
-    p =  QPixmap(name).scaled(
-                QSize (size, size),
-                Qt::KeepAspectRatio,
-                Qt::SmoothTransformation);
+    p =  QPixmap(name);
+
+    if (size > 0) {
+        p = p.scaled(
+                    QSize (size, size),
+                    Qt::KeepAspectRatio,
+                    Qt::SmoothTransformation);
+    }
+
     item = new CubeCellItem(p);
     item->setKey(key);
     item->setCube(this);
@@ -306,8 +322,8 @@ void CubeScene::initialize (void)
     addItem(menu);
     setMenuIconsPos();
 
-    grayMask.setRect(QRectF(0, 0, cube_width,
-                            cube_height + home->boundingRect().height()));
+    int total_height = cube_height + home->boundingRect().height();
+    grayMask.setRect(QRectF(0, 0, cube_width, total_height));
     grayMask.setBrush(QBrush(QColor(128, 128, 128, 140)));
     grayMask.setPen(Qt::NoPen);
     grayMask.setZValue(99);
@@ -319,6 +335,11 @@ void CubeScene::initialize (void)
     pointer->setZValue(101);
     pointer->setVisible(false);
     addItem(pointer);
+
+    ghost = createCellItem(":/images/android-logo.png", 0);
+    ghost->setZValue(98);
+    ghost->setVisible(false);
+    addItem(ghost);
 
     unsigned int i;
     for (i = 0; i < KEY_NUM; i++) {
@@ -332,7 +353,26 @@ void CubeScene::setPointerPos(QPointF pos, bool visible)
 
     pointer->setVisible(visible);
     pointer->setPos(pos.toPoint() - QPoint(s.width() / 2, s.height() / 2));
-    pointer->update(s);
+    //pointer->update(s);
+
+    if(! adbex.screenIsOn()) {
+        QRectF rect = pointer->boundingRect();
+        QRectF grect = ghost->boundingRect();
+#if 0
+        // Follow the pointer
+        ghost->setPos(pointer->pos()
+                      + rect.topRight()
+                      + QPointF(0, (rect.height() - grect.height()) / 2));
+#else
+        QPointF pos;
+
+        // Random position
+        pos.setX(qrand() % (cube_width - (int)grect.width()));
+        pos.setY(qrand() % (cube_height - (int)grect.height()));
+        ghost->setPos(pos);
+#endif
+        ghost->setVisible(visible);
+    }
 }
 
 void CubeScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
@@ -385,7 +425,8 @@ bool CubeScene::isConnectedAndWakedup()
     }
 
     if (! adbex.screenIsOn()) {
-        return false;
+        emit wakeUpDevice();
+        return true;
     }
 
     return true;
@@ -395,7 +436,6 @@ bool CubeScene::sendVirtualClick(QPoint pos,
                                  bool press, bool release)
 {
     if (! isConnectedAndWakedup()) {
-        emit wakeUpDevice();
         return true;
     }
 
@@ -411,7 +451,6 @@ bool CubeScene::sendVirtualKey(int key)
 {
 
     if (! isConnectedAndWakedup()) {
-        emit wakeUpDevice();
         return true;
     }
 
