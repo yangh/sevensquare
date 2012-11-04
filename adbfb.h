@@ -196,6 +196,7 @@ public:
     QStringList newEventCmd (int type, int code, int value);
     void sendTap(QPoint pos, bool);
     void sendEvent(QPoint pos, bool, bool);
+    void wakeUpDeviceViaPowerKey(void);
 
 public slots:
     void execCommand(const QStringList cmds) {
@@ -247,6 +248,8 @@ public:
         PIXEL_FORMAT_RGBX_565  = 4
     };
 
+    void setPaused(bool p)          { readPaused = p; };
+    bool paused(void)               { return readPaused; };
     void setCompress(bool value);
     bool checkCompressSupport(void);
     bool supportCompress (void)     { return doCompress; }
@@ -284,6 +287,7 @@ private:
     QByteArray out;
     QFile gz;
     bool doCompress;
+    bool readPaused;
     int fb_width;
     int fb_height;
     int fb_format;

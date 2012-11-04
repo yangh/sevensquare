@@ -17,9 +17,9 @@
 
 Commander::Commander(const char *command)
 {
-	ret = -1;
-	p = NULL;
-	cmd = command;
+    ret = -1;
+    p = NULL;
+    cmd = command;
 }
 
 void Commander::clear(void)
@@ -30,7 +30,7 @@ void Commander::clear(void)
     ret = -1;
 
     if (p != NULL) {
-       p->close();
+        p->close();
     }
 }
 
@@ -67,13 +67,13 @@ int Commander::wait(int msecs)
 }
 
 QList<QByteArray> Commander::outputLinesHas(const char * key,
-                                           bool ignoreComment)
+                                            bool ignoreComment)
 {
     QList<QByteArray> lines;
     QList<QByteArray> matches;
 
     if (output.length() == 0)
-            return matches;
+        return matches;
 
     lines = output.split('\n');
     for (int i = 0; i < lines.size(); ++i) {
@@ -83,7 +83,7 @@ QList<QByteArray> Commander::outputLinesHas(const char * key,
             continue;
 
         if (line.indexOf(key) > 0) {
-                matches.append(line);
+            matches.append(line);
         }
     }
 
@@ -218,6 +218,7 @@ void AdbExecObject::sendPowerKey(int deviceIdx, int code)
 void AdbExecObject::updateDeviceBrightness(void)
 {
     int ret;
+    int oldBrightness = lcdBrightness;
 
     ret = getDeviceLCDBrightness();
 
@@ -226,14 +227,17 @@ void AdbExecObject::updateDeviceBrightness(void)
 
     lcdBrightness = ret;
 
+    if (oldBrightness == 0 && ret > 0) {
+        DT_TRACE("Screen is turned on");
+        screenOnWaiteTimer.stop();
+        emit screenTurnedOn();
+        return;
+    }
+
     if (ret == 0) {
         DT_TRACE("Screen is turned off");
         screenOnWaiteTimer.start();
         emit screenTurnedOff();
-    } else {
-        DT_TRACE("Screen is turned on");
-        screenOnWaiteTimer.stop();
-        emit screenTurnedOn();
     }
 }
 
@@ -283,11 +287,15 @@ void AdbExecObject::probeDevicePowerKey(void)
     // key found define.
     lcdBrightness = 100;
 
+    keyInfos.clear();
+
     // Find POWER key in the key layout files
     args << "shell" << "cat" << SYS_INPUT_NAME_LIST;
     adb.run(args);
-    if (! adb.exitSuccess())
+    if (! adb.exitSuccess()) {
+        emit deviceDisconnected();
         return;
+    }
 
     lines = adb.outputLines();
     for (int i = 0; i < lines.size(); ++i) {
@@ -310,9 +318,9 @@ void AdbExecObject::probeDevicePowerKey(void)
     }
 
     for (int i = 0; i < keyInfos.size(); i++) {
-           if(keyInfos[i].powerKeycode == 0) {
-               keyInfos.removeAt(i);
-           }
+        if(keyInfos[i].powerKeycode == 0) {
+            keyInfos.removeAt(i);
+        }
     }
 
     // Wake up on probe
@@ -329,7 +337,7 @@ void AdbExecObject::wakeUpDevice()
 
     if (keyInfos.size() == 0) {
         DT_TRACE("Power key info not found");
-        return;
+        probeDevicePowerKey();
     }
 
     ret = getDeviceLCDBrightness();
@@ -344,25 +352,43 @@ void AdbExecObject::wakeUpDevice()
     }
 
     emit newPropmtMessae("Waking up device...");
+    wakeUpDeviceViaPowerKey();
+}
+
+void AdbExecObject::wakeUpDeviceViaPowerKey(void)
+{
+    int ret;
+
     // Send power key to wake up screen
     for (int i = 0; i < keyInfos.size(); ++i) {
         DeviceKeyInfo &info = keyInfos[i];
-
-        // Skipe which was failed
-        if (! info.wakeSucessed)
-            continue;
 
         DT_TRACE("Wake up screen via" << info.keyLayout
                  << info.powerKeycode << info.eventDeviceIdx);
         sendPowerKey(info.eventDeviceIdx, info.powerKeycode);
 
-        usleep(300 * 1000);
-        if (getDeviceLCDBrightness() > 0) {
-            lcdBrightness = ret;
-            emit screenTurnedOn();
-            break;
-        } else {
+        int cnt = 5;
+        while (cnt-- > 0) {
+            //DT_TRACE("Wait screen on" << cnt);
+            ret = getDeviceLCDBrightness();
+            if (ret > 0) {
+                lcdBrightness = ret;
+                emit screenTurnedOn();
+                break;
+            }
+            usleep(300*1000);
+        }
+
+        if (! screenIsOn()) {
+            DT_TRACE("Disable power key" << info.keyLayout << i);
             info.wakeSucessed = false;
+        }
+    }
+
+    for (int i = 0; i < keyInfos.size(); ++i) {
+        DeviceKeyInfo &info = keyInfos[i];
+        if (! info.wakeSucessed) {
+            keyInfos.removeAt(i);
         }
     }
 }
@@ -516,13 +542,17 @@ void FBEx::setCompress(bool value)
 
 void FBEx::setConnected(bool state)
 {
+    if (isConnected() == state) {
+        return;
+    }
+
     ADB::setConnected(state);
 
     if (state) {
         emit newFBFound(fb_width, fb_height, fb_format);
     } else {
-	    DT_TRACE("Device disconnected");
-	    emit deviceDisconnected();
+        DT_TRACE("Device disconnected");
+        emit deviceDisconnected();
     }
 }
 
@@ -629,10 +659,10 @@ int FBEx::getScreenInfo(const QByteArray &bytes)
     switch(format) {
     case PIXEL_FORMAT_RGBX_565:
         bpp = 2; // RGB565
-	break;
+        break;
     case PIXEL_FORMAT_RGB_888:
         bpp = 3; // RGB888
-	break;
+        break;
     case PIXEL_FORMAT_RGBX_8888:
         bpp = 4; // RGBA32
         break;
@@ -646,6 +676,11 @@ int FBEx::getScreenInfo(const QByteArray &bytes)
 
 void FBEx::waitForDevice()
 {
+    // Ignore request if is connected already
+    if (isConnected()) {
+        return;
+    }
+
     if (! adbWaiter.isRunning()) {
         DT_TRACE("ADB Wait for device");
         adbWaiter.clear();
@@ -656,8 +691,8 @@ void FBEx::waitForDevice()
     adbWaiter.wait(500);
 
     if (adbWaiter.isRunning()) {
-	    emit deviceWaitTimeout();
-	    return;
+        emit deviceWaitTimeout();
+        return;
     }
 
     if (adbWaiter.ret == 0) {
@@ -681,9 +716,9 @@ void FBEx::sendNewFB(void)
 
     //DT_TRACE("Send out FB");
     if (fb_format == PIXEL_FORMAT_RGBX_8888) {
-	    len = convertRGBAtoRGB888(bytes, FB_DATA_OFFSET);
+        len = convertRGBAtoRGB888(bytes, FB_DATA_OFFSET);
     } else {
-	    len = length();
+        len = length();
     }
 
     out = bytes.mid(FB_DATA_OFFSET, len);
@@ -696,8 +731,8 @@ void FBEx::readFrame()
 
     loopDelay();
 
-    if (! isConnected())
-	    return;
+    if (! isConnected() || paused())
+        return;
 
     ret = screenCap(bytes);
 

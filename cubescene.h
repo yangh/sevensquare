@@ -78,7 +78,7 @@ protected:
     void setMenuIconsPos(void);
     void setPointerPos(QPointF, bool);
     bool poinInFB(QPointF);
-    bool isConnectedAndWakedup(void);
+    bool isConnectedAndWakedup(bool doWakeup);
 
 public slots:
     void newFBFound(int, int, int);
@@ -90,6 +90,7 @@ public slots:
     void cubeResize(QSize);
     void showPromptMessage(QString);
     void hidePrompt(void);
+    void adbExecError(void);
 
 signals:
     void sceneSizeChanged(QSize);

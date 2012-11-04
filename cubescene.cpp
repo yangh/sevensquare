@@ -60,7 +60,10 @@ void CubeView::keyReleaseEvent(QKeyEvent * event)
     if ( ctrlPressed && event->key() == Qt::Key_W) {
         DT_TRACE("Good Luck, Be Happy!");
         QCoreApplication::quit();
+	return;
     }
+
+    QGraphicsView::keyReleaseEvent(event);
 }
 
 CubeScene::CubeScene(QObject * parent) :
@@ -90,6 +93,8 @@ CubeScene::CubeScene(QObject * parent) :
                   SLOT(deviceScreenTurnedOn()));
     this->connect(&adbex, SIGNAL(newPropmtMessae(QString)),
                   SLOT(showPromptMessage(QString)));
+    this->connect(&adbex, SIGNAL(deviceDisconnected(void)),
+                  SLOT(adbExecError(void)));
 
     reader.moveToThread(&fbThread);
     reader.connect(this, SIGNAL(readFrame(void)),
@@ -106,7 +111,7 @@ CubeScene::CubeScene(QObject * parent) :
     adbex.connect(this, SIGNAL(execAdbCmd(const QStringList)),
                   SLOT(execCommand(const QStringList)));
     adbex.connect(&reader, SIGNAL(deviceFound()),
-                  SLOT(probeDevicePowerKey(void)));
+                  SLOT(wakeUpDevice(void)));
     adbex.connect(this, SIGNAL(wakeUpDevice()),
                   SLOT(wakeUpDevice()));
     adbex.connect(this, SIGNAL(updateDeviceBrightness()),
@@ -149,6 +154,14 @@ void CubeScene::deviceConnected(void)
     ghost->setVisible(false);
 }
 
+void CubeScene::adbExecError(void)
+{
+    if (reader.isConnected()) {
+        DT_TRACE("Adb exec error...");
+        reader.setConnected(false);
+    }
+}
+
 void CubeScene::deviceDisconnected(void)
 {
     QString bubble("Waiting");
@@ -177,10 +190,12 @@ void CubeScene::deviceDisconnected(void)
 void CubeScene::deviceScreenTurnedOff(void)
 {
     showPromptMessage("Click to wakeup...");
+    reader.setPaused(true);
 }
 
 void CubeScene::deviceScreenTurnedOn(void)
 {
+    reader.setPaused(false);
     emit readFrame();
     hidePrompt();
 }
@@ -424,6 +439,7 @@ void CubeScene::keyReleaseEvent(QKeyEvent * event)
     int key;
 
     key = event->key();
+
     if (sendVirtualKey(keys[key])) {
         return;
     }
@@ -432,15 +448,17 @@ void CubeScene::keyReleaseEvent(QKeyEvent * event)
     QGraphicsScene::keyReleaseEvent(event);
 }
 
-bool CubeScene::isConnectedAndWakedup()
+bool CubeScene::isConnectedAndWakedup(bool doWakeup)
 {
     if (! reader.isConnected()) {
         return false;
     }
 
     if (! adbex.screenIsOn()) {
-        emit wakeUpDevice();
-        return true;
+        if (doWakeup) {
+            emit wakeUpDevice();
+	}
+        return false;
     }
 
     return true;
@@ -449,7 +467,7 @@ bool CubeScene::isConnectedAndWakedup()
 bool CubeScene::sendVirtualClick(QPoint pos,
                                  bool press, bool release)
 {
-    if (! isConnectedAndWakedup()) {
+    if (! isConnectedAndWakedup(press)) {
         return true;
     }
 
@@ -464,7 +482,7 @@ bool CubeScene::sendVirtualClick(QPoint pos,
 bool CubeScene::sendVirtualKey(int key)
 {
 
-    if (! isConnectedAndWakedup()) {
+    if (! isConnectedAndWakedup(true)) {
         return true;
     }
 
