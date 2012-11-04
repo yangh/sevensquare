@@ -22,6 +22,7 @@
 #include <QMap>
 
 #include <QGraphicsView>
+#include <QCoreApplication>
 
 #include "cubecellitem.h"
 #include "fbcellitem.h"
@@ -40,6 +41,7 @@ public:
     CubeView(QWidget * parent = 0);
 
 protected:
+    void keyReleaseEvent ( QKeyEvent * event );
     void resizeEvent ( QResizeEvent * event );
 
 public slots:

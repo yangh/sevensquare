@@ -53,6 +53,16 @@ void CubeView::resizeEvent(QResizeEvent * event)
     emit viewSizeChanged(size);
 }
 
+void CubeView::keyReleaseEvent(QKeyEvent * event)
+{
+    bool ctrlPressed = event->modifiers() & Qt::ControlModifier;
+
+    if ( ctrlPressed && event->key() == Qt::Key_W) {
+        DT_TRACE("Good Luck, Be Happy!");
+        QCoreApplication::quit();
+    }
+}
+
 CubeScene::CubeScene(QObject * parent) :
     QGraphicsScene(parent)
 {
@@ -153,9 +163,11 @@ void CubeScene::deviceDisconnected(void)
         QRectF rect = ghost->boundingRect();
         QPointF pos;
 
+        qsrand(QTime(0,0,0).secsTo(QTime::currentTime()));
         pos.setX(qrand() % (cube_width - (int)rect.width()));
         pos.setY(qrand() % (cube_height - (int)rect.height()));
         ghost->setPos(pos);
+        ghost->setRotation(0.);
         ghost->setVisible(true);
     }
 
@@ -237,9 +249,9 @@ void CubeScene::updateFBCell(QByteArray *bytes)
     if (ret == FBCellItem::UPDATE_DONE) {
         reader.setMiniDelay();
     } else {
-        ret = reader.increaseDelay();
+        unsigned long delay = reader.increaseDelay();
 
-        if (ret >= FBEx::DELAY_NORMAL) {
+        if (delay >= FBEx::DELAY_NORMAL) {
             emit updateDeviceBrightness();
         }
     }
@@ -369,6 +381,7 @@ void CubeScene::setPointerPos(QPointF pos, bool visible)
         // Random position
         pos.setX(qrand() % (cube_width - (int)grect.width()));
         pos.setY(qrand() % (cube_height - (int)grect.height()));
+        ghost->setRotation(qrand());
         ghost->setPos(pos);
 #endif
         ghost->setVisible(visible);
