@@ -353,6 +353,8 @@ void AdbExecObject::wakeUpDevice()
 
     emit newPropmtMessae("Waking up device...");
     wakeUpDeviceViaPowerKey();
+
+    screenOnWaiteTimer.start();
 }
 
 void AdbExecObject::wakeUpDeviceViaPowerKey(void)
@@ -591,7 +593,7 @@ int FBEx::screenCap(QByteArray &bytes, int offset)
     AdbExecutor adb;
     QStringList args;
 
-    args << "shell" << "screencap -s";
+    args << "shell" << "screencap";
     if (doCompress) {
         args << "|" << "gzip";
     }
