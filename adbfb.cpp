@@ -280,13 +280,6 @@ void AdbExecObject::probeDevicePowerKey(void)
     emit newPropmtMessae("Probing device...");
     osType = getDeviceOSType();
 
-    // Force brigntess to 100 so that first fb will
-    // not be ignored because brightness is unknown,
-    // we'll refresh it as soon as possible after probe
-    // Also avoid can't show screen content if no power
-    // key found define.
-    lcdBrightness = 100;
-
     keyInfos.clear();
 
     // Find POWER key in the key layout files
@@ -297,30 +290,43 @@ void AdbExecObject::probeDevicePowerKey(void)
         return;
     }
 
+    // List all input device
     lines = adb.outputLines();
     for (int i = 0; i < lines.size(); ++i) {
         QByteArray line = lines[i].simplified();
 
         if (line.length() > 0) {
             DT_TRACE("Found new input device" << line);
-            keyInfos.append(DeviceKeyInfo(line, 0, 0));
+            keyInfos.append(DeviceKeyInfo(line, i, 0));
         }
     }
 
+    // Lookup power key define in the keylayout file with same
+    // name as the input device
     for (int i = 0; i < keyInfos.size(); i++) {
         DeviceKeyInfo &info = keyInfos[i];
 
         if (getKeyCodeFromKeyLayout(info.keyLayout, "POWER", code)) {
-            DT_TRACE("Found POWER key define in" << info.keyLayout << code);
-            info.eventDeviceIdx = i;
+            DT_TRACE("Found POWER key define in" << info.keyLayout << code << i);
             info.powerKeycode = code;
+        } else {
+	    // Assign a default common power key
+            DT_TRACE("Assign default POWER key define in" << info.keyLayout);
+            info.powerKeycode = POWER_KEY_COMMON;
         }
     }
 
-    for (int i = 0; i < keyInfos.size(); i++) {
-        if(keyInfos[i].powerKeycode == 0) {
-            keyInfos.removeAt(i);
-        }
+    // Add common power key code 116
+    QList<DeviceKeyInfo> infos = keyInfos;
+    for (int i = 0; i < infos.size(); i++) {
+        DeviceKeyInfo &info = infos[i];
+
+	if (info.powerKeycode != POWER_KEY_COMMON) {
+            DT_TRACE("ADD a dummy common key define for" << info.keyLayout);
+            keyInfos.append(DeviceKeyInfo(info.keyLayout,
+				    info.eventDeviceIdx,
+				    POWER_KEY_COMMON));
+	}
     }
 
     // Wake up on probe
@@ -369,7 +375,7 @@ void AdbExecObject::wakeUpDeviceViaPowerKey(void)
                  << info.powerKeycode << info.eventDeviceIdx);
         sendPowerKey(info.eventDeviceIdx, info.powerKeycode);
 
-        int cnt = 5;
+        int cnt = 3;
         while (cnt-- > 0) {
             //DT_TRACE("Wait screen on" << cnt);
             ret = getDeviceLCDBrightness();
@@ -381,10 +387,13 @@ void AdbExecObject::wakeUpDeviceViaPowerKey(void)
             usleep(300*1000);
         }
 
-        if (! screenIsOn()) {
+        if (screenIsOn()) {
+            DT_TRACE("Screen waked up by power key" << info.keyLayout << i);
+            break;
+        } else {
             DT_TRACE("Disable power key" << info.keyLayout << i);
             info.wakeSucessed = false;
-        }
+	}
     }
 
     for (int i = 0; i < keyInfos.size(); ++i) {

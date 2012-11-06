@@ -170,6 +170,7 @@ public:
 #define INPUT_DEV_PREFIX    "/dev/input/event"
 #define SYS_LCD_BACKLIGHT   "/sys/class/leds/lcd-backlight/brightness"
 #define SYS_INPUT_NAME_LIST "/sys/class/input/input*/name"
+#define POWER_KEY_COMMON    116
 
 class AdbExecObject : public ADB
 {
