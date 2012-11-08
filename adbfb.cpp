@@ -133,8 +133,8 @@ int ADB::increaseDelay()
 
 AdbExecObject::AdbExecObject()
 {
-    screenOnWaiteTimer.setInterval(1000);
-    QObject::connect(&screenOnWaiteTimer, SIGNAL(timeout()),
+    screenOnWaitTimer.setInterval(1000);
+    QObject::connect(&screenOnWaitTimer, SIGNAL(timeout()),
                      this, SLOT(updateDeviceBrightness()));
     lcdBrightness = 0;
     osType = ANDROID_JB;
@@ -229,14 +229,14 @@ void AdbExecObject::updateDeviceBrightness(void)
 
     if (oldBrightness == 0 && ret > 0) {
         DT_TRACE("Screen is turned on");
-        screenOnWaiteTimer.stop();
+        screenOnWaitTimer.stop();
         emit screenTurnedOn();
         return;
     }
 
     if (ret == 0) {
         DT_TRACE("Screen is turned off");
-        screenOnWaiteTimer.start();
+        screenOnWaitTimer.start();
         emit screenTurnedOff();
     }
 }
@@ -280,7 +280,7 @@ void AdbExecObject::probeDevicePowerKey(void)
     emit newPropmtMessae("Probing device...");
     osType = getDeviceOSType();
 
-    keyInfos.clear();
+    powerKeyInfos.clear();
 
     // Find POWER key in the key layout files
     args << "shell" << "cat" << SYS_INPUT_NAME_LIST;
@@ -297,14 +297,14 @@ void AdbExecObject::probeDevicePowerKey(void)
 
         if (line.length() > 0) {
             DT_TRACE("Found new input device" << line);
-            keyInfos.append(DeviceKeyInfo(line, i, 0));
+            powerKeyInfos.append(DeviceKeyInfo(line, i, 0));
         }
     }
 
     // Lookup power key define in the keylayout file with same
     // name as the input device
-    for (int i = 0; i < keyInfos.size(); i++) {
-        DeviceKeyInfo &info = keyInfos[i];
+    for (int i = 0; i < powerKeyInfos.size(); i++) {
+        DeviceKeyInfo &info = powerKeyInfos[i];
 
         if (getKeyCodeFromKeyLayout(info.keyLayout, "POWER", code)) {
             DT_TRACE("Found POWER key define in" << info.keyLayout << code << i);
@@ -317,20 +317,20 @@ void AdbExecObject::probeDevicePowerKey(void)
     }
 
     // Add common power key code 116
-    QList<DeviceKeyInfo> infos = keyInfos;
+    QList<DeviceKeyInfo> infos = powerKeyInfos;
     for (int i = 0; i < infos.size(); i++) {
         DeviceKeyInfo &info = infos[i];
 
 	if (info.powerKeycode != POWER_KEY_COMMON) {
             DT_TRACE("ADD a dummy common key define for" << info.keyLayout);
-            keyInfos.append(DeviceKeyInfo(info.keyLayout,
+            powerKeyInfos.append(DeviceKeyInfo(info.keyLayout,
 				    info.eventDeviceIdx,
 				    POWER_KEY_COMMON));
 	}
     }
 
     // Wake up on probe
-    if (keyInfos.size() > 0){
+    if (powerKeyInfos.size() > 0){
         wakeUpDevice();
     }
 
@@ -341,7 +341,7 @@ void AdbExecObject::wakeUpDevice()
 {
     int ret;
 
-    if (keyInfos.size() == 0) {
+    if (powerKeyInfos.size() == 0) {
         DT_TRACE("Power key info not found");
         probeDevicePowerKey();
     }
@@ -360,7 +360,7 @@ void AdbExecObject::wakeUpDevice()
     emit newPropmtMessae("Waking up device...");
     wakeUpDeviceViaPowerKey();
 
-    screenOnWaiteTimer.start();
+    screenOnWaitTimer.start();
 }
 
 void AdbExecObject::wakeUpDeviceViaPowerKey(void)
@@ -368,8 +368,8 @@ void AdbExecObject::wakeUpDeviceViaPowerKey(void)
     int ret;
 
     // Send power key to wake up screen
-    for (int i = 0; i < keyInfos.size(); ++i) {
-        DeviceKeyInfo &info = keyInfos[i];
+    for (int i = 0; i < powerKeyInfos.size(); ++i) {
+        DeviceKeyInfo &info = powerKeyInfos[i];
 
         DT_TRACE("Wake up screen via" << info.keyLayout
                  << info.powerKeycode << info.eventDeviceIdx);
@@ -396,10 +396,10 @@ void AdbExecObject::wakeUpDeviceViaPowerKey(void)
 	}
     }
 
-    for (int i = 0; i < keyInfos.size(); ++i) {
-        DeviceKeyInfo &info = keyInfos[i];
+    for (int i = 0; i < powerKeyInfos.size(); ++i) {
+        DeviceKeyInfo &info = powerKeyInfos[i];
         if (! info.wakeSucessed) {
-            keyInfos.removeAt(i);
+            powerKeyInfos.removeAt(i);
         }
     }
 }

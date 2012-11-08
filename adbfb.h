@@ -181,10 +181,11 @@ public:
 
     int screenBrightness(void) { return lcdBrightness; }
     int screenIsOn()           { return lcdBrightness > 0; }
+    int deviceOSType(void)     { return osType; }
 
+private:
     int getDeviceLCDBrightness();
     int getDeviceOSType(void);
-    int deviceOSType(void)      { return osType; }
 
     bool getKeyCodeFromKeyLayout(const QString &keylayout,
                                  const char *key,
@@ -220,8 +221,8 @@ signals:
     void newPropmtMessae(QString);
 
 private:
-    QList<DeviceKeyInfo> keyInfos;
-    QTimer screenOnWaiteTimer;
+    QList<DeviceKeyInfo> powerKeyInfos;
+    QTimer screenOnWaitTimer;
     int lcdBrightness;
     int osType;
 
