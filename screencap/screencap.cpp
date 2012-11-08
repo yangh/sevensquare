@@ -38,6 +38,8 @@ static void usage(const char* pname)
             "usage: %s [-hp] [FILENAME]\n"
             "   -h: this message\n"
             "   -p: save the file as a png.\n"
+            "   -q: quality prefered, will convert to RGB888.\n"
+            "   -s: speed prefered, will convert to RGB565.\n"
             "If FILENAME ends with .png it will be saved as a png.\n"
             "If FILENAME is not given, the results will be printed to stdout.\n",
             pname
