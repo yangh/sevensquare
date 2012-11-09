@@ -7,8 +7,17 @@ Features:
 
  * Click and swipe on the screen (so you can unlock screen by swipe)
  * Virtual menu/home/back key on the UI
- * Auto connect when you plug in new android device
- * Support both ICS and JB, Froyo not tested.
+ * Virtual QWERTY key support
+ * Auto connect to your device when plug in
+ * Auto turn screen on (wakeup) when connected
+ * Auto resize to fit the screen resolution of the device
+ * Zoom window as your wish and keep the ratio
+ * Click on window to wakeup the device (emulate power key press event)
+ * Support both Android ICS and Jelly Bean. Froyo not tested.
+ * Support customized 'screencap' for speeding up (RGBA32, RGB888, RGB565)
+ * Auto enable compressed data transfer if 'minigzip' found on the host
+ * 1~2FPS on MSM8625 device (1.2G dual core, 512M memory, 800x480)
+ * Wrote in Qt 4.x, easily port to different desktop environment
 
 Non-feature:
 
