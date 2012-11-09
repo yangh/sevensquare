@@ -1,4 +1,9 @@
 #!/bin/sh
+#
+# This script used to generate key value map between Qt and Android
+# key value defination. the map is used to translate Qt key value to
+# to Android before send it to device.
+#
 
 # Update the keycodes.h then run this script
 # Format:

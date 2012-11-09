@@ -26,12 +26,24 @@ Non-feature:
 Pre-requirements
 ================
 
- * Android device in engineer mode
- * So that you can get root permission in adb shell
- * adb command is availible in you search path, check it:
+Mandatory:
+
+ * Android device in engineer mode (Rooted), So that you can get
+   root permission in adb shell
+
+   $> adb root
+   $> adb shell id
+   uid=0(root) gid=0(root)
+
+ * adb command is availible in your search path, check it:
 
    $> which adb
    /usr/bin/adb
+
+ * USB cable connected to your android device
+ * Qt 4.6+ installed in your system
+
+Optional:
 
  * minigzip installed on your PC (For compressed image transfer)
   
@@ -51,8 +63,6 @@ Pre-requirements
    You'll be appreciated If you can help to add decompress code in to this
    project to help to avoid runing external program to decompress frame buffer data.
 
- * USB cable connected to your android device
- * Qt 4.6+ installed in your system
 
 Run
 ===
@@ -89,7 +99,7 @@ Author
 
  Copyright reserved.
 
- Released ounder GPL2.
+ Released under GPL2.
 
 References
 ==========
