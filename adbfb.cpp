@@ -310,7 +310,7 @@ void AdbExecObject::probeDevicePowerKey(void)
             DT_TRACE("Found POWER key define in" << info.keyLayout << code << i);
             info.powerKeycode = code;
         } else {
-	    // Assign a default common power key
+            // Assign a default common power key
             DT_TRACE("Assign default POWER key define in" << info.keyLayout);
             info.powerKeycode = POWER_KEY_COMMON;
         }
@@ -321,12 +321,12 @@ void AdbExecObject::probeDevicePowerKey(void)
     for (int i = 0; i < infos.size(); i++) {
         DeviceKeyInfo &info = infos[i];
 
-	if (info.powerKeycode != POWER_KEY_COMMON) {
+        if (info.powerKeycode != POWER_KEY_COMMON) {
             DT_TRACE("ADD a dummy common key define for" << info.keyLayout);
             powerKeyInfos.append(DeviceKeyInfo(info.keyLayout,
-				    info.eventDeviceIdx,
-				    POWER_KEY_COMMON));
-	}
+                                               info.eventDeviceIdx,
+                                               POWER_KEY_COMMON));
+        }
     }
 
     // Wake up on probe
@@ -351,7 +351,7 @@ void AdbExecObject::wakeUpDevice()
     if (ret > 0) {
         // Alway notify screen state to avoid
         // can't un-freeze the screen when user pressed
-        // physcle key to waked up the screen
+        // physical key to waked up the screen
         lcdBrightness = ret;
         emit screenTurnedOn();
         return;
@@ -393,7 +393,7 @@ void AdbExecObject::wakeUpDeviceViaPowerKey(void)
         } else {
             DT_TRACE("Disable power key" << info.keyLayout << i);
             info.wakeSucessed = false;
-	}
+        }
     }
 
     for (int i = 0; i < powerKeyInfos.size(); ++i) {
