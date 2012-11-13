@@ -6,6 +6,7 @@ Android screencast wroted in QT. There is one in java? forget it from now on.
 Features:
 
  * Click and swipe on the screen (so you can unlock screen by swipe)
+ * Virtual cursor (pointer anchor) on the UI
  * Virtual menu/home/back key on the UI
  * Virtual QWERTY key support
  * Auto connect to your device when plug in
@@ -22,6 +23,9 @@ Features:
 Non-feature:
 
  * Not support multi devices pluged in at the same time.
+ * Not support landspace mode (default in portrait mode).
+ * Not support screen recording as video
+ * Not support screen shot as picture
 
 Pre-requirements
 ================
@@ -104,5 +108,10 @@ Author
 References
 ==========
 
- * Android screencast (Java version): http://code.google.com/p/androidscreencast/
+ * Android screencast (Java)
 
+   http://code.google.com/p/androidscreencast/
+
+ * Droid@Screen (Java)
+
+   http://blog.ribomation.com/droid-at-screen/
