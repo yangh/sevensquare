@@ -277,7 +277,7 @@ void AdbExecObject::probeDevicePowerKey(void)
     AdbExecutor adb;
     QStringList args;
 
-    emit newPropmtMessae("Probing device...");
+    emit newPropmtMessae(tr("Probing device..."));
     osType = getDeviceOSType();
 
     powerKeyInfos.clear();
@@ -357,7 +357,7 @@ void AdbExecObject::wakeUpDevice()
         return;
     }
 
-    emit newPropmtMessae("Waking up device...");
+    emit newPropmtMessae(tr("Waking up device..."));
     wakeUpDeviceViaPowerKey();
 
     screenOnWaitTimer.start();

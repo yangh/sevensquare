@@ -36,6 +36,7 @@ int main(int argc, char *argv[])
                                  QSize(24, 24),
                                  Qt::KeepAspectRatio,
                                  Qt::SmoothTransformation)));
+    view.setWindowTitle(QObject::tr("Seven Square"));
 
     return a.exec();
 }

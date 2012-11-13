@@ -46,9 +46,8 @@ void CubeView::cubeSizeChanged(QSize size)
 void CubeView::resizeEvent(QResizeEvent * event)
 {
     QSize size = event->size();
-    QSize oldSize = event->oldSize();
 
-    //qDebug() << "New view size" << size << oldSize;
+    //qDebug() << "New view size" << size << event->oldSize();
     QGraphicsView::resizeEvent(event);
     emit viewSizeChanged(size);
 }
@@ -150,7 +149,7 @@ void CubeScene::hidePrompt(void)
 
 void CubeScene::deviceConnected(void)
 {
-    showPromptMessage("Connected...");
+    showPromptMessage(tr("Connected..."));
     ghost->setVisible(false);
 }
 
@@ -164,7 +163,7 @@ void CubeScene::adbExecError(void)
 
 void CubeScene::deviceDisconnected(void)
 {
-    QString bubble("Waiting");
+    QString bubble(tr("Waiting"));
 
     for (unsigned long i = 0; i < waitCount % 5; i++)
         bubble.append(".");
@@ -189,7 +188,7 @@ void CubeScene::deviceDisconnected(void)
 
 void CubeScene::deviceScreenTurnedOff(void)
 {
-    showPromptMessage("Click to wakeup...");
+    showPromptMessage(tr("Click to wakeup..."));
     reader.setPaused(true);
 }
 
@@ -333,7 +332,7 @@ void CubeScene::initialize (void)
     fb.setCube(this);
     addItem(&fb);
 
-    promptItem.setText("Waiting...");
+    promptItem.setText(tr("Waiting..."));
     promptItem.setBrush(QBrush(QColor(QColor(0, 153,204))));
     promptItem.setPen(QPen(QColor(20, 20, 20)));
     promptItem.setFont(QFont("Arail", 16, QFont::Bold));
@@ -384,9 +383,10 @@ void CubeScene::setPointerPos(QPointF pos, bool visible)
     //pointer->update(s);
 
     if(! reader.isConnected()) {
-        QRectF rect = pointer->boundingRect();
         QRectF grect = ghost->boundingRect();
 #if 0
+        QRectF rect = pointer->boundingRect();
+
         // Follow the pointer
         ghost->setPos(pointer->pos()
                       + rect.topRight()
