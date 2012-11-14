@@ -129,7 +129,7 @@ void FBCellItem::paintFB(QByteArray *bytes)
     QPainter fbPainter;
     QImage image;
 
-    DT_TRACE("FB PAINT RAW S");
+    //DT_TRACE("FB PAINT RAW S");
     fbPainter.begin(&fb);
     image = QImage((const uchar*)bytes->data(),
                    fbSize.width(), fbSize.height(),
@@ -141,7 +141,7 @@ void FBCellItem::paintFB(QByteArray *bytes)
                        Qt::KeepAspectRatio,
                        Qt::SmoothTransformation);
     update(boundingRect());
-    DT_TRACE("FB PAINT RAW E");
+    //DT_TRACE("FB PAINT RAW E");
 }
 
 void FBCellItem::mousePressEvent(QGraphicsSceneMouseEvent *event)

@@ -106,8 +106,9 @@ void ADB::loopDelay()
     QMutexLocker locker(&mutex);
 
     if (delay) {
-        //DT_TRACE("DELAY" << delay);
+        //DT_TRACE("DELAY wait" << delay);
         delayCond.wait(&mutex, delay);
+        //DT_TRACE("DELAY wait end" << delay);
     }
     mutex.unlock();
 }
