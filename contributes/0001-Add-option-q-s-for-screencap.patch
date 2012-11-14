@@ -1,0 +1,142 @@
+From da9d8cc959d63bb7845043b232c1661c77343ff8 Mon Sep 17 00:00:00 2001
+From: Yang Hong <yanghong@thundersoft.com>
+Date: Wed, 14 Nov 2012 11:27:36 +0800
+Subject: [PATCH] Add option -q -s for screencap
+
+Original screencap output image in RGBA_8888 format,
+we add option to convert it into RGB888/RGB565 to
+save transfer and compress time.
+
+New options:
+  -q: quality prefered, will convert to RGB888.
+  -s: speed prefered, will convert to RGB565.
+
+Change-Id: Ic2edbe0f978319ebd1dd4d45b2459b0a4f232cb1
+---
+ cmds/screencap/screencap.cpp |   87 ++++++++++++++++++++++++++++++++++++++++-
+ 1 files changed, 84 insertions(+), 3 deletions(-)
+
+diff --git a/cmds/screencap/screencap.cpp b/cmds/screencap/screencap.cpp
+index 46e41e3..d20e576 100644
+--- a/cmds/screencap/screencap.cpp
++++ b/cmds/screencap/screencap.cpp
+@@ -39,6 +39,8 @@ static void usage(const char* pname)
+             "usage: %s [-hp] [FILENAME]\n"
+             "   -h: this message\n"
+             "   -p: save the file as a png.\n"
++            "   -q: quality prefered, will convert to RGB888.\n"
++            "   -s: speed prefered, will convert to RGB565.\n"
+             "If FILENAME ends with .png it will be saved as a png.\n"
+             "If FILENAME is not given, the results will be printed to stdout.\n",
+             pname
+@@ -83,16 +85,62 @@ static status_t vinfoToPixelFormat(const fb_var_screeninfo& vinfo,
+     return NO_ERROR;
+ }
+ 
++static int convert_rgba32_rgb565(const void *src, off_t offset, off_t alpha, off_t cnt, void *dst)
++{
++   int n = cnt;
++   off_t bpp = 3 + alpha;
++   volatile uint8_t *s = (uint8_t *) src + offset;
++   volatile uint16_t *d = (uint16_t *) dst;
++   volatile uint16_t r, g, b;
++
++   while (cnt-- > 0) {
++       r = s[0];
++       g = s[1];
++       b = s[2];
++
++       *d = (((r >> 3 << 11)  & 0xFB00) | ((g >> 2 << 5) & 0x07E0) | (b >> 3));
++       d++;
++       s += bpp;
++   }
++
++   return (n - cnt) * 2;
++}
++
++static int convert_rgba32_rgb888(const void *src, off_t offset, off_t cnt, void *dst)
++{
++    int n = cnt;
++    volatile uint8_t *s = (uint8_t *) src + offset;
++    volatile uint8_t *d = (uint8_t *) dst;
++
++    while (cnt-- > 0) {
++        *d++ = *s++;
++        *d++ = *s++;
++        *d++ = *s++;
++        s++;
++    }
++
++    return (n - cnt) * 3;
++}
++
+ int main(int argc, char** argv)
+ {
+     const char* pname = argv[0];
+     bool png = false;
++    bool rgb565 = false;
++    bool rgb888 = false;
+     int c;
+-    while ((c = getopt(argc, argv, "ph")) != -1) {
++
++    while ((c = getopt(argc, argv, "phqs")) != -1) {
+         switch (c) {
+             case 'p':
+                 png = true;
+                 break;
++            case 'q':
++                rgb888 = true;
++                break;
++            case 's':
++                rgb565 = true;
++                break;
+             case '?':
+             case 'h':
+                 usage(pname);
+@@ -174,8 +222,41 @@ int main(int argc, char** argv)
+         } else {
+             write(fd, &w, 4);
+             write(fd, &h, 4);
+-            write(fd, &f, 4);
+-            write(fd, base, size);
++            if (f == PIXEL_FORMAT_RGBX_8888) {
++                if (rgb565) {
++                    void *buf;
++                    size = w * h * 2;
++                    buf = malloc(size);
++                    convert_rgba32_rgb565(base, 0, 1, w*h, buf);
++                    f = PIXEL_FORMAT_RGB_565;
++                    write(fd, &f, 4);
++                    write(fd, buf, size);
++                    free(buf);
++                } else if (rgb888) {
++                    void *buf;
++                    size = w * h * 3;
++                    buf = malloc(size);
++                    convert_rgba32_rgb888(base, 0, w*h, buf);
++                    f = PIXEL_FORMAT_RGB_888;
++                    write(fd, &f, 4);
++                    write(fd, buf, size);
++                    free(buf);
++                }
++            } else if (f == PIXEL_FORMAT_RGB_888) {
++                if (rgb565) {
++                    void *buf;
++                    size = w * h * 2;
++                    buf = malloc(size);
++                    convert_rgba32_rgb565(base, 0, 0, w*h, buf);
++                    f = PIXEL_FORMAT_RGB_565;
++                    write(fd, &f, 4);
++                    write(fd, buf, size);
++                    free(buf);
++                }
++            } else {
++                write(fd, &f, 4);
++                write(fd, base, size);
++            }
+         }
+     }
+     close(fd);
+-- 
+1.7.1
+
