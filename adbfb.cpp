@@ -517,11 +517,11 @@ FBEx::FBEx()
     screencapOptQuality = false;
     fb_width = DEFAULT_FB_WIDTH;
     fb_height = DEFAULT_FB_HEIGHT;
-    fb_format = PIXEL_FORMAT_RGBX_8888;
+    fb_format = PIXEL_FORMAT_RGBA_8888;
     bpp = FB_BPP_MAX;
 }
 
-void FBEx::checkScreenCapOptions()
+bool FBEx::checkScreenCapOptions()
 {
     AdbExecutor adb;
     QStringList args;
@@ -536,6 +536,8 @@ void FBEx::checkScreenCapOptions()
     DT_TRACE("screencap on device options -q -s"
                 << screencapOptQuality
                 << screencapOptSpeed);
+
+    return adb.exitSuccess();
 }
 
 bool FBEx::checkCompressSupport()
@@ -549,7 +551,7 @@ bool FBEx::checkCompressSupport()
 
     setCompress(ret);
 
-    return ret;
+    return cmd.exitSuccess();
 }
 
 void FBEx::setCompress(bool value)
@@ -573,9 +575,11 @@ void FBEx::setCompress(bool value)
 
 void FBEx::setConnected(bool state)
 {
+#if 0
     if (isConnected() == state) {
         return;
     }
+#endif
 
     ADB::setConnected(state);
 
@@ -621,6 +625,7 @@ int FBEx::screenCap(QByteArray &bytes, int offset)
 {
     AdbExecutor adb;
     QStringList args;
+    qint64 mSecs;
 
     args << "shell" << "screencap";
 
@@ -633,9 +638,10 @@ int FBEx::screenCap(QByteArray &bytes, int offset)
         args << "|" << "gzip";
     }
 
-    DT_TRACE("CAP");
+    mSecs = QDateTime::currentMSecsSinceEpoch();
     adb.run(args);
-    DT_TRACE("CAP NEW FB");
+    mSecs = QDateTime::currentMSecsSinceEpoch() - mSecs;
+    DT_TRACE("CAP FB in" << mSecs << "ms");
 
     if (! adb.exitSuccess()) {
         adb.printErrorInfo();
@@ -700,6 +706,7 @@ int FBEx::getScreenInfo(const QByteArray &bytes)
     case PIXEL_FORMAT_RGB_888:
         bpp = 3; // RGB888
         break;
+    case PIXEL_FORMAT_RGBA_8888:
     case PIXEL_FORMAT_RGBX_8888:
         bpp = 4; // RGBA32
         break;
@@ -752,7 +759,8 @@ void FBEx::sendNewFB(void)
     }
 
     //DT_TRACE("Send out FB");
-    if (fb_format == PIXEL_FORMAT_RGBX_8888) {
+    if ((fb_format == PIXEL_FORMAT_RGBA_8888)
+        || (fb_format == PIXEL_FORMAT_RGBX_8888)) {
         len = convertRGBAtoRGB888(bytes, FB_DATA_OFFSET);
     } else {
         len = length();

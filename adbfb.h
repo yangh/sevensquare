@@ -245,7 +245,8 @@ public:
 #define MINIGZIP	"minigzip"
 
     enum {
-        PIXEL_FORMAT_RGBX_8888 = 1,
+        PIXEL_FORMAT_RGBA_8888 = 1,
+        PIXEL_FORMAT_RGBX_8888 = 2,
         PIXEL_FORMAT_RGB_888   = 3,
         PIXEL_FORMAT_RGBX_565  = 4
     };
@@ -255,7 +256,7 @@ public:
     void setCompress(bool value);
     bool checkCompressSupport(void);
     bool supportCompress (void)     { return doCompress; }
-    void checkScreenCapOptions();
+    bool checkScreenCapOptions();
     int  getBPP(void)               { return bpp; }
 
     int width()                     { return fb_width; }
