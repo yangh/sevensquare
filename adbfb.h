@@ -255,6 +255,7 @@ public:
     void setCompress(bool value);
     bool checkCompressSupport(void);
     bool supportCompress (void)     { return doCompress; }
+    void checkScreenCapOptions();
     int  getBPP(void)               { return bpp; }
 
     int width()                     { return fb_width; }
@@ -290,6 +291,8 @@ private:
     QFile gz;
     bool doCompress;
     bool readPaused;
+    bool screencapOptQuality;
+    bool screencapOptSpeed;
     int fb_width;
     int fb_height;
     int fb_format;

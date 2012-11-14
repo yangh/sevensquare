@@ -511,11 +511,31 @@ void AdbExecObject::sendVirtualKey(int key)
 
 FBEx::FBEx()
 {
+    readPaused = false;
     doCompress = false;
+    screencapOptSpeed = false;
+    screencapOptQuality = false;
     fb_width = DEFAULT_FB_WIDTH;
     fb_height = DEFAULT_FB_HEIGHT;
     fb_format = PIXEL_FORMAT_RGBX_8888;
     bpp = FB_BPP_MAX;
+}
+
+void FBEx::checkScreenCapOptions()
+{
+    AdbExecutor adb;
+    QStringList args;
+
+    args << "shell";
+    args << "screencap" << "-h";
+    adb.run(args);
+
+    screencapOptQuality = adb.outputHas("-q");
+    screencapOptSpeed = adb.outputHas("-s");
+
+    DT_TRACE("screencap on device options -q -s"
+                << screencapOptQuality
+                << screencapOptSpeed);
 }
 
 bool FBEx::checkCompressSupport()
@@ -603,6 +623,12 @@ int FBEx::screenCap(QByteArray &bytes, int offset)
     QStringList args;
 
     args << "shell" << "screencap";
+
+    // TODO: Add UI config for this option
+    if (screencapOptQuality) {
+        args << "-q";
+    }
+
     if (doCompress) {
         args << "|" << "gzip";
     }
@@ -759,6 +785,7 @@ void FBEx::probeFBInfo()
     int ret;
 
     checkCompressSupport();
+    checkScreenCapOptions();
 
     ret = screenCap(bytes);
     if (ret != 0) {

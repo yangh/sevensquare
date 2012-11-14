@@ -218,6 +218,8 @@ void CubeScene::newFBFound(int w, int h, int f)
 {
     DT_TRACE("New Remote screen FB:" << w << h << f);
 
+    reader.setPaused(false);
+
     if (w == fb_width && h == fb_height) {
         //qDebug() << "Remote screen size unchanged.";
         // Start read frame
