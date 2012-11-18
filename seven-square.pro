@@ -7,20 +7,20 @@ QT += opengl \
 TARGET = seven-square
 TEMPLATE = app
 CONFIG += debug
-RESOURCES = sq-images.qrc
+RESOURCES = seven-square.qrc
 SOURCES += \
-    main.cpp \
-    adbfb.cpp \
-    cubecellitem.cpp \
-    fbcellitem.cpp \
-    cubescene.cpp
+    src/main.cpp \
+    src/adbfb.cpp \
+    src/cubecellitem.cpp \
+    src/fbcellitem.cpp \
+    src/cubescene.cpp
 HEADERS += \
-    cubecellitem.h \
-    adbfb.h \
-    keymap.h \
-    keymap-generated.h \
-    keycodes.h \
-    adbfb.h \
-    debug.h \
-    fbcellitem.h \
-    cubescene.h
+    src/cubecellitem.h \
+    src/adbfb.h \
+    src/keymap.h \
+    src/keymap-generated.h \
+    src/keycodes.h \
+    src/adbfb.h \
+    src/debug.h \
+    src/fbcellitem.h \
+    src/cubescene.h

@@ -1,0 +1,5 @@
+build
+core
+moc_*
+qrc_*
+*.o

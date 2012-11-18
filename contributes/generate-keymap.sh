@@ -11,8 +11,8 @@
 #    AKEYCODE_1               = 8,  /* Qt::Key_1 = 0x31, */
 #    AKEYCODE_2               = 9,  /* Qt::Key_2 = 0x32, */
 
-SRC="keycodes.h"
-DST="keymap-generated.h"
+SRC="src/keycodes.h"
+DST="src/keymap-generated.h"
 
 echo -n "Generate keymap header from $SRC..."
 

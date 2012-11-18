@@ -1,0 +1,122 @@
+RGBA8888
+=========
+
+time adb shell screencap /dev/x
+
+real	0m0.355s
+user	0m0.000s
+sys	0m0.000s
+time adb shell 'screencap | gzip > /dev/x'
+
+real	0m0.615s
+user	0m0.000s
+sys	0m0.000s
+time adb shell screencap  > x
+
+real	0m0.929s
+user	0m0.000s
+sys	0m0.020s
+time adb shell 'screencap | gzip ' > x
+
+real	0m0.709s
+user	0m0.000s
+sys	0m0.010s
+time adb shell 'screencap | gzip -f' > x
+
+real	0m0.690s
+user	0m0.000s
+sys	0m0.010s
+time adb shell 'screencap | gzip -h' > x
+
+real	0m0.889s
+user	0m0.000s
+sys	0m0.030s
+time adb shell 'screencap | gzip -r' > x
+
+real	0m0.902s
+user	0m0.000s
+sys	0m0.020s
+
+rgb565
+=======
+
+time adb shell screencap /dev/x
+
+real	0m0.293s
+user	0m0.000s
+sys	0m0.000s
+time adb shell 'screencap | gzip > /dev/x'
+
+real	0m0.287s
+user	0m0.000s
+sys	0m0.000s
+time adb shell screencap  > x
+
+real	0m0.490s
+user	0m0.000s
+sys	0m0.010s
+time adb shell 'screencap | gzip ' > x
+
+real	0m0.319s
+user	0m0.000s
+sys	0m0.000s
+time adb shell 'screencap | gzip -f' > x
+
+real	0m0.279s
+user	0m0.000s
+sys	0m0.000s
+time adb shell 'screencap | gzip -h' > x
+
+real	0m0.391s
+user	0m0.000s
+sys	0m0.000s
+time adb shell 'screencap | gzip -r' > x
+
+real	0m0.399s
+user	0m0.000s
+sys	0m0.000s
+
+rgb888
+======
+
+time adb shell screencap /dev/x
+
+real	0m0.392s
+user	0m0.000s
+sys	0m0.000s
+time adb shell 'screencap | gzip > /dev/x'
+
+real	0m0.510s
+user	0m0.000s
+sys	0m0.000s
+time adb shell screencap  > x
+
+real	0m0.890s
+user	0m0.000s
+sys	0m0.020s
+time adb shell 'screencap | gzip ' > x
+
+real	0m0.590s
+user	0m0.010s
+sys	0m0.000s
+time adb shell 'screencap | gzip -f' > x
+
+real	0m0.875s
+user	0m0.010s
+sys	0m0.000s
+time adb shell 'screencap | gzip -h' > x
+
+real	0m1.031s
+user	0m0.010s
+sys	0m0.010s
+time adb shell 'screencap | gzip -r' > x
+
+real	0m0.767s
+user	0m0.000s
+sys	0m0.030s
+
+
+
+frameworks/base$ grep PIXEL_FORMAT_RGB_888 include/ -R
+include/ui/PixelFormat.h:    PIXEL_FORMAT_RGB_888     = HAL_PIXEL_FORMAT_RGB_888,    // 3x8-bit RGB
+

@@ -54,7 +54,7 @@ Optional:
    There is a precompiled x86_64 minigzip binary in the top dir, just copy into
    your system path:
 
-    $> sudo cp minigzip /usr/bin
+    $> sudo cp contributes/minigzip /usr/bin
 
    If you want to compile one for yourself, get it from android/external/zlib
 
@@ -88,7 +88,7 @@ Keypad support
 ==============
 
  If you want support more key define in the UI, please read
- the generate-keymap.sh for more info.
+ the contributes/generate-keymap.sh for more info.
 
 History
 =======
