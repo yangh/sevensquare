@@ -67,22 +67,14 @@ Optional:
    You'll be appreciated If you can help to add decompress code in to this
    project to help to avoid runing external program to decompress frame buffer data.
 
-
-Run
-===
-
-From command line:
-
- ./seven-square 
-
-Or you can create a short cut on your desktop.
-
 Compile
 =======
 
  $> apt-get install qt4-qmake libqt4-dev libqtcore4 libqtgui4
  $> make
- $> ./seven-square
+ $> ./build/seven-square
+
+ Or you can create a short cut on your desktop.
 
 Keypad support
 ==============
