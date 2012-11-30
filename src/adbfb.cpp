@@ -522,6 +522,15 @@ FBEx::FBEx()
     bpp = FB_BPP_MAX;
 }
 
+void FBEx::setPaused(bool p)
+{
+    readPaused = p;
+
+    if (! readPaused) {
+        setDelay(0);
+    }
+}
+
 bool FBEx::checkScreenCapOptions()
 {
     AdbExecutor adb;

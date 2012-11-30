@@ -251,8 +251,8 @@ public:
         PIXEL_FORMAT_RGBX_565  = 4
     };
 
-    void setPaused(bool p)          { readPaused = p; };
-    bool paused(void)               { return readPaused; };
+    void setPaused(bool p);
+    bool paused(void)               { return readPaused; }
     void setCompress(bool value);
     bool checkCompressSupport(void);
     bool supportCompress (void)     { return doCompress; }

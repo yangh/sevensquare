@@ -196,7 +196,6 @@ void CubeScene::deviceScreenTurnedOn(void)
 {
     reader.setPaused(false);
     emit readFrame();
-    hidePrompt();
 }
 
 void CubeScene::cubeResize(QSize size)
@@ -458,6 +457,10 @@ bool CubeScene::isConnectedAndWakedup(bool doWakeup)
 
     if (! adbex.screenIsOn()) {
         if (doWakeup) {
+            // Update screen asap
+            reader.setPaused(false);
+            emit readFrame();
+
             emit wakeUpDevice();
         }
         return false;
