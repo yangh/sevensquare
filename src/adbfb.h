@@ -179,8 +179,8 @@ class AdbExecObject : public ADB
 public:
     AdbExecObject();
 
+    bool screenIsOn(void);
     int screenBrightness(void) { return lcdBrightness; }
-    int screenIsOn()           { return lcdBrightness > 0; }
     int deviceOSType(void)     { return osType; }
 
 private:
@@ -209,6 +209,7 @@ public slots:
     void probeDevicePowerKey(void);
     void wakeUpDevice(void);
     void updateDeviceBrightness(void);
+    void probeDeviceHasSysLCDBL(void);
 
     void sendVirtualClick(QPoint pos, bool, bool);
     void sendVirtualKey(int key);
@@ -223,6 +224,7 @@ signals:
 private:
     QList<DeviceKeyInfo> powerKeyInfos;
     QTimer screenOnWaitTimer;
+    bool hasSysLCDBL;
     int lcdBrightness;
     int osType;
 

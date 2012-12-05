@@ -134,14 +134,21 @@ int ADB::increaseDelay()
 
 AdbExecObject::AdbExecObject()
 {
-    screenOnWaitTimer.setInterval(1000);
-    QObject::connect(&screenOnWaitTimer, SIGNAL(timeout()),
-                     this, SLOT(updateDeviceBrightness()));
     lcdBrightness = 0;
     osType = ANDROID_JB;
+    hasSysLCDBL = false;
 
     connect(this, SIGNAL(newCommand(QStringList)),
             SLOT(execCommand(QStringList)));
+}
+
+bool AdbExecObject::screenIsOn(void)
+{
+    if (! hasSysLCDBL) {
+        return true;
+    }
+
+    return lcdBrightness > 0;
 }
 
 int AdbExecObject::getDeviceLCDBrightness()
@@ -271,6 +278,23 @@ bool AdbExecObject::getKeyCodeFromKeyLayout(const QString &keylayout,
     return false;
 }
 
+void AdbExecObject::probeDeviceHasSysLCDBL(void)
+{
+    AdbExecutor adb;
+    QStringList args;
+
+    args << "shell";
+    args << "ls" << SYS_LCD_BACKLIGHT;
+
+    adb.run(args);
+    if (! adb.exitSuccess()) {
+        emit deviceDisconnected();
+        return;
+    }
+
+    hasSysLCDBL = adb.outputHas(SYS_LCD_BACKLIGHT);
+}
+
 void AdbExecObject::probeDevicePowerKey(void)
 {
     int code;
@@ -279,6 +303,18 @@ void AdbExecObject::probeDevicePowerKey(void)
     QStringList args;
 
     emit newPropmtMessae(tr("Probing device..."));
+
+    probeDeviceHasSysLCDBL();
+
+    if (!hasSysLCDBL) {
+        return;
+    } else {
+        screenOnWaitTimer.setInterval(1000);
+        QObject::connect(&screenOnWaitTimer, SIGNAL(timeout()),
+                         this, SLOT(updateDeviceBrightness()));
+
+    }
+
     osType = getDeviceOSType();
 
     powerKeyInfos.clear();
@@ -330,11 +366,6 @@ void AdbExecObject::probeDevicePowerKey(void)
         }
     }
 
-    // Wake up on probe
-    if (powerKeyInfos.size() > 0){
-        wakeUpDevice();
-    }
-
     return;
 }
 
@@ -345,6 +376,10 @@ void AdbExecObject::wakeUpDevice()
     if (powerKeyInfos.size() == 0) {
         DT_TRACE("Power key info not found");
         probeDevicePowerKey();
+    }
+
+    if (!hasSysLCDBL) {
+        return;
     }
 
     ret = getDeviceLCDBrightness();
