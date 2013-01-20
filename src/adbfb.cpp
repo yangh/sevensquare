@@ -9,11 +9,8 @@
 #include <QMutexLocker>
 #include <QRect>
 
-#include <stdint.h>
-#include <unistd.h>
-#include <zlib.h>
-
 #include "adbfb.h"
+#include "utils.h"
 
 Commander::Commander(const char *command)
 {
@@ -147,6 +144,7 @@ ADBDevice::ADBDevice()
     lcdBrightness = 0;
     osType = ANDROID_JB;
     hasSysLCDBL = false;
+    screenOnWaitTimer.setInterval(SCREENON_WAIT_INTERVAL);
 
     connect(this, SIGNAL(newCommand(QStringList)),
             SLOT(execCommand(QStringList)));
@@ -178,27 +176,10 @@ int ADBDevice::getDeviceLCDBrightness()
     return ret;
 }
 
-int ADBDevice::getDeviceOSType(void)
-{
-    AdbExecutor adb;
-    int os = ANDROID_ICS;
-
-    adb.addArg("shell");
-    adb.addArg("input");
-    adb.run();
-
-    if (adb.outputHas("swipe")) {
-        os = ANDROID_JB;
-    }
-    //qDebug() << "OS type:" << os << adb.output;
-
-    return os;
-}
-
 QStringList ADBDevice::newKeyEventCommand(int deviceIdx,
-                                              int type,
-                                              int code,
-                                              int value)
+                                          int type,
+                                          int code,
+                                          int value)
 {
     QStringList event;
 
@@ -260,8 +241,8 @@ void ADBDevice::updateDeviceBrightness(void)
 }
 
 bool ADBDevice::getKeyCodeFromKeyLayout(const QString &keylayout,
-                                            const char *key,
-                                            int &code)
+                                        const char *key,
+                                        int &code)
 {
     AdbExecutor adb;
     QStringList args;
@@ -288,6 +269,35 @@ bool ADBDevice::getKeyCodeFromKeyLayout(const QString &keylayout,
     return false;
 }
 
+void ADBDevice::probeDevice(void)
+{
+    emit newPropmtMessae(tr("Probing device..."));
+
+    probeDeviceOSType();
+    probeDeviceHasSysLCDBL();
+    probeDevicePowerKey();
+}
+
+/* FIXME: We'd better use API level to probe the os revision */
+int ADBDevice::probeDeviceOSType(void)
+{
+    AdbExecutor adb;
+    int os = ANDROID_ICS;
+
+    adb.addArg("shell");
+    adb.addArg("input");
+    adb.run();
+
+    if (adb.outputHas("swipe")) {
+        os = ANDROID_JB;
+    }
+    //qDebug() << "OS type:" << os << adb.output;
+
+    osType = os;
+
+    return os;
+}
+
 void ADBDevice::probeDeviceHasSysLCDBL(void)
 {
     AdbExecutor adb;
@@ -303,31 +313,20 @@ void ADBDevice::probeDeviceHasSysLCDBL(void)
     }
 
     hasSysLCDBL = adb.outputHas(SYS_LCD_BACKLIGHT);
+
+    if (hasSysLCDBL) {
+        QObject::connect(&screenOnWaitTimer, SIGNAL(timeout()),
+                         this, SLOT(updateDeviceBrightness()));
+
+    }
 }
 
 void ADBDevice::probeDevicePowerKey(void)
 {
     int code;
-    QList<QByteArray> lines;
     AdbExecutor adb;
     QStringList args;
-
-    emit newPropmtMessae(tr("Probing device..."));
-
-    probeDeviceHasSysLCDBL();
-
-    if (!hasSysLCDBL) {
-        return;
-    } else {
-        screenOnWaitTimer.setInterval(1000);
-        QObject::connect(&screenOnWaitTimer, SIGNAL(timeout()),
-                         this, SLOT(updateDeviceBrightness()));
-
-    }
-
-    osType = getDeviceOSType();
-
-    powerKeyInfos.clear();
+    QList<QByteArray> lines;
 
     // Find POWER key in the key layout files
     args << "shell" << "cat" << SYS_INPUT_NAME_LIST;
@@ -336,6 +335,8 @@ void ADBDevice::probeDevicePowerKey(void)
         emit deviceDisconnected();
         return;
     }
+
+    powerKeyInfos.clear();
 
     // List all input device
     lines = adb.outputLines();
@@ -385,7 +386,7 @@ void ADBDevice::wakeUpDevice()
 
     if (powerKeyInfos.size() == 0) {
         DT_TRACE("Power key info not found");
-        probeDevicePowerKey();
+        probeDevice();
     }
 
     if (!hasSysLCDBL) {
@@ -451,7 +452,7 @@ void ADBDevice::wakeUpDeviceViaPowerKey(void)
 }
 
 void ADBDevice::sendVirtualClick(QPoint pos,
-                                     bool press, bool release)
+                                 bool press, bool release)
 {
     DT_TRACE("CLICK" << pos.x() << pos.y() << press << release);
 
@@ -477,11 +478,12 @@ void ADBDevice::sendTap(QPoint pos, bool press)
     bool isTap = false;
 
     if (press) {
-        posPress = pos;
+        posOfPress = pos;
         return;
     }
 
-    isTap = QRect(-1, -1, 2, 2).contains(pos - posPress);
+    // Moved distance less than 2 point
+    isTap = QRect(-1, -1, 2, 2).contains(pos - posOfPress);
     //qDebug() << "Tap as swipe" << isTap;
 
     cmds.clear();
@@ -491,8 +493,8 @@ void ADBDevice::sendTap(QPoint pos, bool press)
         cmds << "input tap";
     } else {
         cmds << "input swipe";
-        cmds << QString::number(posPress.x());
-        cmds << QString::number(posPress.y());
+        cmds << QString::number(posOfPress.x());
+        cmds << QString::number(posOfPress.y());
     }
 
     cmds << QString::number(pos.x());
@@ -589,8 +591,8 @@ bool ADBFrameBuffer::checkScreenCapOptions()
     screencapOptSpeed = adb.outputHas("-s");
 
     DT_TRACE("screencap on device options -q -s"
-                << screencapOptQuality
-                << screencapOptSpeed);
+             << screencapOptQuality
+             << screencapOptSpeed);
 
     return adb.exitSuccess();
 }
@@ -704,46 +706,16 @@ int ADBFrameBuffer::screenCap(QByteArray &bytes, int offset)
     return adb.ret;
 }
 
-int ADBFrameBuffer::convertRGBAtoRGB888(QByteArray &bytes, int offset)
-{
-    int x, y;
-    char *p, *n;
-
-    p = n = bytes.data() + offset;
-
-    // RGBX32 -> RGB888
-    for (y = 0; y < fb_height; y++) {
-        for (x = 0; x < fb_width; x++) {
-            *p++ = *n++;
-            *p++ = *n++;
-            *p++ = *n++;
-            n++;
-        }
-    }
-
-    return fb_width * fb_height * 3;
-}
-
-static int bigEndianToInt32(const QByteArray &bytes)
-{
-    uint32_t v = 0;
-    const char *buf = bytes.data();
-
-    //FIXME: Assume that device and host
-    // has same endianess
-    bcopy(buf, &v, sizeof(uint32_t));
-
-    return v;
-}
-
 int ADBFrameBuffer::getScreenInfo(const QByteArray &bytes)
 {
     int width, height, format;
+    const char *data;
 
     // FB header
-    width = bigEndianToInt32(bytes.mid(0, 4));
-    height = bigEndianToInt32(bytes.mid(4, 4));
-    format = bigEndianToInt32(bytes.mid(8, 4));
+    data = bytes.data();
+    width = bigEndianStreamDataToInt32(data);
+    height = bigEndianStreamDataToInt32(data + 4);
+    format = bigEndianStreamDataToInt32(data + 8);
 
     if (width <= 0 || height <= 0) {
         DT_ERROR("Failed to get screen info.");
@@ -815,8 +787,11 @@ void ADBFrameBuffer::sendNewFB(void)
 
     //DT_TRACE("Send out FB");
     if ((fb_format == PIXEL_FORMAT_RGBA_8888)
-        || (fb_format == PIXEL_FORMAT_RGBX_8888)) {
-        len = convertRGBAtoRGB888(bytes, FB_DATA_OFFSET);
+            || (fb_format == PIXEL_FORMAT_RGBX_8888))
+    {
+        len = convertRGBAtoRGB888(bytes.data(),
+                                  fb_width, fb_height,
+                                  FB_DATA_OFFSET);
     } else {
         len = length();
     }

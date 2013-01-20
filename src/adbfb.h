@@ -177,13 +177,18 @@ class ADBDevice : public ADBBase
 public:
     ADBDevice();
 
+#define SCREENON_WAIT_INTERVAL 1000 // ms
+
     bool screenIsOn(void);
     int screenBrightness(void) { return lcdBrightness; }
     int deviceOSType(void)     { return osType; }
 
 private:
+    void probeDeviceHasSysLCDBL(void);
+    void probeDevicePowerKey(void);
+    int probeDeviceOSType(void);
+
     int getDeviceLCDBrightness();
-    int getDeviceOSType(void);
 
     bool getKeyCodeFromKeyLayout(const QString &keylayout,
                                  const char *key,
@@ -204,10 +209,9 @@ public slots:
         adb.run(cmds);
     }
 
-    void probeDevicePowerKey(void);
+    void probeDevice(void);
     void wakeUpDevice(void);
     void updateDeviceBrightness(void);
-    void probeDeviceHasSysLCDBL(void);
 
     void sendVirtualClick(QPoint pos, bool, bool);
     void sendVirtualKey(int key);
@@ -217,7 +221,7 @@ signals:
     void screenTurnedOn(void);
     void error(QString *msg);
     void newCommand(const QStringList cmds);
-    void newPropmtMessae(QString);
+    void newPropmtMessae(const QString);
 
 private:
     QList<DeviceKeyInfo> powerKeyInfos;
@@ -226,8 +230,8 @@ private:
     int lcdBrightness;
     int osType;
 
-    // Use in jb tap/swipe event
-    QPoint posPress;
+    // Used in jb to distinguish tap/swipe event
+    QPoint posOfPress;
 };
 
 class ADBFrameBuffer: public ADBBase
@@ -275,8 +279,7 @@ public:
      */
     bool checkScreenCapOptions();
 
-    int  getBPP(void)               { return bpp; }
-
+    int getBPP(void)                { return bpp; }
     int width()                     { return fb_width; }
     int height()                    { return fb_height; }
 
@@ -301,7 +304,6 @@ private:
     int minigzipDecompress(QByteArray &);
     int screenCap(QByteArray &bytes, int offset = 0);
     int getScreenInfo(const QByteArray &);
-    int convertRGBAtoRGB888(QByteArray &, int);
 
     AdbExecutor adbWaiter;
 

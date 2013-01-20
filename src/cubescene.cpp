@@ -110,7 +110,7 @@ CubeScene::CubeScene(QObject * parent) :
     adbex.connect(this, SIGNAL(execAdbCmd(const QStringList)),
                   SLOT(execCommand(const QStringList)));
     adbex.connect(&reader, SIGNAL(deviceFound()),
-                  SLOT(probeDevicePowerKey(void)));
+                  SLOT(probeDevice(void)));
     adbex.connect(this, SIGNAL(wakeUpDevice()),
                   SLOT(wakeUpDevice()));
     adbex.connect(this, SIGNAL(updateDeviceBrightness()),

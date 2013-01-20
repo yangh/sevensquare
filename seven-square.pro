@@ -13,7 +13,8 @@ SOURCES += \
     src/adbfb.cpp \
     src/cubecellitem.cpp \
     src/fbcellitem.cpp \
-    src/cubescene.cpp
+    src/cubescene.cpp \
+    src/utils.cpp
 HEADERS += \
     src/cubecellitem.h \
     src/adbfb.h \
@@ -23,4 +24,5 @@ HEADERS += \
     src/adbfb.h \
     src/debug.h \
     src/fbcellitem.h \
-    src/cubescene.h
+    src/cubescene.h \
+    src/utils.h
