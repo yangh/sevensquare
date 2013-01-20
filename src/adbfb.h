@@ -40,16 +40,12 @@ public:
 
     void clear(void);
 
-    int wait(int msecs = 30000);
-
     int run(bool waitUntilFinished = true);
 
-    int run(const QStringList &strs, bool w = true)
-    {
-        args.clear();
-        args << strs;
-        return run(w);
-    }
+    /* Run given command */
+    int run(const QStringList &str, bool waitUntilFinished = true);
+
+    int wait(const int msecs = 30000);
 
     bool exitSuccess(void)            { return ret == 0; }
 
@@ -70,7 +66,7 @@ public:
                 && output.indexOf(str) > 0);
     }
 
-    QList<QByteArray> outputLines() {
+    QList<QByteArray> outputLines(void) {
         return output.split('\n');
     }
 
@@ -113,8 +109,11 @@ public:
     ADB();
     ~ADB();
 
+    /* Add some delay between every screen capture action to
+     * save both target and host from busy loop.
+     */
     enum {
-        DELAY_STEP      = 150,
+        DELAY_STEP      = 150,  /* ms */
         DELAY_MINI      = 100,
         DELAY_FAST      = 200,
         DELAY_NORMAL    = 400,
@@ -124,11 +123,10 @@ public:
     };
 
     void loopDelay();
-    void setDelay(int d);
 
+    void setDelay(int d);
     void setMiniDelay() { delay = DELAY_MINI; }
     void setMaxiDelay() { delay = DELAY_MAX; }
-
     int increaseDelay();
 
     bool isConnected(void)        { return connected; }
@@ -239,11 +237,19 @@ class FBEx: public ADB
 public:
     FBEx();
 
-    // int w, h, h on header
-    // Refer: frameworks/base/cmd/screencap/screencap.cpp
+    /* Header of the screencap output into fd,
+     * int width, height, format
+     * Refer: frameworks/base/cmds/screencap/screencap.cpp
+     */
 #define FB_DATA_OFFSET (12)
 #define FB_BPP_MAX	4
+
+    // Temp file for compressed fb data
 #define GZ_FILE		"/dev/shm/android-fb.gz"
+
+    /* The gzip command on the adb device is an minigzip from
+     * external/zlib, we also need one on the host
+     */
 #define MINIGZIP	"minigzip"
 
     enum {
@@ -255,10 +261,20 @@ public:
 
     void setPaused(bool p);
     bool paused(void)               { return readPaused; }
-    void setCompress(bool value);
+
+    /* Check if we have minigzip on the host, so that
+     * we can compress screen dump to save transfer time.
+     */
     bool checkCompressSupport(void);
+
+    void enableCompress(bool value);
     bool supportCompress (void)     { return doCompress; }
+
+    /* Check if screencap command on the device support
+     * -q (quality), -s (speed) option.
+     */
     bool checkScreenCapOptions();
+
     int  getBPP(void)               { return bpp; }
 
     int width()                     { return fb_width; }

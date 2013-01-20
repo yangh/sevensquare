@@ -18,8 +18,10 @@
 Commander::Commander(const char *command)
 {
     ret = -1;
-    p = NULL;
     cmd = command;
+    p = NULL;
+
+    clear();
 }
 
 void Commander::clear(void)
@@ -52,7 +54,15 @@ int Commander::run(bool waitUntilFinished)
     return 0;
 }
 
-int Commander::wait(int msecs)
+int Commander::run(const QStringList &str, bool waitUntilFinished)
+{
+    clear();
+    args << str;
+
+    return run(waitUntilFinished);
+}
+
+int Commander::wait(const int msecs)
 {
     p->waitForFinished(msecs);
 
@@ -594,12 +604,12 @@ bool FBEx::checkCompressSupport()
     cmd.run();
     ret = cmd.outputHas(MINIGZIP);
 
-    setCompress(ret);
+    enableCompress(ret);
 
     return cmd.exitSuccess();
 }
 
-void FBEx::setCompress(bool value)
+void FBEx::enableCompress(bool value)
 {
     DT_TRACE("Compressed data transfer" << value);
 
