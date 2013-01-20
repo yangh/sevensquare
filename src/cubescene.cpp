@@ -267,7 +267,7 @@ void CubeScene::updateFBCell(QByteArray *bytes)
     } else {
         delay = reader.increaseDelay();
 
-        if (delay >= FBEx::DELAY_NORMAL) {
+        if (delay >= ADBFrameBuffer::DELAY_NORMAL) {
             emit updateDeviceBrightness();
         }
     }

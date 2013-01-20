@@ -101,13 +101,13 @@ public:
     }
 };
 
-class ADB : public QObject
+class ADBBase : public QObject
 {
     Q_OBJECT
 
 public:
-    ADB();
-    ~ADB();
+    ADBBase();
+    ~ADBBase();
 
     /* Add some delay between every screen capture action to
      * save both target and host from busy loop.
@@ -170,12 +170,12 @@ public:
 #define SYS_INPUT_NAME_LIST "/sys/class/input/input*/name"
 #define POWER_KEY_COMMON    116
 
-class AdbExecObject : public ADB
+class ADBDevice : public ADBBase
 {
     Q_OBJECT
 
 public:
-    AdbExecObject();
+    ADBDevice();
 
     bool screenIsOn(void);
     int screenBrightness(void) { return lcdBrightness; }
@@ -230,12 +230,12 @@ private:
     QPoint posPress;
 };
 
-class FBEx: public ADB
+class ADBFrameBuffer: public ADBBase
 {
     Q_OBJECT
 
 public:
-    FBEx();
+    ADBFrameBuffer();
 
     /* Header of the screencap output into fd,
      * int width, height, format

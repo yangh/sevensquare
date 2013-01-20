@@ -86,14 +86,14 @@ void FBCellItem::setFBSize(QSize size)
 void FBCellItem::setFBDataFormat(int format)
 {
     switch(format) {
-    case FBEx::PIXEL_FORMAT_RGBA_8888:
-    case FBEx::PIXEL_FORMAT_RGBX_8888:
+    case ADBFrameBuffer::PIXEL_FORMAT_RGBA_8888:
+    case ADBFrameBuffer::PIXEL_FORMAT_RGBX_8888:
         rawFBDataFormat = QImage::Format_RGB888; // converted in adbfb
         break;
-    case FBEx::PIXEL_FORMAT_RGBX_565:
+    case ADBFrameBuffer::PIXEL_FORMAT_RGBX_565:
         rawFBDataFormat = QImage::Format_RGB16; // converted from device
         break;
-    case FBEx::PIXEL_FORMAT_RGB_888:
+    case ADBFrameBuffer::PIXEL_FORMAT_RGB_888:
         rawFBDataFormat = QImage::Format_RGB888; // converted from device
         break;
     default:

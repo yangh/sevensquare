@@ -100,18 +100,18 @@ QList<QByteArray> Commander::outputLinesHas(const char * key,
     return matches;
 }
 
-ADB::ADB()
+ADBBase::ADBBase()
 {
     delay = DELAY_FAST;
     connected = false;
 }
 
-ADB::~ADB()
+ADBBase::~ADBBase()
 {
     setDelay(0);
 }
 
-void ADB::loopDelay()
+void ADBBase::loopDelay()
 {
     QMutexLocker locker(&mutex);
 
@@ -123,7 +123,7 @@ void ADB::loopDelay()
     mutex.unlock();
 }
 
-void ADB::setDelay(int d)
+void ADBBase::setDelay(int d)
 {
     QMutexLocker locker(&mutex);
 
@@ -132,7 +132,7 @@ void ADB::setDelay(int d)
     mutex.unlock();
 }
 
-int ADB::increaseDelay()
+int ADBBase::increaseDelay()
 {
     QMutexLocker locker(&mutex);
 
@@ -142,7 +142,7 @@ int ADB::increaseDelay()
     return delay;
 }
 
-AdbExecObject::AdbExecObject()
+ADBDevice::ADBDevice()
 {
     lcdBrightness = 0;
     osType = ANDROID_JB;
@@ -152,7 +152,7 @@ AdbExecObject::AdbExecObject()
             SLOT(execCommand(QStringList)));
 }
 
-bool AdbExecObject::screenIsOn(void)
+bool ADBDevice::screenIsOn(void)
 {
     if (! hasSysLCDBL) {
         return true;
@@ -161,7 +161,7 @@ bool AdbExecObject::screenIsOn(void)
     return lcdBrightness > 0;
 }
 
-int AdbExecObject::getDeviceLCDBrightness()
+int ADBDevice::getDeviceLCDBrightness()
 {
     int ret;
     AdbExecutor adb;
@@ -178,7 +178,7 @@ int AdbExecObject::getDeviceLCDBrightness()
     return ret;
 }
 
-int AdbExecObject::getDeviceOSType(void)
+int ADBDevice::getDeviceOSType(void)
 {
     AdbExecutor adb;
     int os = ANDROID_ICS;
@@ -195,7 +195,7 @@ int AdbExecObject::getDeviceOSType(void)
     return os;
 }
 
-QStringList AdbExecObject::newKeyEventCommand(int deviceIdx,
+QStringList ADBDevice::newKeyEventCommand(int deviceIdx,
                                               int type,
                                               int code,
                                               int value)
@@ -212,7 +212,7 @@ QStringList AdbExecObject::newKeyEventCommand(int deviceIdx,
     return event;
 }
 
-QStringList AdbExecObject::newKeyEventCommandSequence(int deviceIdx, int code)
+QStringList ADBDevice::newKeyEventCommandSequence(int deviceIdx, int code)
 {
     QStringList cmds;
 
@@ -223,7 +223,7 @@ QStringList AdbExecObject::newKeyEventCommandSequence(int deviceIdx, int code)
     return cmds;
 }
 
-void AdbExecObject::sendPowerKey(int deviceIdx, int code)
+void ADBDevice::sendPowerKey(int deviceIdx, int code)
 {
     AdbExecutor adb;
     QStringList args;
@@ -233,7 +233,7 @@ void AdbExecObject::sendPowerKey(int deviceIdx, int code)
     adb.run(args);
 }
 
-void AdbExecObject::updateDeviceBrightness(void)
+void ADBDevice::updateDeviceBrightness(void)
 {
     int ret;
     int oldBrightness = lcdBrightness;
@@ -259,7 +259,7 @@ void AdbExecObject::updateDeviceBrightness(void)
     }
 }
 
-bool AdbExecObject::getKeyCodeFromKeyLayout(const QString &keylayout,
+bool ADBDevice::getKeyCodeFromKeyLayout(const QString &keylayout,
                                             const char *key,
                                             int &code)
 {
@@ -288,7 +288,7 @@ bool AdbExecObject::getKeyCodeFromKeyLayout(const QString &keylayout,
     return false;
 }
 
-void AdbExecObject::probeDeviceHasSysLCDBL(void)
+void ADBDevice::probeDeviceHasSysLCDBL(void)
 {
     AdbExecutor adb;
     QStringList args;
@@ -305,7 +305,7 @@ void AdbExecObject::probeDeviceHasSysLCDBL(void)
     hasSysLCDBL = adb.outputHas(SYS_LCD_BACKLIGHT);
 }
 
-void AdbExecObject::probeDevicePowerKey(void)
+void ADBDevice::probeDevicePowerKey(void)
 {
     int code;
     QList<QByteArray> lines;
@@ -379,7 +379,7 @@ void AdbExecObject::probeDevicePowerKey(void)
     return;
 }
 
-void AdbExecObject::wakeUpDevice()
+void ADBDevice::wakeUpDevice()
 {
     int ret;
 
@@ -409,7 +409,7 @@ void AdbExecObject::wakeUpDevice()
     screenOnWaitTimer.start();
 }
 
-void AdbExecObject::wakeUpDeviceViaPowerKey(void)
+void ADBDevice::wakeUpDeviceViaPowerKey(void)
 {
     int ret;
 
@@ -450,7 +450,7 @@ void AdbExecObject::wakeUpDeviceViaPowerKey(void)
     }
 }
 
-void AdbExecObject::sendVirtualClick(QPoint pos,
+void ADBDevice::sendVirtualClick(QPoint pos,
                                      bool press, bool release)
 {
     DT_TRACE("CLICK" << pos.x() << pos.y() << press << release);
@@ -471,7 +471,7 @@ void AdbExecObject::sendVirtualClick(QPoint pos,
     }
 }
 
-void AdbExecObject::sendTap(QPoint pos, bool press)
+void ADBDevice::sendTap(QPoint pos, bool press)
 {
     QStringList cmds;
     bool isTap = false;
@@ -502,7 +502,7 @@ void AdbExecObject::sendTap(QPoint pos, bool press)
     emit newCommand(cmds);
 }
 
-QStringList AdbExecObject::newEventCmd (int type, int code, int value)
+QStringList ADBDevice::newEventCmd (int type, int code, int value)
 {
     QStringList event;
 
@@ -517,7 +517,7 @@ QStringList AdbExecObject::newEventCmd (int type, int code, int value)
     return event;
 }
 
-void AdbExecObject::sendEvent(QPoint pos, bool press, bool release)
+void ADBDevice::sendEvent(QPoint pos, bool press, bool release)
 {
     QStringList cmds;
 
@@ -543,7 +543,7 @@ void AdbExecObject::sendEvent(QPoint pos, bool press, bool release)
     emit newCommand(cmds);
 }
 
-void AdbExecObject::sendVirtualKey(int key)
+void ADBDevice::sendVirtualKey(int key)
 {
     QStringList cmds;
 
@@ -555,7 +555,7 @@ void AdbExecObject::sendVirtualKey(int key)
     emit newCommand(cmds);
 }
 
-FBEx::FBEx()
+ADBFrameBuffer::ADBFrameBuffer()
 {
     readPaused = false;
     doCompress = false;
@@ -567,7 +567,7 @@ FBEx::FBEx()
     bpp = FB_BPP_MAX;
 }
 
-void FBEx::setPaused(bool p)
+void ADBFrameBuffer::setPaused(bool p)
 {
     readPaused = p;
 
@@ -576,7 +576,7 @@ void FBEx::setPaused(bool p)
     }
 }
 
-bool FBEx::checkScreenCapOptions()
+bool ADBFrameBuffer::checkScreenCapOptions()
 {
     AdbExecutor adb;
     QStringList args;
@@ -595,7 +595,7 @@ bool FBEx::checkScreenCapOptions()
     return adb.exitSuccess();
 }
 
-bool FBEx::checkCompressSupport()
+bool ADBFrameBuffer::checkCompressSupport()
 {
     bool ret;
     Commander cmd("which");
@@ -609,7 +609,7 @@ bool FBEx::checkCompressSupport()
     return cmd.exitSuccess();
 }
 
-void FBEx::enableCompress(bool value)
+void ADBFrameBuffer::enableCompress(bool value)
 {
     DT_TRACE("Compressed data transfer" << value);
 
@@ -628,7 +628,7 @@ void FBEx::enableCompress(bool value)
     }
 }
 
-void FBEx::setConnected(bool state)
+void ADBFrameBuffer::setConnected(bool state)
 {
 #if 0
     if (isConnected() == state) {
@@ -636,7 +636,7 @@ void FBEx::setConnected(bool state)
     }
 #endif
 
-    ADB::setConnected(state);
+    ADBBase::setConnected(state);
 
     if (state) {
         emit newFBFound(fb_width, fb_height, fb_format);
@@ -646,19 +646,7 @@ void FBEx::setConnected(bool state)
     }
 }
 
-static int bigEndianToInt32(const QByteArray &bytes)
-{
-    uint32_t v = 0;
-    const char *buf = bytes.data();
-
-    //FIXME: Assume that device and host
-    // has same endianess
-    bcopy(buf, &v, sizeof(uint32_t));
-
-    return v;
-}
-
-int FBEx::minigzipDecompress(QByteArray &bytes)
+int ADBFrameBuffer::minigzipDecompress(QByteArray &bytes)
 {
     Commander cmd(MINIGZIP);
     QStringList args;
@@ -676,7 +664,7 @@ int FBEx::minigzipDecompress(QByteArray &bytes)
     return cmd.ret;
 }
 
-int FBEx::screenCap(QByteArray &bytes, int offset)
+int ADBFrameBuffer::screenCap(QByteArray &bytes, int offset)
 {
     AdbExecutor adb;
     QStringList args;
@@ -716,7 +704,7 @@ int FBEx::screenCap(QByteArray &bytes, int offset)
     return adb.ret;
 }
 
-int FBEx::convertRGBAtoRGB888(QByteArray &bytes, int offset)
+int ADBFrameBuffer::convertRGBAtoRGB888(QByteArray &bytes, int offset)
 {
     int x, y;
     char *p, *n;
@@ -736,7 +724,19 @@ int FBEx::convertRGBAtoRGB888(QByteArray &bytes, int offset)
     return fb_width * fb_height * 3;
 }
 
-int FBEx::getScreenInfo(const QByteArray &bytes)
+static int bigEndianToInt32(const QByteArray &bytes)
+{
+    uint32_t v = 0;
+    const char *buf = bytes.data();
+
+    //FIXME: Assume that device and host
+    // has same endianess
+    bcopy(buf, &v, sizeof(uint32_t));
+
+    return v;
+}
+
+int ADBFrameBuffer::getScreenInfo(const QByteArray &bytes)
 {
     int width, height, format;
 
@@ -773,7 +773,7 @@ int FBEx::getScreenInfo(const QByteArray &bytes)
     return 0;
 }
 
-void FBEx::waitForDevice()
+void ADBFrameBuffer::waitForDevice()
 {
     // Ignore request if is connected already
     if (isConnected()) {
@@ -802,7 +802,7 @@ void FBEx::waitForDevice()
     }
 }
 
-void FBEx::sendNewFB(void)
+void ADBFrameBuffer::sendNewFB(void)
 {
     int len;
 
@@ -825,7 +825,7 @@ void FBEx::sendNewFB(void)
     emit newFrame(&out);
 }
 
-void FBEx::readFrame()
+void ADBFrameBuffer::readFrame()
 {
     int ret;
 
@@ -843,7 +843,7 @@ void FBEx::readFrame()
     }
 }
 
-void FBEx::probeFBInfo()
+void ADBFrameBuffer::probeFBInfo()
 {
     int ret;
 

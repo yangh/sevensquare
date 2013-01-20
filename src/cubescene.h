@@ -123,10 +123,10 @@ private:
     QMutex update_mutex;
     QPixmap pixmap;
 
-    FBEx reader;
+    ADBFrameBuffer reader;
     QThread fbThread;
 
-    AdbExecObject adbex;
+    ADBDevice adbex;
     QThread adbThread;
 
     // Qt key, Android key map
