@@ -11,7 +11,6 @@
 #include <time.h>
 #include <strings.h>
 #include <stdint.h>
-#include <zlib.h>
 
 #include "cubescene.h"
 #include "keymap.h"
