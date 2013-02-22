@@ -451,6 +451,7 @@ void CubeScene::keyReleaseEvent(QKeyEvent * event)
 bool CubeScene::isConnectedAndWakedup(bool doWakeup)
 {
     if (! reader.isConnected()) {
+        DT_TRACE("Reader not connected");
         return false;
     }
 

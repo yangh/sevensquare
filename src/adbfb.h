@@ -63,7 +63,7 @@ public:
 
     bool outputHas (const char *str) {
         return (output.length() > 0
-                && output.indexOf(str) > 0);
+                && output.indexOf(str) >= 0);
     }
 
     QList<QByteArray> outputLines(void) {

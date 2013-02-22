@@ -141,7 +141,7 @@ int ADBBase::increaseDelay()
 
 ADBDevice::ADBDevice()
 {
-    lcdBrightness = 0;
+    lcdBrightness = -1;
     osType = ANDROID_JB;
     hasSysLCDBL = false;
     screenOnWaitTimer.setInterval(SCREENON_WAIT_INTERVAL);
@@ -313,11 +313,13 @@ void ADBDevice::probeDeviceHasSysLCDBL(void)
     }
 
     hasSysLCDBL = adb.outputHas(SYS_LCD_BACKLIGHT);
+    DT_TRACE("Device has sys LCD brightness API:" << hasSysLCDBL);
 
     if (hasSysLCDBL) {
         QObject::connect(&screenOnWaitTimer, SIGNAL(timeout()),
                          this, SLOT(updateDeviceBrightness()));
 
+        updateDeviceBrightness();
     }
 }
 
@@ -390,6 +392,7 @@ void ADBDevice::wakeUpDevice()
     }
 
     if (!hasSysLCDBL) {
+        DT_TRACE("LCD Brightness sys file not found");
         return;
     }
 
