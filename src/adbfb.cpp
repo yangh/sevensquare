@@ -716,11 +716,20 @@ int ADBFrameBuffer::getScreenInfo(const QByteArray &bytes)
 
     // FB header
     data = bytes.data();
+
     width = bigEndianStreamDataToInt32(data);
     height = bigEndianStreamDataToInt32(data + 4);
     format = bigEndianStreamDataToInt32(data + 8);
 
-    if (width <= 0 || height <= 0) {
+    // Assume that screen width will less than 5120
+    if (width > IMPOSSIBLE_FB_WIDTH) {
+	    // Maybe little ending
+	    width = littleEndianStreamDataToInt32(data);
+	    height = littleEndianStreamDataToInt32(data + 4);
+	    format = littleEndianStreamDataToInt32(data + 8);
+    }
+
+    if (width > IMPOSSIBLE_FB_WIDTH || width <= 0 || height <= 0) {
         DT_ERROR("Failed to get screen info.");
         return -1;
     }

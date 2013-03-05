@@ -15,6 +15,7 @@ extern "C" {
 int convertRGBAtoRGB888(char *data, int width, int height, int offset);
 
 int bigEndianStreamDataToInt32(const char *binary);
+int littleEndianStreamDataToInt32(const char *binary);
 
 #ifdef cplusplus
 }
