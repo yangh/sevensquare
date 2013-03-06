@@ -738,6 +738,8 @@ int ADBFrameBuffer::getScreenInfo(const QByteArray &bytes)
     fb_height = height;
     fb_format = format;
 
+    DT_TRACE("Detected screen info:" << fb_width << fb_height << fb_format);
+
     switch(format) {
     case PIXEL_FORMAT_RGBX_565:
         bpp = 2; // RGB565
