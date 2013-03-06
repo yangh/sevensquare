@@ -144,7 +144,11 @@ ADBDevice::ADBDevice()
     lcdBrightness = -1;
     osType = ANDROID_JB;
     hasSysLCDBL = false;
+
     screenOnWaitTimer.setInterval(SCREENON_WAIT_INTERVAL);
+    QObject::connect(&screenOnWaitTimer, SIGNAL(timeout()),
+                     this, SLOT(updateDeviceBrightness()));
+
 
     connect(this, SIGNAL(newCommand(QStringList)),
             SLOT(execCommand(QStringList)));
@@ -221,21 +225,20 @@ void ADBDevice::updateDeviceBrightness(void)
 
     ret = getDeviceLCDBrightness();
 
+    //DT_TRACE("Screen rightness" << oldBrightness << ret);
     if (ret == lcdBrightness)
         return;
 
     lcdBrightness = ret;
 
     if (oldBrightness == 0 && ret > 0) {
-        DT_TRACE("Screen is turned on");
-        screenOnWaitTimer.stop();
+        DT_TRACE("Screen turned on");
         emit screenTurnedOn();
         return;
     }
 
     if (ret == 0) {
-        DT_TRACE("Screen is turned off");
-        screenOnWaitTimer.start();
+        DT_TRACE("Screen turned off");
         emit screenTurnedOff();
     }
 }
@@ -274,8 +277,8 @@ void ADBDevice::probeDevice(void)
     emit newPropmtMessae(tr("Probing device..."));
 
     probeDeviceOSType();
-    probeDeviceHasSysLCDBL();
     probeDevicePowerKey();
+    probeDeviceHasSysLCDBL();
 }
 
 /* FIXME: We'd better use API level to probe the os revision */
@@ -316,10 +319,10 @@ void ADBDevice::probeDeviceHasSysLCDBL(void)
     DT_TRACE("Device has sys LCD brightness API:" << hasSysLCDBL);
 
     if (hasSysLCDBL) {
-        QObject::connect(&screenOnWaitTimer, SIGNAL(timeout()),
-                         this, SLOT(updateDeviceBrightness()));
-
         updateDeviceBrightness();
+        screenOnWaitTimer.start();
+    } else {
+        screenOnWaitTimer.stop();
     }
 }
 
@@ -409,8 +412,6 @@ void ADBDevice::wakeUpDevice()
 
     emit newPropmtMessae(tr("Waking up device..."));
     wakeUpDeviceViaPowerKey();
-
-    screenOnWaitTimer.start();
 }
 
 void ADBDevice::wakeUpDeviceViaPowerKey(void)
@@ -441,16 +442,30 @@ void ADBDevice::wakeUpDeviceViaPowerKey(void)
             DT_TRACE("Screen waked up by power key" << info.keyLayout << i);
             break;
         } else {
-            DT_TRACE("Disable power key" << info.keyLayout << i);
+            //DT_TRACE("Disable power key" << info.keyLayout << i);
             info.wakeSucessed = false;
         }
     }
 
+    QList<DeviceKeyInfo> newKeyInfos;
+
     for (int i = 0; i < powerKeyInfos.size(); ++i) {
         DeviceKeyInfo &info = powerKeyInfos[i];
-        if (! info.wakeSucessed) {
-            powerKeyInfos.removeAt(i);
-        }
+        if (info.wakeSucessed) {
+            newKeyInfos.append(info);
+        } else {
+            DT_TRACE("Disable power key:" << i << info.keyLayout);
+	}
+    }
+
+    powerKeyInfos = newKeyInfos;
+
+    // Device can't wakeuped automaticly
+    if (powerKeyInfos.size() == 0) {
+	    DT_TRACE("Disable wakeup via click because target not support");
+	    hasSysLCDBL = false;
+	    screenOnWaitTimer.stop();
+	    emit screenTurnedOn();
     }
 }
 
