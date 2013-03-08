@@ -176,6 +176,7 @@ public:
     bool wakeSucessed;
 };
 
+#define NO_SUCH_FILE        "No such"
 #define SCREENCAP_EXEC      "/system/bin/screencap"
 #define KEYLAYOUT_DIR       "/system/usr/keylayout/"
 #define KEYLAYOUT_EXT       ".kl"

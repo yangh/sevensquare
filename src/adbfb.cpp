@@ -226,6 +226,9 @@ void ADBDevice::updateDeviceBrightness(void)
     int ret;
     int oldBrightness = lcdBrightness;
 
+    if (! hasSysLCDBL)
+        return;
+
     ret = getDeviceLCDBrightness();
 
     //DT_TRACE("Screen rightness" << oldBrightness << ret);
@@ -318,7 +321,7 @@ void ADBDevice::probeDeviceHasSysLCDBL(void)
         return;
     }
 
-    hasSysLCDBL = adb.outputHas(SYS_LCD_BACKLIGHT);
+    hasSysLCDBL = ! adb.outputHas(NO_SUCH_FILE);
     DT_TRACE("Device has sys LCD brightness API:" << hasSysLCDBL);
 
     if (hasSysLCDBL) {
@@ -326,6 +329,7 @@ void ADBDevice::probeDeviceHasSysLCDBL(void)
         screenOnWaitTimer.start();
     } else {
         screenOnWaitTimer.stop();
+	emit screenTurnedOn();
     }
 }
 
@@ -626,7 +630,7 @@ bool ADBFrameBuffer::checkScreenCapOptions()
 
     args << "shell" << "ls" << SCREENCAP_EXEC;
     adb.run(args);
-    screencapExists = ! adb.outputHas("No such");
+    screencapExists = ! adb.outputHas(NO_SUCH_FILE);
 
     if (! screencapExists) {
         DT_TRACE("Error: no screencap command on device!");
