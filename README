@@ -3,6 +3,10 @@ Seven Sqaure
 
 Android screencast wroted in QT. There is one in java? forget it from now on.
 
+A tool used to view a mirror screen of your Android device on the PC,
+used for demostration, debuging, and so on. even you can click on the
+mirror screen as you touch on the touch panel.
+
 Features:
 
  Major:
@@ -11,9 +15,8 @@ Features:
  * Virtual menu/home/back key on the UI
  * Virtual QWERTY key support
  * Auto connect to your device when plug in
- * Auto turn screen on (wakeup) when connected
  * Click on window to wakeup the device (emulate power key press event)
- * Support both Android ICS and Jelly Bean. Froyo not tested.
+ * Support both Android ICS and Jelly Bean. Froyo not full tested.
  * Wrote in Qt 4.x, easily port to different desktop environment
 
  Minor:
@@ -32,10 +35,43 @@ Non-feature:
  * Not support screen recording as video
  * Not support screen shot as picture
 
+Additional Key Map
+==================
+
+ You can press F1/2/3/4 on you keyboard to emulate the following Android key.
+
+ F1 AKEYCODE_HOME
+ F2 AKEYCODE_BACK
+ F3 AKEYCODE_CALL
+ F4 AKEYCODE_ENDCALL
+
 Pre-requirements
 ================
 
 Mandatory:
+
+ * Linux, any distribution with Qt package.
+
+ * Qt 4.6+ installed in your system
+
+ * screencap command on the target device
+
+   $> adb shell ls /system/bin/screencap
+   /system/bin/screencap
+
+   If the output indicates: 'No such file or direcotry', you
+   can use the tool except install one by yourself.
+
+   the 'screencap' source code presents in frameworks/base/cmds/screencap.
+
+ * PC: adb command is availible in your search path, check it:
+
+   $> which adb
+   /usr/bin/adb
+
+ * USB cable connected to your android device
+
+Optional:
 
  * Android device in engineer mode (Rooted), So that you can get
    root permission in adb shell
@@ -44,20 +80,10 @@ Mandatory:
    $> adb shell id
    uid=0(root) gid=0(root)
 
- * adb command is availible in your search path, check it:
-
-   $> which adb
-   /usr/bin/adb
-
- * USB cable connected to your android device
- * Qt 4.6+ installed in your system
-
-Optional:
-
  * minigzip installed on your PC (For compressed image transfer)
   
-   There is a precompiled x86_64 minigzip binary in the top dir, just copy into
-   your system path:
+   There is a precompiled x86_64 minigzip binary in the contirbutes dir,
+   just copy into your system path:
 
     $> sudo cp contributes/minigzip /usr/bin
 
