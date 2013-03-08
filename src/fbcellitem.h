@@ -1,7 +1,7 @@
 /*
  * fbcellitem.h
  *
- * Copyright 2012-2012 Yang Hong
+ * Copyright 2012-2013 Yang Hong
  *
  */
 
