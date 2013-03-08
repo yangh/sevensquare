@@ -7,6 +7,8 @@ A tool used to view a mirror screen of your Android device on the PC,
 used for demostration, debuging, and so on. even you can click on the
 mirror screen as you touch on the touch panel.
 
+[Screenshot](screenshots/seven-square-screenshot.png)
+
 Features:
 
  Major:
@@ -38,7 +40,7 @@ Non-feature:
 Additional Key Map
 ==================
 
- You can press F1/2/3/4 on you keyboard to emulate the following Android key.
+You can press F1/2/3/4 on you keyboard to emulate the following Android key.
 
  F1 AKEYCODE_HOME
  F2 AKEYCODE_BACK
