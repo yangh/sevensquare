@@ -91,6 +91,8 @@ CubeScene::CubeScene(QObject * parent) :
                   SLOT(deviceScreenTurnedOn()));
     this->connect(&adbex, SIGNAL(newPropmtMessae(QString)),
                   SLOT(showPromptMessage(QString)));
+    this->connect(&reader, SIGNAL(newPropmtMessae(QString)),
+                  SLOT(showPromptMessage(QString)));
     this->connect(&adbex, SIGNAL(deviceDisconnected(void)),
                   SLOT(adbExecError(void)));
 
@@ -108,7 +110,7 @@ CubeScene::CubeScene(QObject * parent) :
     adbex.moveToThread(&adbThread);
     adbex.connect(this, SIGNAL(execAdbCmd(const QStringList)),
                   SLOT(execCommand(const QStringList)));
-    adbex.connect(&reader, SIGNAL(deviceFound()),
+    adbex.connect(&reader, SIGNAL(newFBProbed()),
                   SLOT(probeDevice(void)));
     adbex.connect(this, SIGNAL(wakeUpDevice()),
                   SLOT(wakeUpDevice()));

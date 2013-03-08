@@ -138,6 +138,7 @@ signals:
     void deviceFound(void);
     void deviceWaitTimeout(void);
     void deviceDisconnected(void);
+    void newPropmtMessae(const QString);
 
 private:
     QMutex mutex;
@@ -175,18 +176,17 @@ public:
     bool wakeSucessed;
 };
 
+#define SCREENCAP_EXEC      "/system/bin/screencap"
 #define KEYLAYOUT_DIR       "/system/usr/keylayout/"
 #define KEYLAYOUT_EXT       ".kl"
-#define PROC_INPUT_DEVICES  "/proc/bus/input/devices"
 #define INPUT_DEV_PREFIX    "/dev/input/event"
 #define SYS_LCD_BACKLIGHT   "/sys/class/leds/lcd-backlight/brightness"
-#define SYS_INPUT_NAME_LIST "/sys/class/input/input*/name"
 #define SYS_INPUT_DIR       "/sys/class/input/"
 #define SYS_INPUT_INDEX_OFFSET 22
 
-#define EV_IS_TOUCHSCREEN(ev) (ev == 0x0B) // EV_SYN | EV_KEY | EV_REL
+#define EV_IS_TOUCHSCREEN(ev) (ev == 0x0B) // EV_SYN | EV_KEY | EV_ABS
 #define EV_IS_KEY(ev)	      ((ev == 0x03) || ((ev & (1 <<EV_KEY)) && (ev & (1 << EV_SW) || ev & (1 << EV_MSC))))
-#define EV_IS_MOUSE(ev)	      (ev == 0x17) // EV_SYN | EV_KEY | EV_ABS | EV_MSC
+#define EV_IS_MOUSE(ev)	      (ev == 0x17) // EV_SYN | EV_KEY | EV_REL | EV_MSC
 
 class ADBDevice : public ADBBase
 {
@@ -241,7 +241,6 @@ signals:
     void screenTurnedOn(void);
     void error(QString *msg);
     void newCommand(const QStringList cmds);
-    void newPropmtMessae(const QString);
 
 private:
     QList<DeviceKeyInfo> powerKeyInfos;
@@ -255,27 +254,33 @@ private:
     DeviceKeyInfo touchPanel;
 };
 
+/* Header of the screencap output into fd,
+ * int width, height, format
+ * Refer: frameworks/base/cmds/screencap/screencap.cpp
+ */
+#define FB_DATA_OFFSET (12)
+#define FB_BPP_MAX	4
+
+// Temp file for compressed fb data
+#define GZ_FILE		"/dev/shm/android-fb.gz"
+
+/* The gzip command on the adb device is an minigzip from
+ * external/zlib, we also need one on the host
+ */
+#define MINIGZIP	"minigzip"
+
+/*
+ *
+ */
+#define ADB_WAIT_INTERVAL_MIN 500
+#define ADB_WAIT_INTERVAL_MAX 3*1000*1000
+
 class ADBFrameBuffer: public ADBBase
 {
     Q_OBJECT
 
 public:
     ADBFrameBuffer();
-
-    /* Header of the screencap output into fd,
-     * int width, height, format
-     * Refer: frameworks/base/cmds/screencap/screencap.cpp
-     */
-#define FB_DATA_OFFSET (12)
-#define FB_BPP_MAX	4
-
-    // Temp file for compressed fb data
-#define GZ_FILE		"/dev/shm/android-fb.gz"
-
-    /* The gzip command on the adb device is an minigzip from
-     * external/zlib, we also need one on the host
-     */
-#define MINIGZIP	"minigzip"
 
     enum {
         PIXEL_FORMAT_RGBA_8888 = 1,
@@ -317,6 +322,7 @@ public slots:
     void readFrame();
 
 signals:
+    void newFBProbed(void);
     void newFBFound(int, int, int);
     void newFrame(QByteArray*);
     void error(QString *msg);
@@ -333,6 +339,7 @@ private:
     QFile gz;
     bool doCompress;
     bool readPaused;
+    bool screencapExists;
     bool screencapOptQuality;
     bool screencapOptSpeed;
     int fb_width;

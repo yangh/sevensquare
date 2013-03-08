@@ -601,6 +601,7 @@ ADBFrameBuffer::ADBFrameBuffer()
 {
     readPaused = false;
     doCompress = false;
+    screencapExists = false;
     screencapOptSpeed = false;
     screencapOptQuality = false;
     fb_width = DEFAULT_FB_WIDTH;
@@ -623,14 +624,24 @@ bool ADBFrameBuffer::checkScreenCapOptions()
     AdbExecutor adb;
     QStringList args;
 
+    args << "shell" << "ls" << SCREENCAP_EXEC;
+    adb.run(args);
+    screencapExists = ! adb.outputHas("No such");
+
+    if (! screencapExists) {
+        DT_TRACE("Error: no screencap command on device!");
+	return false;
+    }
+
+    args.clear();
     args << "shell";
-    args << "screencap" << "-h";
+    args << SCREENCAP_EXEC << "-h";
     adb.run(args);
 
     screencapOptQuality = adb.outputHas("-q");
     screencapOptSpeed = adb.outputHas("-s");
 
-    DT_TRACE("screencap on device options -q -s"
+    DT_TRACE("Screencap on device options -q -s"
              << screencapOptQuality
              << screencapOptSpeed);
 
@@ -712,7 +723,7 @@ int ADBFrameBuffer::screenCap(QByteArray &bytes, int offset)
     QStringList args;
     qint64 mSecs;
 
-    args << "shell" << "screencap";
+    args << "shell" << SCREENCAP_EXEC;
 
     // TODO: Add UI config for this option
     if (screencapOptQuality) {
@@ -810,7 +821,7 @@ void ADBFrameBuffer::waitForDevice()
         adbWaiter.run(false);
     }
 
-    adbWaiter.wait(500);
+    adbWaiter.wait(ADB_WAIT_INTERVAL_MIN);
 
     if (adbWaiter.isRunning()) {
         emit deviceWaitTimeout();
@@ -876,6 +887,17 @@ void ADBFrameBuffer::probeFBInfo()
     checkCompressSupport();
     checkScreenCapOptions();
 
+    if (! screencapExists) {
+        DT_TRACE("Connect canceled");
+        emit newPropmtMessae(tr("Error: no screencap"));
+
+        DT_TRACE("Delay");
+        usleep(ADB_WAIT_INTERVAL_MAX);
+
+        setConnected(false);
+        return;
+    }
+
     ret = screenCap(bytes);
     if (ret != 0) {
         setConnected(false);
@@ -887,6 +909,8 @@ void ADBFrameBuffer::probeFBInfo()
         setConnected(false);
         return;
     }
+
+    emit newFBProbed();
 
     // Only successfully probe means device connected;
     setConnected(true);
