@@ -17,6 +17,7 @@
 #include <QFile>
 #include <QPoint>
 #include <QTimer>
+#include <linux/input.h>
 
 #include "debug.h"
 
@@ -145,6 +146,8 @@ private:
     bool connected;
 };
 
+#define POWER_KEY_COMMON    116
+
 class DeviceKeyInfo
 {
 public:
@@ -152,11 +155,20 @@ public:
         keyLayout(name),
         eventDeviceIdx(i),
         powerKeycode(code),
+	evBit(0),
+        wakeSucessed(true) {}
+
+    DeviceKeyInfo():
+        keyLayout(""),
+        eventDeviceIdx(-1),
+        powerKeycode(POWER_KEY_COMMON),
+	evBit(0),
         wakeSucessed(true) {}
 
     QString keyLayout;
     int eventDeviceIdx;
     int powerKeycode;
+    int evBit;
 
     // If this key has sucessfully wakeup device
     // If yes, we always use it
@@ -169,7 +181,12 @@ public:
 #define INPUT_DEV_PREFIX    "/dev/input/event"
 #define SYS_LCD_BACKLIGHT   "/sys/class/leds/lcd-backlight/brightness"
 #define SYS_INPUT_NAME_LIST "/sys/class/input/input*/name"
-#define POWER_KEY_COMMON    116
+#define SYS_INPUT_DIR       "/sys/class/input/"
+#define SYS_INPUT_INDEX_OFFSET 22
+
+#define EV_IS_TOUCHSCREEN(ev) (ev == 0x0B) // EV_SYN | EV_KEY | EV_REL
+#define EV_IS_KEY(ev)	      ((ev == 0x03) || ((ev & (1 <<EV_KEY)) && (ev & (1 << EV_SW) || ev & (1 << EV_MSC))))
+#define EV_IS_MOUSE(ev)	      (ev == 0x17) // EV_SYN | EV_KEY | EV_ABS | EV_MSC
 
 class ADBDevice : public ADBBase
 {
@@ -186,11 +203,13 @@ public:
 
 private:
     void probeDeviceHasSysLCDBL(void);
-    void probeDevicePowerKey(void);
-    int probeDeviceOSType(void);
+    void probeInputDevices(void);
+    int  probeDeviceOSType(void);
 
     int getDeviceLCDBrightness();
 
+    bool getInputDeviceInfo(DeviceKeyInfo &info,
+		                       const QByteArray &sysPath);
     bool getKeyCodeFromKeyLayout(const QString &keylayout,
                                  const char *key,
                                  int &code);
@@ -233,6 +252,7 @@ private:
 
     // Used in jb to distinguish tap/swipe event
     QPoint posOfPress;
+    DeviceKeyInfo touchPanel;
 };
 
 class ADBFrameBuffer: public ADBBase

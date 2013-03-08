@@ -152,6 +152,9 @@ ADBDevice::ADBDevice()
 
     connect(this, SIGNAL(newCommand(QStringList)),
             SLOT(execCommand(QStringList)));
+
+    posOfPress = QPoint(-1, -1);
+    touchPanel = DeviceKeyInfo();
 }
 
 bool ADBDevice::screenIsOn(void)
@@ -243,7 +246,7 @@ void ADBDevice::updateDeviceBrightness(void)
     }
 }
 
-bool ADBDevice::getKeyCodeFromKeyLayout(const QString &keylayout,
+bool ADBDevice::getKeyCodeFromKeyLayout(const QString &keyLayout,
                                         const char *key,
                                         int &code)
 {
@@ -252,7 +255,7 @@ bool ADBDevice::getKeyCodeFromKeyLayout(const QString &keylayout,
     QList<QByteArray> lines;
 
     args << "shell" << "cat";
-    args << (QString(KEYLAYOUT_DIR) + keylayout + KEYLAYOUT_EXT);
+    args << (QString(KEYLAYOUT_DIR) + keyLayout + KEYLAYOUT_EXT);
     adb.run(args);
 
     lines = adb.outputLinesHas(key);
@@ -277,7 +280,7 @@ void ADBDevice::probeDevice(void)
     emit newPropmtMessae(tr("Probing device..."));
 
     probeDeviceOSType();
-    probeDevicePowerKey();
+    probeInputDevices();
     probeDeviceHasSysLCDBL();
 }
 
@@ -326,16 +329,38 @@ void ADBDevice::probeDeviceHasSysLCDBL(void)
     }
 }
 
-void ADBDevice::probeDevicePowerKey(void)
+bool ADBDevice::getInputDeviceInfo(DeviceKeyInfo &info, const QByteArray &sysPath)
 {
-    int code;
+    AdbExecutor adb;
+    QStringList args;
+    bool ret;
+
+    info.eventDeviceIdx = sysPath.mid(SYS_INPUT_INDEX_OFFSET).toInt(&ret);
+
+    args << "shell" << "cat" << sysPath + "/name";
+    adb.run(args);
+    info.keyLayout = adb.output.simplified();
+
+    args.clear();
+    args << "shell" << "cat" << sysPath + "/capabilities/ev";
+    adb.run(args);
+    info.evBit = adb.output.simplified().toInt(&ret, 16);
+
+    DT_TRACE("Input device info" << info.eventDeviceIdx
+		    << info.keyLayout << info.evBit << adb.output.simplified());
+
+    return true;
+}
+
+void ADBDevice::probeInputDevices(void)
+{
     AdbExecutor adb;
     QStringList args;
     QList<QByteArray> lines;
 
-    // Find POWER key in the key layout files
-    args << "shell" << "cat" << SYS_INPUT_NAME_LIST;
+    args << "shell" << "ls" << QString(SYS_INPUT_DIR) + "input*";
     adb.run(args);
+
     if (! adb.exitSuccess()) {
         emit deviceDisconnected();
         return;
@@ -347,42 +372,38 @@ void ADBDevice::probeDevicePowerKey(void)
     lines = adb.outputLines();
     for (int i = 0; i < lines.size(); ++i) {
         QByteArray line = lines[i].simplified();
+        DeviceKeyInfo info;
+        int code;
 
-        if (line.length() > 0) {
-            DT_TRACE("Found new input device" << line);
-            powerKeyInfos.append(DeviceKeyInfo(line, i, 0));
-        }
-    }
+        if (line.length() == 0)
+            continue;
 
-    // Lookup power key define in the keylayout file with same
-    // name as the input device
-    for (int i = 0; i < powerKeyInfos.size(); i++) {
-        DeviceKeyInfo &info = powerKeyInfos[i];
+        //DT_TRACE("Found new input device" << line);
+        getInputDeviceInfo(info, line);
 
-        if (getKeyCodeFromKeyLayout(info.keyLayout, "POWER", code)) {
-            DT_TRACE("Found POWER key define in" << info.keyLayout << code << i);
-            info.powerKeycode = code;
+        if (EV_IS_TOUCHSCREEN(info.evBit)) {
+	    DT_TRACE("Found touch panel" << info.keyLayout << info.eventDeviceIdx);
+            touchPanel = info;
+        } else if (EV_IS_KEY(info.evBit) && (! EV_IS_MOUSE(info.evBit))) {
+	    DT_TRACE("Found key input" << info.keyLayout << info.eventDeviceIdx);
+
+            if (getKeyCodeFromKeyLayout(info.keyLayout, "POWER", code)) {
+                DT_TRACE("Found POWER key define in" << info.keyLayout << code << i);
+                info.powerKeycode = code;
+                powerKeyInfos.append(info);
+
+                // Also add a common power key for the device
+                powerKeyInfos.append(DeviceKeyInfo(info.keyLayout,
+                                                  info.eventDeviceIdx,
+                                                  POWER_KEY_COMMON));
+            } else {
+                info.powerKeycode = POWER_KEY_COMMON;
+                powerKeyInfos.append(info);
+	    }
         } else {
-            // Assign a default common power key
-            DT_TRACE("Assign default POWER key define in" << info.keyLayout);
-            info.powerKeycode = POWER_KEY_COMMON;
+	    DT_TRACE("Found unknown input" << info.keyLayout << info.eventDeviceIdx);
         }
     }
-
-    // Add common power key code 116
-    QList<DeviceKeyInfo> infos = powerKeyInfos;
-    for (int i = 0; i < infos.size(); i++) {
-        DeviceKeyInfo &info = infos[i];
-
-        if (info.powerKeycode != POWER_KEY_COMMON) {
-            DT_TRACE("ADD a dummy common key define for" << info.keyLayout);
-            powerKeyInfos.append(DeviceKeyInfo(info.keyLayout,
-                                               info.eventDeviceIdx,
-                                               POWER_KEY_COMMON));
-        }
-    }
-
-    return;
 }
 
 void ADBDevice::wakeUpDevice()
@@ -454,18 +475,18 @@ void ADBDevice::wakeUpDeviceViaPowerKey(void)
         if (info.wakeSucessed) {
             newKeyInfos.append(info);
         } else {
-            DT_TRACE("Disable power key:" << i << info.keyLayout);
-	}
+            DT_TRACE("Disable power key:" << i << info.keyLayout << info.powerKeycode);
+    }
     }
 
     powerKeyInfos = newKeyInfos;
 
     // Device can't wakeuped automaticly
     if (powerKeyInfos.size() == 0) {
-	    DT_TRACE("Disable wakeup via click because target not support");
-	    hasSysLCDBL = false;
-	    screenOnWaitTimer.stop();
-	    emit screenTurnedOn();
+        DT_TRACE("Disable wakeup via click because target not support");
+        hasSysLCDBL = false;
+        screenOnWaitTimer.stop();
+        emit screenTurnedOn();
     }
 }
 
@@ -528,7 +549,8 @@ QStringList ADBDevice::newEventCmd (int type, int code, int value)
 
     event.clear();
     //TODO: Use correct dev to send event
-    event << "sendevent" << "/dev/input/event0";
+    event << "sendevent";
+    event << (QString(INPUT_DEV_PREFIX) + QString::number(touchPanel.eventDeviceIdx));
     event << QString::number(type);
     event << QString::number(code);
     event << QString::number(value);
@@ -738,14 +760,14 @@ int ADBFrameBuffer::getScreenInfo(const QByteArray &bytes)
 
     // Assume that screen width will less than 5120
     if (width > IMPOSSIBLE_FB_WIDTH) {
-	    // Maybe little ending
-	    width = littleEndianStreamDataToInt32(data);
-	    height = littleEndianStreamDataToInt32(data + 4);
-	    format = littleEndianStreamDataToInt32(data + 8);
+        // Maybe little ending
+        width = littleEndianStreamDataToInt32(data);
+        height = littleEndianStreamDataToInt32(data + 4);
+        format = littleEndianStreamDataToInt32(data + 8);
     }
 
     if (width > IMPOSSIBLE_FB_WIDTH || width <= 0 || height <= 0) {
-        DT_ERROR("Failed to get screen info.");
+        DT_ERROR("Failed to get screen info: " << width << height);
         return -1;
     }
 
