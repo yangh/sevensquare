@@ -9,6 +9,8 @@ mirror screen as you touch on the touch panel.
 
 [Screenshot](screenshots/seven-square-screenshot.png)
 
+Only tested in the Linux.
+
 Features:
 
  Major:
