@@ -156,14 +156,14 @@ public:
         keyLayout(name),
         eventDeviceIdx(i),
         powerKeycode(code),
-	evBit(0),
+        evBit(0),
         wakeSucessed(true) {}
 
     DeviceKeyInfo():
         keyLayout(""),
         eventDeviceIdx(-1),
         powerKeycode(POWER_KEY_COMMON),
-	evBit(0),
+        evBit(0),
         wakeSucessed(true) {}
 
     QString keyLayout;
@@ -210,7 +210,7 @@ private:
     int getDeviceLCDBrightness();
 
     bool getInputDeviceInfo(DeviceKeyInfo &info,
-		                       const QByteArray &sysPath);
+                            const QByteArray &sysPath);
     bool getKeyCodeFromKeyLayout(const QString &keylayout,
                                  const char *key,
                                  int &code);

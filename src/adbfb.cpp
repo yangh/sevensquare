@@ -117,7 +117,6 @@ void ADBBase::loopDelay()
         delayCond.wait(&mutex, delay);
         //DT_TRACE("DELAY wait end" << delay);
     }
-    mutex.unlock();
 }
 
 void ADBBase::setDelay(int d)
@@ -126,7 +125,6 @@ void ADBBase::setDelay(int d)
 
     delay = d;
     delayCond.wakeAll();
-    mutex.unlock();
 }
 
 int ADBBase::increaseDelay()
@@ -141,8 +139,8 @@ int ADBBase::increaseDelay()
 
 ADBDevice::ADBDevice()
 {
-    lcdBrightness = -1;
     osType = ANDROID_JB;
+    lcdBrightness = -1;
     hasSysLCDBL = false;
 
     screenOnWaitTimer.setInterval(SCREENON_WAIT_INTERVAL);
@@ -150,8 +148,8 @@ ADBDevice::ADBDevice()
                      this, SLOT(updateDeviceBrightness()));
 
 
-    connect(this, SIGNAL(newCommand(QStringList)),
-            SLOT(execCommand(QStringList)));
+    QObject::connect(this, SIGNAL(newCommand(QStringList)),
+                     this, SLOT(execCommand(QStringList)));
 
     posOfPress = QPoint(-1, -1);
     touchPanel = DeviceKeyInfo();
@@ -287,7 +285,7 @@ void ADBDevice::probeDevice(void)
     probeDeviceHasSysLCDBL();
 }
 
-/* FIXME: We'd better use API level to probe the os revision */
+/* FIXME: We'd better use Android's API level to probe the os revision */
 int ADBDevice::probeDeviceOSType(void)
 {
     AdbExecutor adb;
@@ -329,7 +327,7 @@ void ADBDevice::probeDeviceHasSysLCDBL(void)
         screenOnWaitTimer.start();
     } else {
         screenOnWaitTimer.stop();
-	emit screenTurnedOn();
+        emit screenTurnedOn();
     }
 }
 
@@ -351,7 +349,7 @@ bool ADBDevice::getInputDeviceInfo(DeviceKeyInfo &info, const QByteArray &sysPat
     info.evBit = adb.output.simplified().toInt(&ret, 16);
 
     DT_TRACE("Input device info" << info.eventDeviceIdx
-		    << info.keyLayout << info.evBit << adb.output.simplified());
+             << info.keyLayout << info.evBit << adb.output.simplified());
 
     return true;
 }
@@ -386,10 +384,10 @@ void ADBDevice::probeInputDevices(void)
         getInputDeviceInfo(info, line);
 
         if (EV_IS_TOUCHSCREEN(info.evBit)) {
-	    DT_TRACE("Found touch panel" << info.keyLayout << info.eventDeviceIdx);
+            DT_TRACE("Found touch panel" << info.keyLayout << info.eventDeviceIdx);
             touchPanel = info;
         } else if (EV_IS_KEY(info.evBit) && (! EV_IS_MOUSE(info.evBit))) {
-	    DT_TRACE("Found key input" << info.keyLayout << info.eventDeviceIdx);
+            DT_TRACE("Found key input" << info.keyLayout << info.eventDeviceIdx);
 
             if (getKeyCodeFromKeyLayout(info.keyLayout, "POWER", code)) {
                 DT_TRACE("Found POWER key define in" << info.keyLayout << code << i);
@@ -398,14 +396,14 @@ void ADBDevice::probeInputDevices(void)
 
                 // Also add a common power key for the device
                 powerKeyInfos.append(DeviceKeyInfo(info.keyLayout,
-                                                  info.eventDeviceIdx,
-                                                  POWER_KEY_COMMON));
+                                                   info.eventDeviceIdx,
+                                                   POWER_KEY_COMMON));
             } else {
                 info.powerKeycode = POWER_KEY_COMMON;
                 powerKeyInfos.append(info);
-	    }
+            }
         } else {
-	    DT_TRACE("Found unknown input" << info.keyLayout << info.eventDeviceIdx);
+            DT_TRACE("Found unknown input" << info.keyLayout << info.eventDeviceIdx);
         }
     }
 }
@@ -480,7 +478,7 @@ void ADBDevice::wakeUpDeviceViaPowerKey(void)
             newKeyInfos.append(info);
         } else {
             DT_TRACE("Disable power key:" << i << info.keyLayout << info.powerKeycode);
-    }
+        }
     }
 
     powerKeyInfos = newKeyInfos;
@@ -634,7 +632,7 @@ bool ADBFrameBuffer::checkScreenCapOptions()
 
     if (! screencapExists) {
         DT_TRACE("Error: no screencap command on device!");
-	return false;
+        return false;
     }
 
     args.clear();
