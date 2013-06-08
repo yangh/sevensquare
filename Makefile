@@ -10,6 +10,9 @@ keymap: src/keycodes.h
 app:
 	(cd build && make)
 
+install:
+	cp -vf build/seven-square /usr/bin/
+
 clean:
 	(cd build && make clean)
 	#rm -f Makefile.qmake

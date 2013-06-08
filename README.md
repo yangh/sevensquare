@@ -105,9 +105,18 @@ Optional:
 Compile
 =======
 
- $> apt-get install qt4-qmake libqt4-dev libqtcore4 libqtgui4
- $> make
- $> ./build/seven-square
+Install dependences and just make:
+
+  $> apt-get install qt4-qmake libqt4-dev libqtcore4 libqtgui4
+  $> make
+
+Run from source tree:
+
+  $> ./build/seven-square
+
+Install into system wide:
+
+  $> make install
 
  Or you can create a short cut on your desktop.
 
