@@ -32,13 +32,28 @@ CubeView::CubeView(QWidget * parent) :
     setRenderHints(QPainter::Antialiasing
                    | QPainter::SmoothPixmapTransform
                    | QPainter::TextAntialiasing);
+    mOrientation = PORTRAIT;
+
+    QSize size;
+
+    QObject::connect(&scene, SIGNAL(sceneSizeChanged(QSize)),
+                     this, SLOT(cubeSizeChanged(QSize)));
+    QObject::connect(this, SIGNAL(viewSizeChanged(QSize)),
+                     &scene, SLOT(cubeResize(QSize)));
+
+    size = (scene.itemsBoundingRect().size()
+            + QSize(WINDOW_BORDER, WINDOW_BORDER)).toSize();
+
+    setScene(&scene);
+    //setMinimumSize(size);
+    resize(size);
 }
 
 void CubeView::cubeSizeChanged(QSize size)
 {
     size += QSize(WINDOW_BORDER, WINDOW_BORDER);
     //qDebug() << "Resize main window" << size;
-    setMinimumSize(size);
+    //setMinimumSize(size);
     resize(size);
 }
 
@@ -46,19 +61,53 @@ void CubeView::resizeEvent(QResizeEvent * event)
 {
     QSize size = event->size();
 
-    //qDebug() << "New view size" << size << event->oldSize();
+    qDebug() << "New view size" << size << event->oldSize();
     QGraphicsView::resizeEvent(event);
-    emit viewSizeChanged(size);
+
+    if (mOrientation == PORTRAIT)
+        emit viewSizeChanged(size);
+    else
+        emit viewSizeChanged(QSize(size.height(), size.width()));
+}
+
+void CubeView::switchOrientation(void)
+{
+    if (mOrientation == PORTRAIT) {
+        mOrientation = LANDSCAPE;
+        rotate(LANDSCAPE);
+        scene.setIconOffset(1.0);
+        scene.setMenuIconsPos();
+        //setMinimumSize(QSize(height(), width()));
+        resize(height(), width());
+    } else if (mOrientation == LANDSCAPE) {
+        mOrientation = PORTRAIT;
+        rotate(PORTRAIT);
+        scene.setIconOffset(0.0);
+        scene.setMenuIconsPos();
+        //setMinimumSize(QSize(height(), width()));
+        resize(height(), width());
+    }
 }
 
 void CubeView::keyReleaseEvent(QKeyEvent * event)
 {
     bool ctrlPressed = event->modifiers() & Qt::ControlModifier;
 
-    if ( ctrlPressed && event->key() == Qt::Key_W) {
-        DT_TRACE("Good Luck, Be Happy!");
-        QCoreApplication::quit();
-        return;
+    switch (event->key()) {
+    case Qt::Key_W:
+    case Qt::Key_Q:
+        if ( ctrlPressed) {
+            DT_TRACE("Good Luck, Be Happy!");
+            QCoreApplication::quit();
+            return;
+        }
+        break;
+    case Qt::Key_F12:
+        switchOrientation();
+        break;
+    case Qt::Key_F11:
+        //scene.switchMenuIcons();
+        break;
     }
 
     QGraphicsView::keyReleaseEvent(event);
@@ -71,6 +120,8 @@ CubeScene::CubeScene(QObject * parent) :
     fb_height = DEFAULT_FB_HEIGHT;
     pixel_format = 1;
     waitCount = 1;
+    iconOffset = 0.0;
+    showMenuIcon = true;
 
     setItemIndexMethod(QGraphicsScene::NoIndex);
     setBackgroundBrush(QBrush(Qt::gray));
@@ -160,6 +211,11 @@ void CubeScene::adbExecError(void)
         DT_TRACE("Adb exec error...");
         reader.setConnected(false);
     }
+}
+
+void CubeScene::switchOrientation(void)
+{
+    DT_TRACE("Switch orientation");
 }
 
 void CubeScene::deviceDisconnected(void)
@@ -284,9 +340,28 @@ void CubeScene::setMenuIconsPos(void)
     // Assume that icons has same width
     width = home->boundingRect().width();
     padding = (cube_width - width * num - margin * 2) / (num - 1);
-    menu ->setCubePos(fb.boundingRect().bottomLeft() + QPoint(margin, 0));
+    menu ->setCubePos(fb.boundingRect().bottomLeft()
+                      + QPoint(margin, 0)
+                      // Offset after rotation
+                      + QPoint(width * iconOffset, 0));
     home ->setCubePos(menu->pos() + QPoint(width + padding, 0));
     back->setCubePos(home->pos() + QPoint(width + padding, 0));
+
+    float angle = PORTRAIT * iconOffset;
+    menu->setRotation(angle);
+    home->setRotation(angle);
+    back->setRotation(angle);
+}
+
+void CubeScene::switchMenuIcons(void)
+{
+    showMenuIcon = ! showMenuIcon;
+
+    menu->setVisible(showMenuIcon);
+    home->setVisible(showMenuIcon);
+    back->setVisible(showMenuIcon);
+
+    //emit sceneSizeChanged(QSize(cube_width, cube_height + (showMenuIcon ? 0 : home->boundingRect().height())));
 }
 
 CubeCellItem *CubeScene::createCellItem(const char* name, int size, int key)

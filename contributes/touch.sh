@@ -2,7 +2,7 @@
 # Usage: touch.sh  X Y
 
 # TODO: need to find out touch device name
-dev="/dev/input/event0"
+dev="/dev/input/event3"
 
 adb shell sendevent $dev 3 53 $1
 adb shell sendevent $dev 3 54 $2

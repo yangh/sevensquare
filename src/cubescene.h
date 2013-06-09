@@ -33,31 +33,18 @@
 #define KEY_BTN_SIZE  32
 #define POINTER_ANCHOR_SIZE 24
 
-class CubeView : public QGraphicsView
-{
-    Q_OBJECT
-
-public:
-    CubeView(QWidget * parent = 0);
-
-protected:
-    void keyReleaseEvent ( QKeyEvent * event );
-    void resizeEvent ( QResizeEvent * event );
-
-public slots:
-    void cubeSizeChanged(QSize);
-
-signals:
-    void viewSizeChanged(QSize);
-
-private:
-    QTimer timer;
-    QSize delayedSize;
+enum {
+    PORTRAIT = 90,
+    LANDSCAPE = 270
 };
+
+class CubeView;
 
 class CubeScene : public QGraphicsScene
 {
     Q_OBJECT
+
+    friend class CubeView;
 
 public:
     CubeScene(QObject * parent = 0);
@@ -67,6 +54,7 @@ public:
 
     bool sendVirtualClick(QPoint pos, bool, bool);
     bool sendVirtualKey(int key);
+    void setIconOffset(float v) { iconOffset = v; }
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event);
@@ -76,6 +64,7 @@ protected:
 
     CubeCellItem *createCellItem(const char* name, int size, int key = 0);
     void setMenuIconsPos(void);
+    void switchMenuIcons(void);
     void setPointerPos(QPointF, bool);
     bool poinInFB(QPointF);
     bool isConnectedAndWakedup(bool doWakeup);
@@ -91,6 +80,7 @@ public slots:
     void showPromptMessage(QString);
     void hidePrompt(void);
     void adbExecError(void);
+    void switchOrientation(void);
 
 signals:
     void sceneSizeChanged(QSize);
@@ -112,6 +102,8 @@ private:
     CubeCellItem *back;
     CubeCellItem *menu;
     CubeCellItem *pointer;
+    float iconOffset;
+    bool showMenuIcon;
 
     int fb_width;
     int fb_height;
@@ -131,6 +123,32 @@ private:
 
     // Qt key, Android key map
     QMap<int, int> keys;
+};
+
+
+class CubeView : public QGraphicsView
+{
+    Q_OBJECT
+
+public:
+    CubeView(QWidget * parent = 0);
+
+protected:
+    void switchOrientation(void);
+    void keyReleaseEvent ( QKeyEvent * event );
+    void resizeEvent ( QResizeEvent * event );
+
+public slots:
+    void cubeSizeChanged(QSize);
+
+signals:
+    void viewSizeChanged(QSize);
+
+private:
+    QTimer timer;
+    QSize delayedSize;
+    CubeScene scene;
+    int mOrientation;
 };
 
 #endif // CUBESCENE_H
