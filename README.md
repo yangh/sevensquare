@@ -5,26 +5,28 @@ Android screencast wroted in QT. There is one in java? forget it from now on.
 
 A tool used to view a mirror screen of your Android device on the PC,
 used for demostration, debuging, and so on. even you can click on the
-mirror screen as you touch on the touch panel.
+mirror screen as you touch on the device panel.
 
 [Screenshot](screenshots/seven-square-screenshot.png)
 
 Only tested in the Linux.
 
-Features:
+Features
+--------
 
- Major:
+Major:
 
  * Click and swipe on the screen (so you can unlock screen by swipe)
  * Virtual menu/home/back key on the UI
- * Virtual QWERTY key support
+ * QWERTY key support (just type via your keyboard)
  * Auto connect to your device when plug in
  * Click on window to wakeup the device (emulate power key press event)
- * Support both Android ICS and Jelly Bean. Froyo not full tested.
+ * Support both Android ICS and Jelly Bean. Froyo not full tested
  * Wrote in Qt 4.x, easily port to different desktop environment
 
- Minor:
+Minor:
 
+ * Rotate view windows on demand (Press F12)
  * Virtual cursor (pointer anchor) on the UI
  * Auto resize to fit the screen resolution of the device
  * Zoom window as your wish and keep the ratio
@@ -35,7 +37,6 @@ Features:
 Non-feature:
 
  * Not support multi devices pluged in at the same time.
- * Not support landspace mode (default in portrait mode).
  * Not support screen recording as video
  * Not support screen shot as picture
 
@@ -44,10 +45,16 @@ Additional Key Map
 
 You can press F1/2/3/4 on you keyboard to emulate the following Android key.
 
- F1 AKEYCODE_HOME
- F2 AKEYCODE_BACK
- F3 AKEYCODE_CALL
- F4 AKEYCODE_ENDCALL
+* For device
+
+    F1 AKEYCODE_HOME
+    F2 AKEYCODE_BACK
+    F3 AKEYCODE_CALL
+    F4 AKEYCODE_ENDCALL
+
+* For application on PC
+
+    F12 Rotate view window (Landscape/Portrait)
 
 Pre-requirements
 ================
@@ -86,12 +93,12 @@ Optional:
 
  * minigzip installed on your PC (For compressed image transfer)
   
-   There is a precompiled x86_64 minigzip binary in the contirbutes dir,
-   just copy into your system path:
+There is a precompiled x86_64 minigzip binary in the contirbutes dir,
+just copy into your system path:
 
     $> sudo cp contributes/minigzip /usr/bin
 
-   If you want to compile one for yourself, get it from android/external/zlib
+If you want to compile one for yourself, get it from android/external/zlib:
 
     $> cp -rf android/external/zlib zlib-pc
     $> cd zlib-pc
@@ -99,8 +106,8 @@ Optional:
     $> make
     $> sudo cp minigzip /usr/bin
 
-   You'll be appreciated If you can help to add decompress code in to this
-   project to help to avoid runing external program to decompress frame buffer data.
+You'll be appreciated If you can help to add decompress code in to this
+project to help to avoid runing external program to decompress frame buffer data.
 
 Compile
 =======
