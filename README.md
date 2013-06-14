@@ -47,14 +47,14 @@ You can press F1/2/3/4 on you keyboard to emulate the following Android key.
 
 * For device:
 
-    F1 AKEYCODE_HOME
-    F2 AKEYCODE_BACK
-    F3 AKEYCODE_CALL
-    F4 AKEYCODE_ENDCALL
+      F1 AKEYCODE_HOME
+      F2 AKEYCODE_BACK
+      F3 AKEYCODE_CALL
+      F4 AKEYCODE_ENDCALL
 
 * For application on PC:
 
-    F12 Rotate view window (Landscape/Portrait)
+      F12 Rotate view window (Landscape/Portrait)
 
 Pre-requirements
 ================
@@ -68,8 +68,8 @@ Mandatory
 
  * screencap command on the target device
 
-   $> adb shell ls /system/bin/screencap
-   /system/bin/screencap
+     $> adb shell ls /system/bin/screencap
+     /system/bin/screencap
 
    If the output indicates: 'No such file or direcotry', you
    can use the tool except install one by yourself.
@@ -78,8 +78,8 @@ Mandatory
 
  * PC: adb command is availible in your search path, check it:
 
-    $> which adb
-    /usr/bin/adb
+     $> which adb
+     /usr/bin/adb
 
  * USB cable connected to your android device
 
@@ -89,24 +89,24 @@ Optional
  * Android device in engineer mode (Rooted), So that you can get
    root permission in adb shell
 
-    $> adb root
-    $> adb shell id
-    uid=0(root) gid=0(root)
+     $> adb root
+     $> adb shell id
+     uid=0(root) gid=0(root)
 
  * minigzip installed on your PC (For compressed image transfer)
   
-    There is a precompiled x86_64 minigzip binary in the contirbutes dir,
-    just copy into your system path:
+     There is a precompiled x86_64 minigzip binary in the contirbutes dir,
+     just copy into your system path:
 
-    $> sudo cp contributes/minigzip /usr/bin
+     $> sudo cp contributes/minigzip /usr/bin
 
-    If you want to compile one for yourself, get it from android/external/zlib:
+     If you want to compile one for yourself, get it from android/external/zlib:
 
-    $> cp -rf android/external/zlib zlib-pc
-    $> cd zlib-pc
-    $> ./configure
-    $> make
-    $> sudo cp minigzip /usr/bin
+     $> cp -rf android/external/zlib zlib-pc
+     $> cd zlib-pc
+     $> ./configure
+     $> make
+     $> sudo cp minigzip /usr/bin
 
 You'll be appreciated If you can help to add decompress code in to this
 project to help to avoid runing external program to decompress frame buffer data.
