@@ -9,6 +9,8 @@
 #include <QMutexLocker>
 #include <QRect>
 
+#include <unistd.h>
+
 #include "adbfb.h"
 #include "utils.h"
 
@@ -746,7 +748,9 @@ int ADBFrameBuffer::screenCap(QByteArray &bytes, int offset)
         return adb.ret;
     }
 
+    //DT_TRACE("BUF Original len: " << adb.output.length());
     bytes = adb.outputFixNewLine();
+    //DT_TRACE("BUF fixed new line: " << bytes.length());
 
     if (doCompress) {
         minigzipDecompress(bytes);

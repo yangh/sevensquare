@@ -99,7 +99,15 @@ public:
     QByteArray& outputFixNewLine(void) {
         // FIXME: adb bug, converted '\n' (0x0A) to '\r\n' (0x0D0A)
         // while transfer binary file from shell stdout
+#ifdef Q_OS_WIN32
+        // adb on win32 add addtional '\r\n' after '\r'
+        return output.replace("\r\n", "");
+#endif
+#ifdef Q_OS_UNIX
+        // adb on linux add only a '\n'
         return output.replace("\r\n", "\n");
+#endif
+        return output;
     }
 };
 
