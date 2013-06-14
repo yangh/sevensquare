@@ -35,13 +35,16 @@ int convertRGBAtoRGB888(char *data, int width, int height, int offset)
 int bigEndianStreamDataToInt32(const char *data)
 {
     uint32_t v = 0;
+    unsigned char * c = (unsigned char *) data;
+    unsigned char * i = (unsigned char *) &v;
 
     if (data == NULL)
         return 0;
 
-    //FIXME: Assume that device and host
-    // has same endianess: big endian
-    bcopy(data, &v, sizeof(uint32_t));
+    i[0] = c[0];
+    i[1] = c[1];
+    i[2] = c[2];
+    i[3] = c[3];
 
     return v;
 }

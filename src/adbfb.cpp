@@ -774,6 +774,8 @@ int ADBFrameBuffer::getScreenInfo(const QByteArray &bytes)
     // Assume that screen width will less than 5120
     if (width > IMPOSSIBLE_FB_WIDTH) {
         // Maybe little ending
+        DT_TRACE("Got an impossible fb info: " << width << height
+                     << ", try different endianness");
         width = littleEndianStreamDataToInt32(data);
         height = littleEndianStreamDataToInt32(data + 4);
         format = littleEndianStreamDataToInt32(data + 8);
