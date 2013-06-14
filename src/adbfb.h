@@ -17,9 +17,9 @@
 #include <QFile>
 #include <QPoint>
 #include <QTimer>
-#include <linux/input.h>
 
 #include "debug.h"
+#include "input-event-types.h"
 
 #define DEFAULT_FB_WIDTH	320
 #define DEFAULT_FB_HEIGHT	530

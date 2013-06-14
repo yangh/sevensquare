@@ -1,9 +1,9 @@
 # -------------------------------------------------
 # Project created by QtCreator 2010-01-03T14:36:11
 # -------------------------------------------------
-QT += opengl \
-    script \
-    svg
+#QT += opengl \
+#    script \
+#    svg
 TARGET = seven-square
 TEMPLATE = app
 CONFIG += debug
@@ -18,6 +18,7 @@ SOURCES += \
 HEADERS += \
     src/cubecellitem.h \
     src/adbfb.h \
+    src/input-event-types.h \
     src/keymap.h \
     src/keymap-generated.h \
     src/keycodes.h \
