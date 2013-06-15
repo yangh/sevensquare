@@ -6,7 +6,7 @@
 #    svg
 TARGET = seven-square
 TEMPLATE = app
-CONFIG += debug
+CONFIG += debug release
 RESOURCES = seven-square.qrc
 SOURCES += \
     src/main.cpp \
