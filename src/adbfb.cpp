@@ -763,7 +763,7 @@ int ADBFrameBuffer::screenCap(QByteArray &bytes, int offset)
     return adb.ret;
 }
 
-int ADBFrameBuffer::getScreenInfo(const QByteArray &bytes)
+int ADBFrameBuffer::getScreenInfo(int &w, int &h, int &f)
 {
     int width, height, format;
     const char *data;
@@ -790,12 +790,6 @@ int ADBFrameBuffer::getScreenInfo(const QByteArray &bytes)
         return -1;
     }
 
-    fb_width = width;
-    fb_height = height;
-    fb_format = format;
-
-    DT_TRACE("Detected screen info:" << fb_width << fb_height << fb_format);
-
     switch(format) {
     case PIXEL_FORMAT_RGBX_565:
         bpp = 2; // RGB565
@@ -811,6 +805,10 @@ int ADBFrameBuffer::getScreenInfo(const QByteArray &bytes)
         DT_ERROR("Unknown fb format " << format);
         return -1;
     }
+
+    w = width;
+    h = height;
+    f = format;
 
     return 0;
 }
@@ -847,6 +845,22 @@ void ADBFrameBuffer::waitForDevice()
 void ADBFrameBuffer::sendNewFB(void)
 {
     int len;
+    int ret;
+    int w, h, f;
+
+    // screencap will output diff format in diff scene
+    // so we always check the fb format
+    ret = getScreenInfo(w, h, f);
+    if (ret == 0) {
+        if (fb_format != f) {
+            DT_TRACE("New Remote screen FB format:" << fb_format << f);
+            fb_format = f;
+            emit newFBFormat(fb_format);
+        }
+    } else {
+        setConnected(false);
+        return;
+    }
 
     if (bytes.length() < length()) {
         DT_ERROR("Invalid FB data len:" << bytes.length()
@@ -856,6 +870,7 @@ void ADBFrameBuffer::sendNewFB(void)
     }
 
     //DT_TRACE("Send out FB");
+    // QImage doesn't support RGBA/RGBX format
     if ((fb_format == PIXEL_FORMAT_RGBA_8888)
             || (fb_format == PIXEL_FORMAT_RGBX_8888))
     {
@@ -912,7 +927,7 @@ void ADBFrameBuffer::probeFBInfo()
         return;
     }
 
-    ret = getScreenInfo(bytes);
+    ret = getScreenInfo(fb_width, fb_height, fb_format);
     if (ret != 0) {
         setConnected(false);
         return;

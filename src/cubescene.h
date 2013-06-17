@@ -71,6 +71,7 @@ protected:
 
 public slots:
     void newFBFound(int, int, int);
+    void newFBFormat(int);
     void updateFBCell(QByteArray *);
     void deviceConnected(void);
     void deviceDisconnected(void);
@@ -107,7 +108,6 @@ private:
 
     int fb_width;
     int fb_height;
-    int pixel_format;
     int cube_width;
     int cube_height;
     unsigned long waitCount;

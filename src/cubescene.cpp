@@ -118,7 +118,6 @@ CubeScene::CubeScene(QObject * parent) :
 {
     fb_width = DEFAULT_FB_WIDTH;
     fb_height = DEFAULT_FB_HEIGHT;
-    pixel_format = 1;
     waitCount = 1;
     iconOffset = 0.0;
     showMenuIcon = true;
@@ -134,6 +133,8 @@ CubeScene::CubeScene(QObject * parent) :
                      this, SLOT(deviceDisconnected(void)));
     QObject::connect(&reader, SIGNAL(newFBFound(int, int, int)),
                      this, SLOT(newFBFound(int, int, int)));
+    QObject::connect(&reader, SIGNAL(newFBFormat(int)),
+                     this, SLOT(newFBFormat(int)));
     this->connect(&reader, SIGNAL(deviceFound()),
                   SLOT(deviceConnected()));
     this->connect(&adbex, SIGNAL(screenTurnedOff()),
@@ -270,22 +271,28 @@ void CubeScene::cubeResize(QSize size)
     setSceneRect(QRect(0, 0, cube_width, height));
 }
 
+void CubeScene::newFBFormat(int f)
+{
+    // Only format changed in runtime
+    fb.setFBDataFormat(f);
+}
+
 void CubeScene::newFBFound(int w, int h, int f)
 {
-    DT_TRACE("New Remote screen FB:" << w << h << f);
-
     reader.setPaused(false);
 
     if (w == fb_width && h == fb_height) {
         //qDebug() << "Remote screen size unchanged.";
         // Start read frame
+        fb.setFBDataFormat(f);
         emit readFrame();
         return;
     }
 
+    DT_TRACE("New Remote screen FB:" << w << h << f);
+
     fb_width = w;
     fb_height = h;
-    pixel_format = f;
     fb.setFBSize(QSize(fb_width, fb_height));
     fb.setFBDataFormat(f);
 

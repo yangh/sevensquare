@@ -333,13 +333,14 @@ public slots:
 signals:
     void newFBProbed(void);
     void newFBFound(int, int, int);
+    void newFBFormat(int);
     void newFrame(QByteArray*);
     void error(QString *msg);
 
 private:
     int minigzipDecompress(QByteArray &);
     int screenCap(QByteArray &bytes, int offset = 0);
-    int getScreenInfo(const QByteArray &);
+    int getScreenInfo(int &, int &, int &);
 
     AdbExecutor adbWaiter;
 
