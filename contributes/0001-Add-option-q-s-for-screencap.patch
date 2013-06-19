@@ -93,13 +93,14 @@ index 46e41e3..d20e576 100644
              case '?':
              case 'h':
                  usage(pname);
-@@ -174,8 +222,41 @@ int main(int argc, char** argv)
+@@ -174,8 +222,42 @@ int main(int argc, char** argv)
          } else {
              write(fd, &w, 4);
              write(fd, &h, 4);
 -            write(fd, &f, 4);
 -            write(fd, base, size);
-+            if (f == PIXEL_FORMAT_RGBX_8888) {
++            if (f == PIXEL_FORMAT_RGBX_8888
++                || f == PIXEL_FORMAT_RGBA_8888) {
 +                if (rgb565) {
 +                    void *buf;
 +                    size = w * h * 2;
