@@ -9,7 +9,9 @@ mirror screen as you touch on the device panel.
 
 [Screenshot](screenshots/seven-square-screenshot.png)
 
-Only tested in the Linux.
+Tested host: Linux, Windows.
+Tested device: QRD8x25/8x26, Linaro Panda board (OMAP4430), TCL Idol X (MTK6589)
+Tested Android: 4.0, 4.1, 4.2
 
 Features
 --------
@@ -64,7 +66,7 @@ Mandatory
 
  * Linux, any distribution with Qt package.
 
- * Qt 4.6+ installed in your system
+ * Qt 4.x+ installed in your system
 
  * screencap command on the target device
 
