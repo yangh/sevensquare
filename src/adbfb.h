@@ -21,9 +21,10 @@
 #include "debug.h"
 #include "input-event-types.h"
 
-#define DEFAULT_FB_WIDTH	320
-#define DEFAULT_FB_HEIGHT	530
+#define DEFAULT_FB_WIDTH	640
+#define DEFAULT_FB_HEIGHT	480
 #define IMPOSSIBLE_FB_WIDTH	5120
+#define UVC_MODE    1
 
 enum {
     ANDROID_ICS,
@@ -290,6 +291,7 @@ class ADBFrameBuffer: public ADBBase
 
 public:
     ADBFrameBuffer();
+    ~ADBFrameBuffer();
 
     enum {
         PIXEL_FORMAT_RGBA_8888 = 1,

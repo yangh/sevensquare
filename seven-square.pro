@@ -14,7 +14,8 @@ SOURCES += \
     src/cubecellitem.cpp \
     src/fbcellitem.cpp \
     src/cubescene.cpp \
-    src/utils.cpp
+    src/utils.cpp \
+    src/uvcvideo.cpp
 HEADERS += \
     src/cubecellitem.h \
     src/adbfb.h \
@@ -26,4 +27,5 @@ HEADERS += \
     src/debug.h \
     src/fbcellitem.h \
     src/cubescene.h \
-    src/utils.h
+    src/utils.h \
+    src/uvcvideo.h

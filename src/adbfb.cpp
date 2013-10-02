@@ -13,6 +13,9 @@
 
 #include "adbfb.h"
 #include "utils.h"
+#include "uvcvideo.h"
+
+static UVCVideo uvc;
 
 Commander::Commander(const char *command)
 {
@@ -282,9 +285,11 @@ void ADBDevice::probeDevice(void)
 {
     emit newPropmtMessae(tr("Probing device..."));
 
+#if ! UVC_MODE
     probeDeviceOSType();
     probeInputDevices();
     probeDeviceHasSysLCDBL();
+#endif
 }
 
 /* FIXME: We'd better use Android's API level to probe the os revision */
@@ -322,6 +327,7 @@ void ADBDevice::probeDeviceHasSysLCDBL(void)
     }
 
     hasSysLCDBL = ! adb.outputHas(NO_SUCH_FILE);
+
     DT_TRACE("Device has sys LCD brightness API:" << hasSysLCDBL);
 
     if (hasSysLCDBL) {
@@ -614,6 +620,11 @@ ADBFrameBuffer::ADBFrameBuffer()
     bpp = FB_BPP_MAX;
 }
 
+ADBFrameBuffer::~ADBFrameBuffer()
+{
+    uvc.closeDevice();
+}
+
 void ADBFrameBuffer::setPaused(bool p)
 {
     readPaused = p;
@@ -721,11 +732,27 @@ int ADBFrameBuffer::minigzipDecompress(QByteArray &bytes)
     return cmd.ret;
 }
 
+static qint64 last_sec = QDateTime::currentMSecsSinceEpoch();
+static int fps = 0;
+
 int ADBFrameBuffer::screenCap(QByteArray &bytes, int offset)
 {
     AdbExecutor adb;
     QStringList args;
     qint64 mSecs;
+
+#if UVC_MODE
+    //DT_TRACE("TODO: uvc capture");
+    uvc.readFrame(bytes, fb_width, fb_height, bpp);
+    fps++;
+    mSecs = QDateTime::currentMSecsSinceEpoch();
+    if ((mSecs - last_sec) > 1000) {
+        DT_TRACE("UVC fps: " << fps);
+        fps = 0;
+        last_sec = mSecs;
+    }
+    return 0;
+#endif
 
     args << "shell" << SCREENCAP_EXEC;
 
@@ -820,6 +847,13 @@ void ADBFrameBuffer::waitForDevice()
         return;
     }
 
+#if UVC_MODE
+    // Fake device found
+    uvc.openDevice("");
+    emit deviceFound();
+    return;
+#endif
+
     if (! adbWaiter.isRunning()) {
         DT_TRACE("ADB Wait for device");
         adbWaiter.clear();
@@ -848,6 +882,7 @@ void ADBFrameBuffer::sendNewFB(void)
     int ret;
     int w, h, f;
 
+#if ! UVC_MODE
     // screencap will output diff format in diff scene
     // so we always check the fb format
     ret = getScreenInfo(w, h, f);
@@ -861,6 +896,7 @@ void ADBFrameBuffer::sendNewFB(void)
         setConnected(false);
         return;
     }
+#endif
 
     if (bytes.length() < length()) {
         DT_ERROR("Invalid FB data len:" << bytes.length()
@@ -889,7 +925,9 @@ void ADBFrameBuffer::readFrame()
 {
     int ret;
 
+#if ! UVC_MODE
     loopDelay();
+#endif
 
     if (! isConnected() || paused())
         return;
@@ -907,6 +945,13 @@ void ADBFrameBuffer::probeFBInfo()
 {
     int ret;
 
+#if UVC_MODE
+    fb_width = 640;
+    fb_height = 480;
+    bpp = 4;
+    fb_format = PIXEL_FORMAT_RGBA_8888;
+    bytes = QByteArray(length(), 0);
+#else
     checkCompressSupport();
     checkScreenCapOptions();
 
@@ -932,7 +977,7 @@ void ADBFrameBuffer::probeFBInfo()
         setConnected(false);
         return;
     }
-
+#endif
     emit newFBProbed();
 
     // Only successfully probe means device connected;
