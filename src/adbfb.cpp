@@ -951,6 +951,7 @@ void ADBFrameBuffer::probeFBInfo()
     bpp = 4;
     fb_format = PIXEL_FORMAT_RGBA_8888;
     bytes = QByteArray(length(), 0);
+    DT_TRACE("Fixed UVC mode: 640x480");
 #else
     checkCompressSupport();
     checkScreenCapOptions();

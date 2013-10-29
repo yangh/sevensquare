@@ -59,6 +59,7 @@ void FBCellItem::setCellSize(QSize size)
 
     ratio = QSizeF((qreal) fbSize.width() / cellSize.width(),
                    (qreal) fbSize.height() / cellSize.height());
+    DT_TRACE("New cell size:" << size << cellSize);
     update(boundingRect());
 }
 
@@ -71,7 +72,7 @@ void FBCellItem::setFBSize(QSize size)
     {
         QMutexLocker locker(&mutex);
 
-        //qDebug() << "New FB size:" << size << fbSize;
+        DT_TRACE("New FB size:" << size << fbSize);
         fbSize = size;
         fb = fb.scaled(size);
 
@@ -80,7 +81,7 @@ void FBCellItem::setFBSize(QSize size)
     }
 
     setCellSize(QSize(w, h));
-    //qDebug() << "New fb cell size" << cellSize;
+    DT_TRACE("New fb cell size" << cellSize);
 }
 
 void FBCellItem::setFBDataFormat(int format)
@@ -112,12 +113,14 @@ int FBCellItem::setFBRaw(QByteArray *raw)
     // grab new frame from device, so the duty is
     // not for it.
 
+#if ! UVC_MODE
     // TODO: Check and update partially, block by block
     sum = qChecksum(raw->data(), raw->length());
     if (sum == lastSum)
         return UPDATE_IGNORED;
 
     lastSum = sum;
+#endif
     // TODO: Do in a separate thread?
     paintFB(raw);
 

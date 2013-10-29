@@ -46,7 +46,7 @@ CubeView::CubeView(QWidget * parent) :
 
     setScene(&scene);
     //setMinimumSize(size);
-    resize(size);
+    //resize(size);
 }
 
 void CubeView::cubeSizeChanged(QSize size)
@@ -258,14 +258,22 @@ void CubeScene::deviceScreenTurnedOn(void)
 
 void CubeScene::cubeResize(QSize size)
 {
-    cube_height = size.height() - home->boundingRect().height();
+    cube_height = size.height()
+        #if ! UVC_MODE
+            - home->boundingRect().height()
+        #endif
+            ;
     cube_width = fb_width * ((float) cube_height / fb_height);
     DT_TRACE("New scene size:" << cube_width << cube_height);
 
     fb.setCellSize(QSize(cube_width, cube_height));
     setMenuIconsPos();
 
-    int height = cube_height + home->boundingRect().height();
+    int height = cube_height
+        #if ! UVC_MODE
+            + home->boundingRect().height()
+        #endif
+            ;
     grayMask.setRect(QRect(0, 0, cube_width, height));
     promptItem.setPos(20, cube_height/2);
     setSceneRect(QRect(0, 0, cube_width, height));
@@ -340,17 +348,24 @@ void CubeScene::updateFBCell(QByteArray *bytes)
 void CubeScene::setMenuIconsPos(void)
 {
     int width;
+    int height;
     int padding;
     int margin = 8;
     int num = 3; // TODO: more icons support?
 
     // Assume that icons has same width
     width = home->boundingRect().width();
+    height = home->boundingRect().height();
     padding = (cube_width - width * num - margin * 2) / (num - 1);
     menu ->setCubePos(fb.boundingRect().bottomLeft()
                       + QPoint(margin, 0)
                       // Offset after rotation
-                      + QPoint(width * iconOffset, 0));
+                      + QPoint(width * iconOffset, 0)
+                  #if UVC_MODE
+                      // Icons in the video area
+                      - QPoint(0, height)
+                  #endif
+                      );
     home ->setCubePos(menu->pos() + QPoint(width + padding, 0));
     back->setCubePos(home->pos() + QPoint(width + padding, 0));
 
@@ -433,7 +448,11 @@ void CubeScene::initialize (void)
     addItem(menu);
     setMenuIconsPos();
 
-    int total_height = cube_height + home->boundingRect().height();
+    int total_height = cube_height
+        #if ! UVC_MODE
+            + home->boundingRect().height()
+        #endif
+            ;
     grayMask.setRect(QRectF(0, 0, cube_width, total_height));
     grayMask.setBrush(QBrush(QColor(128, 128, 128, 140)));
     grayMask.setPen(Qt::NoPen);
