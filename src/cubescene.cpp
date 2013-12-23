@@ -85,7 +85,7 @@ void CubeView::switchOrientation(void)
         scene.setIconOffset(0.0);
         scene.setMenuIconsPos();
         //setMinimumSize(QSize(height(), width()));
-        resize(height(), width());
+        resize(width(), height());
     }
 }
 

@@ -52,9 +52,10 @@ static int fd = -1;
 static struct buffer *buffers = NULL;
 static unsigned int n_buffers = 0;
 static unsigned int capture_count = 100;
-static unsigned int capture_interval = 10;
+static unsigned int capture_interval = 60;
 static unsigned int capture_idx = 0;
 static unsigned int capture_fmt = V4L2_PIX_FMT_YUYV;
+static unsigned int preview_fmt = V4L2_PIX_FMT_YUYV;
 static unsigned int no_cap = 0;
 static unsigned int save_raw_image = 0;
 
@@ -63,8 +64,8 @@ static unsigned int save_raw_image = 0;
 static int pw = DEFAULT_PREVIEW_WIDTH;
 static int ph = DEFAULT_PREVIEW_HEIGHT;
 
-#define DEFAULT_STILL_WIDTH			1280
-#define DEFAULT_STILL_HEIGHT		960
+#define DEFAULT_STILL_WIDTH			2048
+#define DEFAULT_STILL_HEIGHT		1536
 static int sw = DEFAULT_STILL_WIDTH;
 static int sh = DEFAULT_STILL_HEIGHT;
 struct buffer *still_buffers = NULL;
@@ -556,7 +557,7 @@ static void init_device(void)
     fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     fmt.fmt.pix.width = pw;
     fmt.fmt.pix.height = ph;
-    fmt.fmt.pix.pixelformat = capture_fmt;
+    fmt.fmt.pix.pixelformat = preview_fmt;
     fmt.fmt.pix.field = V4L2_FIELD_INTERLACED;
 
     if (-1 == xioctl(fd, VIDIOC_S_FMT, &fmt))
