@@ -1,0 +1,131 @@
+diff --git a/cmds/screencap/screencap.cpp b/cmds/screencap/screencap.cpp
+index c469ae4..e65be0c 100644
+--- a/cmds/screencap/screencap.cpp
++++ b/cmds/screencap/screencap.cpp
+@@ -51,6 +51,8 @@ static void usage(const char* pname)
+             "   -h: this message\n"
+             "   -p: save the file as a png.\n"
+             "   -d: specify the display id to capture, default %d.\n"
++            "   -q: quality prefered, will convert to RGB888.\n"
++            "   -s: speed prefered, will convert to RGB565.\n"
+             "If FILENAME ends with .png it will be saved as a png.\n"
+             "If FILENAME is not given, the results will be printed to stdout.\n",
+             pname, DEFAULT_DISPLAY_ID
+@@ -106,19 +108,65 @@ static status_t notifyMediaScanner(const char* fileName) {
+     return NO_ERROR;
+ }
+ 
++static int convert_rgba32_rgb565(const void *src, off_t offset, off_t alpha, off_t cnt, void *dst)
++{
++   int n = cnt;
++   off_t bpp = 3 + alpha;
++   volatile uint8_t *s = (uint8_t *) src + offset;
++   volatile uint16_t *d = (uint16_t *) dst;
++   volatile uint16_t r, g, b;
++
++   while (cnt-- > 0) {
++       r = s[0];
++       g = s[1];
++       b = s[2];
++
++       *d = (((r >> 3 << 11)  & 0xFB00) | ((g >> 2 << 5) & 0x07E0) | (b >> 3));
++       d++;
++       s += bpp;
++   }
++
++   return (n - cnt) * 2;
++}
++
++static int convert_rgba32_rgb888(const void *src, off_t offset, off_t cnt, void *dst)
++{
++    int n = cnt;
++    volatile uint8_t *s = (uint8_t *) src + offset;
++    volatile uint8_t *d = (uint8_t *) dst;
++
++    while (cnt-- > 0) {
++        *d++ = *s++;
++        *d++ = *s++;
++        *d++ = *s++;
++        s++;
++    }
++
++    return (n - cnt) * 3;
++}
++
+ int main(int argc, char** argv)
+ {
+     ProcessState::self()->startThreadPool();
+ 
++    bool rgb565 = false;
++    bool rgb888 = false;
++
+     const char* pname = argv[0];
+     bool png = false;
+     int32_t displayId = DEFAULT_DISPLAY_ID;
+     int c;
+-    while ((c = getopt(argc, argv, "phd:")) != -1) {
++    while ((c = getopt(argc, argv, "phqsd:")) != -1) {
+         switch (c) {
+             case 'p':
+                 png = true;
+                 break;
++            case 'q':
++                rgb888 = true;
++                break;
++            case 's':
++                rgb565 = true;
++                break;
+             case 'd':
+                 displayId = atoi(optarg);
+                 break;
+@@ -234,11 +282,45 @@ int main(int argc, char** argv)
+         } else {
+             write(fd, &w, 4);
+             write(fd, &h, 4);
+-            write(fd, &f, 4);
+-            size_t Bpp = bytesPerPixel(f);
+-            for (size_t y=0 ; y<h ; y++) {
+-                write(fd, base, w*Bpp);
+-                base = (void *)((char *)base + s*Bpp);
++            if (f == PIXEL_FORMAT_RGBX_8888
++                || f == PIXEL_FORMAT_RGBA_8888) {
++                if (rgb565) {
++                    void *buf;
++                    size = w * h * 2;
++                    buf = malloc(size);
++                    convert_rgba32_rgb565(base, 0, 1, w*h, buf);
++                    f = PIXEL_FORMAT_RGB_565;
++                    write(fd, &f, 4);
++                    write(fd, buf, size);
++                    free(buf);
++                } else if (rgb888) {
++                    void *buf;
++                    size = w * h * 3;
++                    buf = malloc(size);
++                    convert_rgba32_rgb888(base, 0, w*h, buf);
++                    f = PIXEL_FORMAT_RGB_888;
++                    write(fd, &f, 4);
++                    write(fd, buf, size);
++                    free(buf);
++                }
++            } else if (f == PIXEL_FORMAT_RGB_888) {
++                if (rgb565) {
++                    void *buf;
++                    size = w * h * 2;
++                    buf = malloc(size);
++                    convert_rgba32_rgb565(base, 0, 0, w*h, buf);
++                    f = PIXEL_FORMAT_RGB_565;
++                    write(fd, &f, 4);
++                    write(fd, buf, size);
++                    free(buf);
++                }
++            } else {
++                write(fd, &f, 4);
++                size_t Bpp = bytesPerPixel(f);
++                for (size_t y=0 ; y<h ; y++) {
++                    write(fd, base, w*Bpp);
++                    base = (void *)((char *)base + s*Bpp);
++                }
+             }
+         }
+     }
