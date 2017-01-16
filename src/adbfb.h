@@ -284,6 +284,12 @@ private:
 #define ADB_WAIT_INTERVAL_MIN 500
 #define ADB_WAIT_INTERVAL_MAX 3*1000*1000
 
+/*
+ * Max invalide buffer we can accept before we consider
+ * the device disconnected.
+ */
+#define INVALIDE_BUFFER_MAX 5
+
 class ADBFrameBuffer: public ADBBase
 {
     Q_OBJECT
@@ -356,6 +362,7 @@ private:
     int fb_height;
     int fb_format;
     int bpp;
+    int invalid_buffer_count;
 };
 
 #endif // ADBFB_H

@@ -612,6 +612,7 @@ ADBFrameBuffer::ADBFrameBuffer()
     fb_height = DEFAULT_FB_HEIGHT;
     fb_format = PIXEL_FORMAT_RGBA_8888;
     bpp = FB_BPP_MAX;
+    invalid_buffer_count = 0;
 }
 
 void ADBFrameBuffer::setPaused(bool p)
@@ -732,6 +733,10 @@ int ADBFrameBuffer::screenCap(QByteArray &bytes, int offset)
     // TODO: Add UI config for this option
     if (screencapOptQuality) {
         args << "-q";
+    }
+
+    if (screencapOptSpeed) {
+        args << "-s";
     }
 
     if (doCompress) {
@@ -863,10 +868,17 @@ void ADBFrameBuffer::sendNewFB(void)
     }
 
     if (bytes.length() < length()) {
-        DT_ERROR("Invalid FB data len:" << bytes.length()
+        if (invalid_buffer_count < INVALIDE_BUFFER_MAX) {
+            invalid_buffer_count++;
+            DT_TRACE("Invalid FB data len:" << bytes.length()
                  << "require" << length());
-        setConnected(false);
-        return;
+        } else {
+            invalid_buffer_count = 0;
+            setConnected(false);
+            return;
+	}
+    } else {
+            invalid_buffer_count = 0;
     }
 
     //DT_TRACE("Send out FB");
