@@ -1,4 +1,4 @@
-Seven Sqaure
+Seven Square
 ============
 
 Android screencast wroted in QT. There is one in java? forget it from now on.
