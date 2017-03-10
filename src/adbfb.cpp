@@ -287,17 +287,18 @@ void ADBDevice::probeDevice(void)
     probeDeviceHasSysLCDBL();
 }
 
-/* FIXME: We'd better use Android's API level to probe the os revision */
 int ADBDevice::probeDeviceOSType(void)
 {
     AdbExecutor adb;
     int os = ANDROID_ICS;
 
     adb.addArg("shell");
-    adb.addArg("input");
+    adb.addArg("getprop");
+    adb.addArg("ro.build.version.sdk");
+
     adb.run();
 
-    if (adb.outputHas("swipe")) {
+    if (adb.output.simplified().toInt() >= 16) {
         os = ANDROID_JB;
     }
     //qDebug() << "OS type:" << os << adb.output;
