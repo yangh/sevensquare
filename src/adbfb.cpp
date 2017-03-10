@@ -363,7 +363,7 @@ void ADBDevice::probeInputDevices(void)
     QStringList args;
     QList<QByteArray> lines;
 
-    args << "shell" << "ls" << QString(SYS_INPUT_DIR) + "input*";
+    args << "shell" << "ls -d" << QString(SYS_INPUT_DIR) + "input*";
     adb.run(args);
 
     if (! adb.exitSuccess()) {
