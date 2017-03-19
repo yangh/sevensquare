@@ -193,7 +193,7 @@ public:
 #define SYS_INPUT_DIR       "/sys/class/input/"
 #define SYS_INPUT_INDEX_OFFSET 22
 
-#define EV_IS_TOUCHSCREEN(ev) (ev == 0x0B) // EV_SYN | EV_KEY | EV_ABS
+#define EV_IS_TOUCHSCREEN(ev) ((ev & (1 <<EV_SYN)) && (ev & (1 << EV_ABS)) && (ev & (1 << EV_KEY)))
 #define EV_IS_KEY(ev)	      ((ev == 0x03) || ((ev & (1 <<EV_KEY)) && (ev & (1 << EV_SW) || ev & (1 << EV_MSC))))
 #define EV_IS_MOUSE(ev)	      (ev == 0x17) // EV_SYN | EV_KEY | EV_REL | EV_MSC
 
