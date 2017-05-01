@@ -7,7 +7,7 @@ A tool used to view a mirror screen of your Android device on the PC,
 used for demostration, debuging, and so on. even you can click on the
 mirror screen as you touch on the device panel.
 
-[Screenshot](screenshots/seven-square-screenshot.png)
+![Screenshot](screenshots/seven-square-screenshot.png)
 
 Tested host: Linux, Windows.
 Tested device: QRD8x25/8x26, Linaro Panda board (OMAP4430), TCL Idol X (MTK6589)
