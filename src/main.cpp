@@ -5,7 +5,7 @@
  *
  */
 
-#include <QtGui/QApplication>
+#include <QApplication>
 #include <QSize>
 #include <QIcon>
 
