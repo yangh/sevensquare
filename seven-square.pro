@@ -4,6 +4,7 @@
 #QT += opengl \
 #    script \
 #    svg
+QT +=widgets
 TARGET = seven-square
 TEMPLATE = app
 CONFIG += debug release
