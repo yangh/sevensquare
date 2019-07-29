@@ -43,7 +43,7 @@ int Commander::run(bool waitUntilFinished)
         p = new QProcess();
     }
 
-    //DT_TRACE("CMD" << cmd << args.join(" "));
+    DT_TRACE("CMD" << cmd << args.join(" "));
     p->start(cmd, args);
 
     if (waitUntilFinished) {
@@ -141,7 +141,8 @@ int ADBBase::increaseDelay()
 
 ADBDevice::ADBDevice()
 {
-    osType = ANDROID_JB;
+    buildType = "userdebug";
+    osType = ANDROID_JB; // Android 5.0 L
     lcdBrightness = -1;
     hasSysLCDBL = false;
 
@@ -282,9 +283,27 @@ void ADBDevice::probeDevice(void)
 {
     emit newPropmtMessae(tr("Probing device..."));
 
+    /* getprop based probe */
     probeDeviceOSType();
-    probeInputDevices();
-    probeDeviceHasSysLCDBL();
+    probeDeviceBuildType();
+
+    /* No permission to probe on a user build */
+    if (! isUserBuild()) {
+        probeDeviceRoot();
+        probeInputDevices();
+        probeDeviceHasSysLCDBL();
+    }
+}
+
+int ADBDevice::probeDeviceRoot(void)
+{
+    AdbExecutor adb;
+    int os = ANDROID_ICS;
+
+    adb.run("root");
+    adb.run("wait-for-device");
+
+    return 0;
 }
 
 int ADBDevice::probeDeviceOSType(void)
@@ -298,14 +317,27 @@ int ADBDevice::probeDeviceOSType(void)
 
     adb.run();
 
-    if (adb.output.simplified().toInt() >= 16) {
-        os = ANDROID_JB;
-    }
-    //qDebug() << "OS type:" << os << adb.output;
-
-    osType = os;
+    osType = adb.output.simplified().toInt();
+    DT_TRACE("OS type: " << osType);
 
     return os;
+}
+
+int ADBDevice::probeDeviceBuildType(void)
+{
+    AdbExecutor adb;
+    int os = ANDROID_ICS;
+
+    adb.addArg("shell");
+    adb.addArg("getprop");
+    adb.addArg("ro.build.type");
+
+    adb.run();
+
+    buildType = adb.output.simplified();
+    DT_TRACE("Build type: " << buildType);
+
+    return 0;
 }
 
 void ADBDevice::probeDeviceHasSysLCDBL(void)
@@ -500,19 +532,14 @@ void ADBDevice::sendVirtualClick(QPoint pos,
 {
     DT_TRACE("CLICK" << pos.x() << pos.y() << press << release);
 
-    switch(osType) {
-    case ANDROID_ICS:
+    if (osType <= ANDROID_JB) {
         sendEvent(pos, press, release);
-        break;
-    case ANDROID_JB:
+    } else {
         // Mouse move, ignored.
         // Both true is impossible
         if (press || release) {
             sendTap(pos, press);
         }
-        break;
-    default:
-        qDebug() << "Unknown OS type, click dropped.";
     }
 }
 
@@ -754,9 +781,17 @@ int ADBFrameBuffer::screenCap(QByteArray &bytes, int offset)
         return adb.ret;
     }
 
-    //DT_TRACE("BUF Original len: " << adb.output.length());
-    bytes = adb.outputFixNewLine();
-    //DT_TRACE("BUF fixed new line: " << bytes.length());
+    // Assume that Android < 7.0 has this issue
+    if (deviceOSType() < ANDROID_NO)
+    {
+        DT_TRACE("BUF Original len: " << adb.output.length());
+        bytes = adb.outputFixNewLine();
+        DT_TRACE("BUF fixed new line: " << bytes.length());
+    }
+    else
+    {
+        bytes = adb.output;
+    }
 
     if (doCompress) {
         minigzipDecompress(bytes);
@@ -920,6 +955,7 @@ void ADBFrameBuffer::probeFBInfo()
 {
     int ret;
 
+    probeDeviceOSType();
     checkCompressSupport();
     checkScreenCapOptions();
 

@@ -26,8 +26,12 @@
 #define IMPOSSIBLE_FB_WIDTH	5120
 
 enum {
-    ANDROID_ICS,
-    ANDROID_JB,
+    ANDROID_ICS = 14,
+    ANDROID_JB = 16,
+    ANDROID_LO = 21,
+    ANDROID_MA = 23,
+    ANDROID_NO = 24,
+    ANDROID_OR = 26,
     ANDROID_UNKNOWN
 };
 
@@ -209,11 +213,14 @@ public:
     bool screenIsOn(void);
     int screenBrightness(void) { return lcdBrightness; }
     int deviceOSType(void)     { return osType; }
+    bool isUserBuild(void)     { return buildType == "user"; }
+    int  probeDeviceOSType(void);
 
 private:
     void probeDeviceHasSysLCDBL(void);
     void probeInputDevices(void);
-    int  probeDeviceOSType(void);
+    int  probeDeviceBuildType(void);
+    int  probeDeviceRoot(void);
 
     int getDeviceLCDBrightness();
 
@@ -257,6 +264,7 @@ private:
     bool hasSysLCDBL;
     int lcdBrightness;
     int osType;
+    QString buildType;
 
     // Used in jb to distinguish tap/swipe event
     QPoint posOfPress;
@@ -290,7 +298,7 @@ private:
  */
 #define INVALIDE_BUFFER_MAX 5
 
-class ADBFrameBuffer: public ADBBase
+class ADBFrameBuffer: public ADBDevice
 {
     Q_OBJECT
 
