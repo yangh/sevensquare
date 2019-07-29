@@ -8,8 +8,9 @@ A tool used to view a mirror screen of your Android device on the PC, show a dem
 ![Screenshot](screenshots/seven-square-screenshot.png)
 
 + Tested hosts: Linux, Windows
-+ Tested devices: QRD8x25/8x26, Linaro Panda board (OMAP4430), TCL Idol X (MTK6589)
-+ Tested Android versions: 4.0, 4.1, 4.2
++ Tested devices: QRD8x25/8x26, Linaro Panda board (OMAP4430), TCL Idol X (MTK6589), LG Nexus 5X
++ Tested Android versions: 4.0, 4.1, 4.2, 6.0, 8.0
++ Tested Android build: user, userdebug
 
 Features
 --------
