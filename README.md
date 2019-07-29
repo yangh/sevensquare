@@ -191,6 +191,16 @@ Contributors
 
  Eric Wang, Helped to port to the Windows platform
 
+ Bug fixing:
+
+  Maks Verver
+
+  flutterbrony
+
+  Alexandre ZANNI
+
+  oesse79
+
 References
 ==========
 
