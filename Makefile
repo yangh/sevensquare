@@ -2,7 +2,7 @@ all: app
 
 build/Makefile: seven-square.pro seven-square.qrc
 	mkdir -p build
-	(cd build && qmake-qt4 -o Makefile ../seven-square.pro)
+	(cd build && qmake -o Makefile ../seven-square.pro)
 
 src/keymap-generated.h: src/keycodes.h
 	./contributes/generate-keymap.sh
